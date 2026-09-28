@@ -1,0 +1,5 @@
+// Touche de pause de la run (modifiable dans Options > Commandes > Sinwave).
+addkeysection "Sinwave" SinwaveKeys
+addmenukey "Pause de la run" sinwave_pause
+alias sinwave_pause "netevent sinwave_pause"
+defaultbind P sinwave_pause

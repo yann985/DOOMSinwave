@@ -1,0 +1,66 @@
+# Améliorations proposées à chaque montée de niveau : les sept vertus,
+# chacune opposée à un péché, plus une arme.
+#
+#   name        : nom affiché
+#   description : texte affiché sous le nom
+#   effect      : maxhealth, heal, armor, damage, speed, regen, magnet, xpgain, give
+#   value       : force de l'effet (points, ou fraction : 0.2 = +20 %)
+#   item/amount : objet donné, pour l'effet « give »
+#   max         : nombre de fois où elle peut être choisie pendant une run
+
+[upgrade temperance]
+name        = Tempérance
+description = +25 points de vie maximum
+effect      = maxhealth
+value       = 25
+max         = 4
+
+[upgrade diligence]
+name        = Diligence
+description = +10 % de vitesse de déplacement
+effect      = speed
+value       = 0.1
+max         = 3
+
+[upgrade patience]
+name        = Patience
+description = Régénère 1 point de vie par seconde
+effect      = regen
+value       = 1
+max         = 3
+
+[upgrade chastity]
+name        = Chasteté
+description = +20 % de dégâts infligés
+effect      = damage
+value       = 0.2
+max         = 5
+
+[upgrade charity]
+name        = Charité
+description = Les orbes d'expérience sont attirées 50 % plus loin
+effect      = magnet
+value       = 0.5
+max         = 3
+
+[upgrade humility]
+name        = Humilité
+description = +25 % d'expérience gagnée
+effect      = xpgain
+value       = 0.25
+max         = 3
+
+[upgrade kindness]
+name        = Bienveillance
+description = +50 points d'armure
+effect      = armor
+value       = 50
+max         = 4
+
+[upgrade justice]
+name        = Glaive de justice
+description = Obtiens le super fusil de chasse
+effect      = give
+item        = SuperShotgun
+amount      = 1
+max         = 1

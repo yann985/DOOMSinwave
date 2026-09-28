@@ -1,0 +1,7 @@
+// Méta-progression. Écrites uniquement par Sinwave_CVarSaveService.
+user int sinwave_meta_souls = 0;
+user int sinwave_meta_best = 0;
+user int sinwave_meta_runs = 0;
+
+// 1 : affiche chaque événement du bus dans la console (Sinwave_EventLogger).
+user bool sinwave_debug = false;
