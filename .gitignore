@@ -1,32 +1,41 @@
-# Prerequisites
-*.d
+# Générés par les scripts de tools/
+build/
+dist/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# IWAD : jamais dans le dépôt (installés par tools/setup.ps1, hors du dépôt).
+# Les maps du jeu (src/maps/*.wad) restent versionnées.
+doom.wad
+doom1.wad
+doomu.wad
+doom2.wad
+tnt.wad
+plutonia.wad
+freedoom1.wad
+freedoom2.wad
+freedm.wad
 
-# Precompiled Headers
-*.gch
-*.pch
+# Journaux et réglages locaux des moteurs
+*.log
+*_portable.ini
+gzdoom*.ini
+uzdoom*.ini
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# Fichiers temporaires d'Ultimate Doom Builder, SLADE et des éditeurs
+*.backup1
+*.backup2
+*.backup3
+*.dbs
+*.bak
+*.tmp
+~$*
 
-# Fortran module files
-*.mod
-*.smod
+# Système
+Thumbs.db
+desktop.ini
+.DS_Store
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# VS Code : seule la configuration partagée est versionnée
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
