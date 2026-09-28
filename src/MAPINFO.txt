@@ -1,0 +1,29 @@
+// Seul point d'entrée du code : la racine de composition.
+GameInfo
+{
+	AddEventHandlers = "Sinwave_Game"
+}
+
+// Numéros d'éditeur des acteurs placés dans les cartes (Ultimate Doom Builder).
+DoomEdNums
+{
+	30001 = Sinwave_SpawnPoint
+}
+
+// « Nouvelle partie » mène directement à l'arène.
+clearepisodes
+episode SW01
+{
+	name = "Sinwave"
+	key = "s"
+	noskillmenu
+}
+
+map SW01 "Le Purgatoire"
+{
+	levelnum = 1
+	next = "SW01"
+	sky1 = "SKY3"
+	music = "D_RUNNIN"
+	nointermission
+}

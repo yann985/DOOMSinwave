@@ -1,0 +1,45 @@
+version "4.14"
+
+// Liste de tous les scripts, rangés par couche (voir docs/ARCHITECTURE.md).
+
+// core : briques génériques, sans aucune règle de jeu
+#include "zscript/core/sinwave_event.zs"
+#include "zscript/core/sinwave_services.zs"
+#include "zscript/core/sinwave_eventbus.zs"
+#include "zscript/core/sinwave_system.zs"
+#include "zscript/core/sinwave_statemachine.zs"
+#include "zscript/core/sinwave_dataparser.zs"
+
+// data : définitions lues dans data/*.txt, sauvegarde de la méta-progression
+#include "zscript/data/sinwave_definitions.zs"
+#include "zscript/data/sinwave_gamedata.zs"
+#include "zscript/data/sinwave_save.zs"
+
+// gameplay : événements, états, systèmes et acteurs du jeu
+#include "zscript/gameplay/sinwave_events.zs"
+#include "zscript/gameplay/sinwave_world.zs"
+#include "zscript/gameplay/states/sinwave_gamestate.zs"
+#include "zscript/gameplay/states/sinwave_menustate.zs"
+#include "zscript/gameplay/states/sinwave_ingamestate.zs"
+#include "zscript/gameplay/states/sinwave_suspendedstates.zs"
+#include "zscript/gameplay/states/sinwave_gameoverstate.zs"
+#include "zscript/gameplay/systems/sinwave_wavesystem.zs"
+#include "zscript/gameplay/systems/sinwave_xpsystem.zs"
+#include "zscript/gameplay/systems/sinwave_upgradesystem.zs"
+#include "zscript/gameplay/systems/sinwave_scoresystem.zs"
+#include "zscript/gameplay/systems/sinwave_playersystem.zs"
+#include "zscript/gameplay/systems/sinwave_metasystem.zs"
+#include "zscript/gameplay/systems/sinwave_eventlogger.zs"
+#include "zscript/gameplay/actors/sinwave_xporb.zs"
+#include "zscript/gameplay/actors/sinwave_spawnpoint.zs"
+
+// ui : modèle, présentateur, HUD et menus
+#include "zscript/ui/sinwave_hudmodel.zs"
+#include "zscript/ui/sinwave_hudpresenter.zs"
+#include "zscript/ui/sinwave_canvas.zs"
+#include "zscript/ui/sinwave_hud.zs"
+#include "zscript/ui/sinwave_menus.zs"
+#include "zscript/ui/sinwave_uicontroller.zs"
+
+// app : racine de composition, seul point d'entrée déclaré au moteur
+#include "zscript/app/sinwave_game.zs"

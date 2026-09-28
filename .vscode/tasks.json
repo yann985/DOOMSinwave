@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Sinwave : vérifier le ZScript",
+      "detail": "Construit le .pk3 et vérifie qu'il compile dans GZDoom (Ctrl+Maj+B). Les erreurs vont dans l'onglet Problèmes.",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/check.ps1"],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "clear": true },
+      "problemMatcher": {
+        "owner": "zscript",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.+?):(\\d+): (error|warning): (.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      }
+    },
+    {
+      "label": "Sinwave : jouer (GZDoom)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : jouer directement dans l'arène",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1", "-Map", "SW01", "-Extra", "+sinwave_debug 1"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : tests automatiques",
+      "detail": "Joue des runs complètes toutes seules et vérifie chaque étape. Ne pas toucher au clavier pendant le test.",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/test.ps1"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : jouer (UZDoom)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1", "-Engine", "uzdoom"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : construire le .pk3",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/build.ps1"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : build Windows à rendre",
+      "detail": "Crée dist/Sinwave-win64.zip (GZDoom + sinwave.pk3 + Freedoom + lanceur).",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/package.ps1"],
+      "problemMatcher": []
+    }
+  ]
+}
