@@ -1,0 +1,49 @@
+name: Build
+
+# À chaque push / pull request : construit sinwave.pk3 (téléchargeable dans l'onglet Actions).
+# À chaque tag v* (ex : v0.1.0) : prépare aussi le build Windows et le publie en Release.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      SINWAVE_TOOLS: ${{ github.workspace }}/../DoomTools
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire le .pk3
+        shell: pwsh
+        run: ./tools/build.ps1
+
+      - name: Envoyer le .pk3
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinwave-pk3
+          path: build/sinwave.pk3
+
+      - name: Installer le moteur figé (GZDoom + Freedoom)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: ./tools/setup.ps1 -EngineOnly
+
+      - name: Préparer le build Windows
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: ./tools/package.ps1
+
+      - name: Publier la release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Sinwave-win64.zip
+          generate_release_notes: true
