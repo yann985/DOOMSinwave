@@ -1,0 +1,64 @@
+# Types d'ennemis : un bloc par péché capital.
+#
+#   name   : nom affiché
+#   actor  : classe d'acteur du moteur (monstres de Doom II / Freedoom)
+#   health : multiplicateur des points de vie de base
+#   speed  : multiplicateur de vitesse
+#   xp     : valeur de l'orbe d'expérience lâchée à la mort
+#   score  : points gagnés en le tuant
+
+[enemy sloth]
+name   = Paresse
+actor  = Zombieman
+health = 1.5
+speed  = 0.6
+xp     = 1
+score  = 10
+
+[enemy gluttony]
+name   = Gourmandise
+actor  = Demon
+health = 0.6
+speed  = 1.0
+xp     = 2
+score  = 15
+
+[enemy wrath]
+name   = Colère
+actor  = LostSoul
+health = 0.6
+speed  = 1.2
+xp     = 2
+score  = 15
+
+[enemy envy]
+name   = Envie
+actor  = ShotgunGuy
+health = 1.0
+speed  = 1.0
+xp     = 2
+score  = 20
+
+[enemy lust]
+name   = Luxure
+actor  = DoomImp
+health = 1.0
+speed  = 1.0
+xp     = 3
+score  = 25
+
+[enemy greed]
+name   = Avarice
+actor  = ChaingunGuy
+health = 1.0
+speed  = 1.0
+xp     = 4
+score  = 35
+
+[enemy pride]
+name   = Orgueil
+actor  = HellKnight
+health = 0.8
+speed  = 1.0
+xp     = 10
+score  = 100

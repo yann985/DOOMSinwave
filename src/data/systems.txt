@@ -1,0 +1,41 @@
+# Systèmes de jeu créés au lancement, dans cet ordre.
+#
+# Chaque système ne dépend que des services (bus, données, sauvegarde) et ne
+# connaît aucun autre système. On peut donc :
+#   - le désactiver : enabled = false (le reste du jeu continue de tourner) ;
+#   - le remplacer  : class = une autre classe qui hérite de Sinwave_System.
+#
+# Le journal (debug) est en premier pour voir les événements dans l'ordre exact
+# de leur publication.
+
+[system debug]
+class   = Sinwave_EventLogger
+enabled = true
+
+[system waves]
+class   = Sinwave_WaveSystem
+enabled = true
+
+[system xp]
+class   = Sinwave_XpSystem
+enabled = true
+
+[system upgrades]
+class   = Sinwave_UpgradeSystem
+enabled = true
+
+[system score]
+class   = Sinwave_ScoreSystem
+enabled = true
+
+[system player]
+class   = Sinwave_PlayerSystem
+enabled = true
+
+[system meta]
+class   = Sinwave_MetaSystem
+enabled = true
+
+[system hud]
+class   = Sinwave_HudPresenter
+enabled = true

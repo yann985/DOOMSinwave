@@ -1,0 +1,32 @@
+# Vagues d'ennemis, jouées dans l'ordre du fichier. Durée totale : environ 2 min 40.
+#
+#   name     : nom affiché au début de la vague
+#   duration : durée en secondes
+#   interval : secondes entre deux apparitions
+#   max      : nombre maximum d'ennemis vivants en même temps
+#   break    : secondes de répit avant la vague suivante
+#   enemies  : identifiants de data/enemies.txt, avec leur poids (chance d'apparaître)
+
+[wave 1]
+name     = Premier cercle : Paresse et Gourmandise
+duration = 50
+interval = 1.2
+max      = 16
+break    = 5
+enemies  = sloth:3, gluttony:2
+
+[wave 2]
+name     = Deuxième cercle : Colère, Envie et Luxure
+duration = 55
+interval = 1.0
+max      = 22
+break    = 5
+enemies  = wrath:2, envy:2, lust:3
+
+[wave 3]
+name     = Dernier cercle : Avarice et Orgueil
+duration = 45
+interval = 1.8
+max      = 12
+break    = 0
+enemies  = greed:3, pride:1

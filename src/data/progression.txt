@@ -1,0 +1,13 @@
+# Réglages généraux de progression.
+
+[progression default]
+xp_first_level  = 5                        # XP pour passer au niveau 2
+xp_growth       = 1.6                      # chaque niveau demande 60 % d'XP en plus
+upgrade_choices = 3                        # améliorations proposées à chaque niveau
+magnet_radius   = 192                      # distance d'attraction des orbes (unités de carte)
+souls_per_score = 20                       # 1 âme pour 20 points de score
+souls_per_wave  = 3                        # âmes par vague terminée
+souls_victory   = 10                       # bonus d'âmes si la run est gagnée
+start_items     = Shotgun, Shell:40, Clip:100
+supply_seconds  = 6                        # ravitaillement toutes les N secondes
+supply_items    = Clip:10, Shell:3
