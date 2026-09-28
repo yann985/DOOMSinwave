@@ -1,2 +1,30 @@
-# Auto detect text files and perform LF normalization
+# Fins de ligne normalisées (LF) dans le dépôt, quel que soit le poste.
 * text=auto
+
+# Code, données et documentation du jeu
+*.zs    text eol=lf
+*.txt   text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+
+# Scripts Windows : CRLF obligatoire
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Ressources binaires : ni conversion ni diff texte
+*.wad   binary
+*.pk3   binary
+*.png   binary
+*.jpg   binary
+*.xcf   binary
+*.wav   binary
+*.ogg   binary
+*.mp3   binary
+*.flac  binary
+*.mid   binary
+*.lmp   binary
+*.pdf   binary
+*.docx  binary
+*.zip   binary
