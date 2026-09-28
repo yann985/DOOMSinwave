@@ -29,10 +29,19 @@
       "problemMatcher": []
     },
     {
-      "label": "Sinwave : jouer directement sur MAP01",
+      "label": "Sinwave : jouer directement dans l'arène",
       "type": "process",
       "command": "powershell.exe",
-      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1", "-Map", "MAP01"],
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1", "-Map", "SW01", "-Extra", "+sinwave_debug 1"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : tests automatiques",
+      "detail": "Joue des runs complètes toutes seules et vérifie chaque étape. Ne pas toucher au clavier pendant le test.",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/test.ps1"],
+      "group": "test",
       "problemMatcher": []
     },
     {

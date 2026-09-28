@@ -1,0 +1,4 @@
+version "4.14"
+
+// Tests unitaires du noyau, chargés uniquement par tools\test.ps1.
+#include "zscript/sinwave_unittests.zs"
