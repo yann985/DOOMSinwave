@@ -181,22 +181,23 @@ class Sinwave_RunEndedEvent : Sinwave_Event
 	}
 }
 
-// --- Cercles, ennemis et boss (Sinwave_WaveSystem, Sinwave_BossSystem) -------
+// --- Cercles, vagues, ennemis et boss (Sinwave_WaveSystem, Sinwave_BossSystem) -
+//
+// Une run traverse des cercles ; chaque cercle enchaîne plusieurs vagues.
+//   CircleStarted, WaveStarted, WaveEnded, WaveStarted, ..., WaveEnded, CircleEnded
 
-class Sinwave_WaveStartedEvent : Sinwave_Event
+class Sinwave_CircleStartedEvent : Sinwave_Event
 {
 	int mIndex;
 	int mCount;
 	String mName;
-	int mDurationTics;	// 0 : jusqu'à la mort du boss
 
-	static Sinwave_WaveStartedEvent Create(int index, int count, String name, int durationTics)
+	static Sinwave_CircleStartedEvent Create(int index, int count, String name)
 	{
-		let e = new('Sinwave_WaveStartedEvent');
+		let e = new('Sinwave_CircleStartedEvent');
 		e.mIndex = index;
 		e.mCount = count;
 		e.mName = name;
-		e.mDurationTics = durationTics;
 		return e;
 	}
 
@@ -206,13 +207,13 @@ class Sinwave_WaveStartedEvent : Sinwave_Event
 	}
 }
 
-class Sinwave_WaveEndedEvent : Sinwave_Event
+class Sinwave_CircleEndedEvent : Sinwave_Event
 {
 	int mIndex;
 
-	static Sinwave_WaveEndedEvent Create(int index)
+	static Sinwave_CircleEndedEvent Create(int index)
 	{
-		let e = new('Sinwave_WaveEndedEvent');
+		let e = new('Sinwave_CircleEndedEvent');
 		e.mIndex = index;
 		return e;
 	}
@@ -223,8 +224,50 @@ class Sinwave_WaveEndedEvent : Sinwave_Event
 	}
 }
 
+class Sinwave_WaveStartedEvent : Sinwave_Event
+{
+	int mCircle;
+	int mIndex;			// vague dans le cercle
+	int mCount;			// vagues du cercle
+	int mDurationTics;	// 0 : jusqu'à la mort du boss
+
+	static Sinwave_WaveStartedEvent Create(int circle, int index, int count, int durationTics)
+	{
+		let e = new('Sinwave_WaveStartedEvent');
+		e.mCircle = circle;
+		e.mIndex = index;
+		e.mCount = count;
+		e.mDurationTics = durationTics;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("cercle %d, vague %d/%d", mCircle + 1, mIndex + 1, mCount);
+	}
+}
+
+class Sinwave_WaveEndedEvent : Sinwave_Event
+{
+	int mCircle;
+	int mIndex;
+
+	static Sinwave_WaveEndedEvent Create(int circle, int index)
+	{
+		let e = new('Sinwave_WaveEndedEvent');
+		e.mCircle = circle;
+		e.mIndex = index;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("cercle %d, vague %d", mCircle + 1, mIndex + 1);
+	}
+}
+
 // Tous les cercles sont franchis : la run est gagnée.
-class Sinwave_AllWavesClearedEvent : Sinwave_Event {}
+class Sinwave_AllCirclesClearedEvent : Sinwave_Event {}
 
 class Sinwave_EnemyKilledEvent : Sinwave_Event
 {

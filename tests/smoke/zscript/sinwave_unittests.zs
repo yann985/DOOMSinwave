@@ -85,6 +85,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestStateMachine();
 		TestDataParser();
 		TestWaveWeights();
+		TestCircleWaves();
 		TestEffects();
 		TestUpgradeKinds();
 		TestShopPrices();
@@ -196,7 +197,7 @@ class Sinwave_UnitTests : StaticEventHandler
 	{
 		Array<Sinwave_DataBlock> blocks;
 		Sinwave_DataParser.ParseText("test",
-			"# commentaire\n[enemy Imp]\nname = Diablotin   # fin de ligne ignorée\nhealth = 1.5\n\n[wave 1]\nenemies = a:2, b:3\n",
+			"# commentaire\n[enemy Imp]\nname = Diablotin   # fin de ligne ignorée\nhealth = 1.5\n\n[circle 1]\nenemies = a:2, b:3\n",
 			blocks);
 
 		Check(blocks.Size() == 2, "données : deux blocs lus");
@@ -214,12 +215,34 @@ class Sinwave_UnitTests : StaticEventHandler
 	private void TestWaveWeights()
 	{
 		Array<Sinwave_DataBlock> blocks;
-		Sinwave_DataParser.ParseText("test", "[wave 1]\nenemies = a:2, b:3\n", blocks);
-		let wave = Sinwave_WaveDef.FromBlock(blocks[0]);
+		Sinwave_DataParser.ParseText("test", "[circle 1]\nenemies = a:2, b:3\n", blocks);
+		let circle = Sinwave_CircleDef.FromBlock(blocks[0]);
 
-		Check(wave.mTotalWeight == 5, "vagues : somme des poids");
-		Check(wave.PickEnemy(0) == 'a' && wave.PickEnemy(1) == 'a', "vagues : tirage selon le poids (a)");
-		Check(wave.PickEnemy(2) == 'b' && wave.PickEnemy(4) == 'b', "vagues : tirage selon le poids (b)");
+		Check(circle.mTotalWeight == 5, "vagues : somme des poids");
+		Check(circle.PickEnemy(0) == 'a' && circle.PickEnemy(1) == 'a', "vagues : tirage selon le poids (a)");
+		Check(circle.PickEnemy(2) == 'b' && circle.PickEnemy(4) == 'b', "vagues : tirage selon le poids (b)");
+	}
+
+	// Un cercle enchaîne plusieurs vagues de plus en plus serrées ; la dernière
+	// est celle du boss ; le rang d'une vague compte depuis le début de l'arène.
+	private void TestCircleWaves()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[circle 1]\nwaves = 3\nduration = 5\ninterval = 1\nmax = 10\nenemies = a\n"
+			.. "[circle 2]\nwaves = 2\nduration = 5\nboss = lucifer\nenemies = a\n", blocks);
+		let first = Sinwave_CircleDef.FromBlock(blocks[0]);
+		let second = Sinwave_CircleDef.FromBlock(blocks[1]);
+
+		Check(first.IntervalTicsForWave(0, 0.5) == 35 && first.IntervalTicsForWave(2, 0.5) == 18, "vagues : les apparitions accélèrent d'une vague à l'autre");
+		Check(first.MaxAliveForWave(0, 3) == 10 && first.MaxAliveForWave(2, 3) == 16, "vagues : plus d'ennemis vivants d'une vague à l'autre");
+		Check(!first.IsBossWave(2) && first.WaveTics(2) == 5 * TICRATE, "vagues : sans boss, toutes les vagues sont minutées");
+		Check(!second.IsBossWave(0) && second.IsBossWave(1) && second.WaveTics(1) == 0, "vagues : la dernière vague est celle du boss, sans durée");
+
+		let data = new('Sinwave_GameData');
+		data.mCircles.Push(first);
+		data.mCircles.Push(second);
+		Check(data.WaveRank(0, 0) == 0 && data.WaveRank(1, 1) == 4, "vagues : rang compté depuis le début de l'arène");
 	}
 
 	private void TestEffects()

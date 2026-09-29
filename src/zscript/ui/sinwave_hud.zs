@@ -7,6 +7,8 @@
 
 class Sinwave_Hud ui
 {
+	const CORNER_WIDTH = 95.0;	// place prise par les colonnes des coins (temps, victimes)
+
 	private Sinwave_Canvas mCanvas;
 
 	void Draw(Sinwave_HudModel m)
@@ -85,16 +87,24 @@ class Sinwave_Hud ui
 		c.Text(NewSmallFont, Font.CR_GRAY, c.mWidth - 8, 34, String.Format("Victimes %d", m.mKills), 1.1, Sinwave_Canvas.ALIGN_RIGHT);
 
 		double center = c.mWidth / 2;
-		if (m.mWaveCount > 0)
+		if (m.mCircleCount > 0)
 		{
+			// Ex. : « Cercle 3/7 : Luxure   vague 2/3   0:05 ».
+			String circleLine = String.Format("Cercle %d/%d : %s", m.mCircle + 1, m.mCircleCount, m.mCircleName);
 			String waveLine;
-			if (m.mBetweenWaves) waveLine = "Répit...";
-			else if (m.mWaveTicsLeft > 0) waveLine = String.Format("Cercle %d/%d : %s   %s", m.mWave + 1, m.mWaveCount, m.mWaveName, Sinwave_Canvas.FormatTime(m.mWaveTicsLeft));
-			else waveLine = String.Format("Cercle %d/%d : %s", m.mWave + 1, m.mWaveCount, m.mWaveName);
-			c.Text(NewSmallFont, Font.CR_RED, center, 14, waveLine, 1.4, Sinwave_Canvas.ALIGN_CENTER);
-			if (!m.mBetweenWaves && m.mCurseDescription.Length() > 0)
+			if (m.mBetweenCircles) waveLine = "Répit...";
+			else if (m.mBetweenWaves) waveLine = circleLine .. "   répit";
+			else if (m.mWaveTicsLeft > 0) waveLine = String.Format("%s   vague %d/%d   %s", circleLine, m.mWave + 1, m.mWaveCount, Sinwave_Canvas.FormatTime(m.mWaveTicsLeft));
+			else waveLine = String.Format("%s   vague %d/%d", circleLine, m.mWave + 1, m.mWaveCount);
+			c.Text(NewSmallFont, Font.CR_RED, center, 14, waveLine, 1.3, Sinwave_Canvas.ALIGN_CENTER);
+			if (!m.mBetweenCircles && m.mCurseDescription.Length() > 0)
 			{
-				c.Text(NewSmallFont, Font.CR_ORANGE, center, 34, "Malédiction : " .. m.mCurseDescription, 1.0, Sinwave_Canvas.ALIGN_CENTER);
+				// Sous la ligne du cercle si elle tient entre les colonnes de gauche et de
+				// droite (écran large), sinon sous ces colonnes (et sous la barre du boss).
+				String curseLine = "Malédiction : " .. m.mCurseDescription;
+				bool fits = NewSmallFont.StringWidth(curseLine) * 0.9 < c.mWidth - 2 * CORNER_WIDTH;
+				double y = fits ? 36 : (m.mBossActive ? 88 : 80);
+				c.Text(NewSmallFont, Font.CR_ORANGE, center, y, curseLine, 0.9, Sinwave_Canvas.ALIGN_CENTER);
 			}
 		}
 

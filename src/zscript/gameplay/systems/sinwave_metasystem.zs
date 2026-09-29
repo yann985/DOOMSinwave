@@ -2,7 +2,7 @@
 //  Méta-progression : indulgences, record et boutique, conservés entre les runs.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged,
+//  Écoute : RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged,
 //           ShopBuyRequested, GameLoaded
 //  Publie : MetaLoaded, MetaSaved, Purchase, EffectGranted (achats de la boutique)
 //
@@ -23,7 +23,7 @@ class Sinwave_MetaSystem : Sinwave_System
 	private Sinwave_MetaData mMeta;
 	private bool mRunning;
 	private int mScore;
-	private int mWavesEnded;
+	private int mCirclesEnded;
 	private bool mDamned;
 
 	override void Setup()
@@ -34,7 +34,7 @@ class Sinwave_MetaSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_RunStartedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_ScoreChangedEvent');
-		mBus.Subscribe(self, 'Sinwave_WaveEndedEvent');
+		mBus.Subscribe(self, 'Sinwave_CircleEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
 		mBus.Subscribe(self, 'Sinwave_ShopBuyRequestedEvent');
 		mBus.Subscribe(self, 'Sinwave_GameLoadedEvent');
@@ -51,7 +51,7 @@ class Sinwave_MetaSystem : Sinwave_System
 		{
 			mRunning = true;
 			mScore = 0;
-			mWavesEnded = 0;
+			mCirclesEnded = 0;
 			mDamned = false;
 			GrantPurchases();
 		}
@@ -59,9 +59,9 @@ class Sinwave_MetaSystem : Sinwave_System
 		{
 			mScore = Sinwave_ScoreChangedEvent(e).mScore;
 		}
-		else if (e is 'Sinwave_WaveEndedEvent')
+		else if (e is 'Sinwave_CircleEndedEvent')
 		{
-			mWavesEnded++;
+			mCirclesEnded++;
 		}
 		else if (e is 'Sinwave_CorruptionChangedEvent')
 		{
@@ -134,7 +134,7 @@ class Sinwave_MetaSystem : Sinwave_System
 	private void SaveRun(int reason)
 	{
 		let progression = mData.mProgression;
-		int earned = mScore / progression.mIndulgencesPerScore + mWavesEnded * progression.mIndulgencesPerCircle;
+		int earned = mScore / progression.mIndulgencesPerScore + mCirclesEnded * progression.mIndulgencesPerCircle;
 		if (reason == Sinwave_RunEndedEvent.REASON_VICTORY)
 		{
 			earned += mDamned ? progression.mIndulgencesDamnation : progression.mIndulgencesAbsolution;

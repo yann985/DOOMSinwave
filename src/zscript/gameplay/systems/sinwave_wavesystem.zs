@@ -1,16 +1,21 @@
 // =============================================================================
-//  Cercles (vagues d'ennemis) et apparition du boss.
+//  Cercles, vagues d'ennemis et apparition du boss.
 // =============================================================================
 //
 //  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested
-//  Publie : WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated
+//  Publie : CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared,
+//           EnemyKilled, BossSpawned, BossDefeated
 //
-//  Lit les cercles de l'arène courante dans GameData, fait apparaître les ennemis
-//  autour du joueur ou sur les points d'apparition de la carte (Sinwave_SpawnPoint)
-//  selon l'arène, en appliquant les règles de l'arène et celles choisies par le
-//  joueur (service Rules : vie, vitesse, rythme, cercle de départ), et reconnaît
-//  leur mort. Toute la horde vise le joueur. Un cercle sans durée se termine à la
-//  mort de son boss.
+//  Lit les cercles de l'arène courante dans GameData. Chaque cercle enchaîne
+//  plusieurs vagues, séparées par un court répit ; chaque vague est plus serrée
+//  que la précédente (data/progression.txt), et les ennemis gagnent en vie d'une
+//  vague à l'autre. Avec un boss, la dernière vague du cercle est la sienne et
+//  dure jusqu'à sa mort.
+//
+//  Les ennemis apparaissent autour du joueur ou sur les points d'apparition de la
+//  carte (Sinwave_SpawnPoint) selon l'arène, avec les règles de l'arène et celles
+//  choisies par le joueur (service Rules : vie, vitesse, rythme, cercle de
+//  départ). Toute la horde vise le joueur.
 
 class Sinwave_WaveSystem : Sinwave_System
 {
@@ -24,10 +29,16 @@ class Sinwave_WaveSystem : Sinwave_System
 	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
-	private int mWave;
+	private int mCircle;
+	private int mWave;				// vague en cours dans le cercle
 	private int mWaveTics;
 	private int mSpawnTimer;
-	private int mBreakTics;
+	private int mBreakTics;			// répit avant la prochaine vague...
+	private bool mCircleDone;		// ... ou avant le prochain cercle
+	// Vague en cours, montée en difficulté comprise.
+	private int mIntervalTics;
+	private int mMaxAlive;
+	private double mHealthFactor;
 	private Actor mBoss;
 	private Array<Actor> mAlive;
 	private Array<Sinwave_EnemyDef> mAliveDefs;
@@ -64,18 +75,24 @@ class Sinwave_WaveSystem : Sinwave_System
 	{
 		if (!mRunning || mSuspended) return;
 
+		// Pendant un répit, les ennemis restants attaquent encore, mais aucun n'apparaît.
 		if (mBreakTics > 0)
 		{
 			mBreakTics--;
-			if (mBreakTics == 0) StartWave(mWave + 1);
+			if (mBreakTics == 0)
+			{
+				if (mCircleDone) StartCircle(mCircle + 1);
+				else StartWave(mWave + 1);
+			}
 			return;
 		}
 
-		let wave = mData.mWaves[mWave];
+		let circle = mData.mCircles[mCircle];
 		mWaveTics++;
 		if (mWaveTics % RETARGET_TICS == 0) Retarget();
-		bool timeUp = wave.mDurationTics > 0 && mWaveTics >= wave.mDurationTics;
-		bool bossGone = wave.HasBoss() && mBoss == null;	// supprimé sans mourir
+		int duration = circle.WaveTics(mWave);
+		bool timeUp = duration > 0 && mWaveTics >= duration;
+		bool bossGone = circle.IsBossWave(mWave) && mBoss == null;	// supprimé sans mourir
 		if (timeUp || bossGone)
 		{
 			EndWave();
@@ -85,11 +102,11 @@ class Sinwave_WaveSystem : Sinwave_System
 		mSpawnTimer--;
 		if (mSpawnTimer <= 0)
 		{
-			mSpawnTimer = max(1, int(wave.mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate)));
+			mSpawnTimer = max(1, int(mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate)));
 			PruneAlive();
-			if (mAlive.Size() < wave.mMaxAlive && wave.mTotalWeight > 0)
+			if (mAlive.Size() < mMaxAlive && circle.mTotalWeight > 0)
 			{
-				SpawnEnemy(mData.FindEnemy(wave.PickEnemy(Random[SinwaveWaves](0, wave.mTotalWeight - 1))));
+				SpawnEnemy(mData.FindEnemy(circle.PickEnemy(Random[SinwaveWaves](0, circle.mTotalWeight - 1))));
 			}
 		}
 	}
@@ -101,14 +118,14 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBreakTics = 0;
 		mBoss = null;
 		CollectSpawnPoints();
-		if (mData.mWaves.Size() == 0)
+		if (mData.mCircles.Size() == 0)
 		{
 			mRunning = false;
-			mBus.Publish(new('Sinwave_AllWavesClearedEvent'));
+			mBus.Publish(new('Sinwave_AllCirclesClearedEvent'));
 			return;
 		}
 		// Cercle de départ choisi dans les règles de la descente.
-		StartWave(clamp(mRules.mStartCircle - 1, 0, mData.mWaves.Size() - 1));
+		StartCircle(clamp(mRules.mStartCircle - 1, 0, mData.mCircles.Size() - 1));
 	}
 
 	private void StopRun()
@@ -129,33 +146,56 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBoss = null;
 	}
 
-	private void StartWave(int index)
+	private void StartCircle(int index)
 	{
-		mWave = index;
+		mCircle = index;
+		let circle = mData.mCircles[index];
+		mBus.Publish(Sinwave_CircleStartedEvent.Create(index, mData.mCircles.Size(), circle.mName));
+		StartWave(0);
+	}
+
+	private void StartWave(int wave)
+	{
+		mWave = wave;
 		mWaveTics = 0;
 		mSpawnTimer = 0;
-		let wave = mData.mWaves[index];
-		mBus.Publish(Sinwave_WaveStartedEvent.Create(index, mData.mWaves.Size(), wave.mName, wave.mDurationTics));
+		let circle = mData.mCircles[mCircle];
+		let progression = mData.mProgression;
+		mIntervalTics = circle.IntervalTicsForWave(wave, progression.mWaveSpawnGrowth);
+		mMaxAlive = circle.MaxAliveForWave(wave, progression.mWaveMaxGrowth);
+		mHealthFactor = 1.0 + progression.mWaveHealthGrowth * mData.WaveRank(mCircle, wave);
+		mBus.Publish(Sinwave_WaveStartedEvent.Create(mCircle, wave, circle.mWaveCount, circle.WaveTics(wave)));
 
-		if (wave.HasBoss())
+		if (circle.IsBossWave(wave))
 		{
-			let def = mData.FindEnemy(wave.mBossId);
+			let def = mData.FindEnemy(circle.mBossId);
 			mBoss = SpawnEnemy(def);
 			if (mBoss != null) mBus.Publish(Sinwave_BossSpawnedEvent.Create(mBoss, def));
 			else EndWave();	// impossible de placer le boss : on ne bloque pas la run
 		}
 	}
 
+	// Fin de vague : répit avant la vague suivante, ou fin du cercle.
 	private void EndWave()
 	{
-		mBus.Publish(Sinwave_WaveEndedEvent.Create(mWave));
-		if (mWave + 1 >= mData.mWaves.Size())
+		let circle = mData.mCircles[mCircle];
+		mBus.Publish(Sinwave_WaveEndedEvent.Create(mCircle, mWave));
+		if (mWave + 1 < circle.mWaveCount)
 		{
-			mRunning = false;
-			mBus.Publish(new('Sinwave_AllWavesClearedEvent'));
+			mCircleDone = false;
+			mBreakTics = circle.mPauseTics;
 			return;
 		}
-		mBreakTics = max(1, mData.mWaves[mWave].mBreakTics);
+
+		mBus.Publish(Sinwave_CircleEndedEvent.Create(mCircle));
+		if (mCircle + 1 >= mData.mCircles.Size())
+		{
+			mRunning = false;
+			mBus.Publish(new('Sinwave_AllCirclesClearedEvent'));
+			return;
+		}
+		mCircleDone = true;
+		mBreakTics = max(1, circle.mBreakTics);
 	}
 
 	// Fait apparaître un ennemi en appliquant sa définition et les règles de l'arène.
@@ -180,9 +220,11 @@ class Sinwave_WaveSystem : Sinwave_System
 		}
 		if (mo == null) return null;
 
-		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur.
+		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur,
+		// et x montée en difficulté de la vague (sauf pour un boss, déjà réglé à part).
 		let arena = mData.mArena;
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth));
+		double waveHealth = def.mIsBoss ? 1.0 : mHealthFactor;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth));
 		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
 		if (def.mScale != 1.0)
 		{

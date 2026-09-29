@@ -42,38 +42,45 @@ if (Test-Path (Join-Path $SrcDir "maps\$Map.wad")) { throw "La carte $Map existe
 & (Join-Path $PSScriptRoot "generate-arena.ps1") -Map $Map -Shape $Shape
 
 $wavesTemplate = @"
-# $Name : cercles de l'arène (voir data/waves/purgatoire.txt pour toutes les clés).
+# $Name : cercles de l'arène, de plusieurs vagues chacun
+# (voir data/waves/purgatoire.txt pour toutes les clés).
 #   curse   : sloth, gluttony, lust, envy, greed, wrath, pride (data/curses.txt)
 #   enemies : sloth, gluttony, lust, envy, greed, wrath, pride (data/enemies.txt)
-#   boss    : lucifer (avec duration = 0 : le cercle dure jusqu'à sa mort)
+#   boss    : lucifer (la dernière vague du cercle dure jusqu'à sa mort)
 
-[wave 1]
+[circle 1]
 name     = Premier cercle
-duration = 30
-interval = 1.0
-max      = 15
-break    = 4
 curse    = sloth
+waves    = 3
+duration = 8
+pause    = 2
+break    = 4
+interval = 1.1
+max      = 10
 enemies  = sloth:3, gluttony:1
 
-[wave 2]
+[circle 2]
 name     = Deuxième cercle
-duration = 30
-interval = 0.9
-max      = 18
-break    = 4
 curse    = wrath
+waves    = 3
+duration = 8
+pause    = 2
+break    = 4
+interval = 0.9
+max      = 14
 enemies  = wrath:2, lust:2
 
-[wave 3]
+[circle 3]
 name     = Dernier cercle
-duration = 0
-interval = 2.5
-max      = 6
-break    = 0
 curse    = pride
+waves    = 3
+duration = 8
+pause    = 2
+break    = 0
+interval = 1.6
+max      = 7
 boss     = lucifer
-enemies  = greed:1
+enemies  = greed:1, lust:1
 "@
 [IO.File]::WriteAllText($waves, $wavesTemplate.Replace("`r`n", "`n") + "`n", $utf8)
 

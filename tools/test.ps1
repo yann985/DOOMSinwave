@@ -93,7 +93,8 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 
 $allFailures = @()
 
-# 1. Run complète gagnée : cercle maudit, XP, choix, pause, boss, victoire, sauvegarde, rechargement.
+# 1. Run complète gagnée : cercle maudit de deux vagues, XP, choix, pause, cercle du boss,
+#    victoire, sauvegarde, rechargement.
 $allFailures += Invoke-Scenario "victoire" @(
 	"wait 35", "god",
 	"wait 35", "netevent sinwave_confirm",		# t=70   Menu -> choix d'arène
@@ -111,8 +112,9 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
 	'Sinwave_StateChangedEvent : Rules -> InGame',
 	'Sinwave_RunStartedEvent',
-	'Sinwave_WaveStartedEvent : 1/2',
+	'Sinwave_CircleStartedEvent : 1/2',
 	'Sinwave_CurseStartedEvent : sloth',
+	'Sinwave_WaveStartedEvent : cercle 1, vague 1/2',
 	'Sinwave_EnemyKilledEvent',
 	'Sinwave_XpCollectedEvent',
 	'Sinwave_LevelUpEvent',
@@ -124,13 +126,15 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_EffectGrantedEvent',
 	'Sinwave_StateChangedEvent : InGame -> Pause',
 	'Sinwave_StateChangedEvent : Pause -> InGame',
-	'Sinwave_WaveEndedEvent : 1',
+	'Sinwave_WaveEndedEvent : cercle 1, vague 2',			# la deuxième vague du cercle a eu lieu
+	'Sinwave_CircleEndedEvent : 1',
 	'Sinwave_CurseEndedEvent',
-	'Sinwave_WaveStartedEvent : 2/2',
+	'Sinwave_CircleStartedEvent : 2/2',
 	'Sinwave_CurseStartedEvent : pride',
+	'Sinwave_WaveStartedEvent : cercle 2, vague 1/1',		# le cercle du boss n'a que sa vague
 	'Sinwave_BossSpawnedEvent : lucifer',
 	'Sinwave_BossDefeatedEvent',
-	'Sinwave_AllWavesClearedEvent',
+	'Sinwave_AllCirclesClearedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : victoire',
 	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*absolution',
@@ -190,7 +194,7 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',
-	'Sinwave_WaveStartedEvent : 2/2',						# départ au cercle choisi
+	'Sinwave_CircleStartedEvent : 2/2',						# départ au cercle choisi
 	'Sinwave_EffectGrantedEvent : give Shotgun',
 	'Sinwave_EffectGrantedEvent : maxhealth'
 )
