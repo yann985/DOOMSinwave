@@ -297,6 +297,8 @@ Au début d'un cercle, `Sinwave_CurseSystem` crée l'objet de la classe indiqué
 
 Une malédiction qui touche le joueur publie un `EffectGrantedEvent` temporaire, annulé à la fin du cercle. Exemple : Paresse applique −25 % de vitesse, puis +25 % à la fin.
 
+Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle les a trouvés. Exemple : la Colère retient la couleur et la vitesse d'origine de chaque ennemi enragé et les lui rend au bout de 3 s, ou à la fin du cercle. Chaque ennemi n'enrage qu'**une fois** : sous un tir continu, une rage relancée à chaque coup le laisserait rouge jusqu'à sa mort.
+
 ---
 
 ## 7. Méta-progression et boutique
