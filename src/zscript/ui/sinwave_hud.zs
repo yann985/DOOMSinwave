@@ -49,11 +49,11 @@ class Sinwave_Hud ui
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)
 		{
-			String prompt = m.mArenaNames.Size() > 1 ? "UTILISER : choisir une arène et descendre" : "UTILISER : descendre dans le Purgatoire";
+			String prompt = m.mArenaNames.Size() > 1 ? "UTILISER (E / A) : choisir une arène et descendre" : "UTILISER (E / A) : descendre dans le Purgatoire";
 			c.Text(NewSmallFont, Font.CR_WHITE, center, 270, prompt, 1.4, Sinwave_Canvas.ALIGN_CENTER);
 		}
 		c.Text(NewSmallFont, Font.CR_GOLD, center, 300, "B : boutique des indulgences", 1.2, Sinwave_Canvas.ALIGN_CENTER);
-		c.Text(NewSmallFont, Font.CR_DARKGRAY, center, 335, "En run : P pause     1, 2, 3 choisir une vertu ou un péché", 1.0, Sinwave_Canvas.ALIGN_CENTER);
+		c.Text(NewSmallFont, Font.CR_DARKGRAY, center, 335, "En run : P ou Start pause     Menus : clavier, souris ou manette", 1.0, Sinwave_Canvas.ALIGN_CENTER);
 	}
 
 	private void DrawRun(Sinwave_HudModel m)
@@ -164,7 +164,7 @@ class Sinwave_Hud ui
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)
 		{
-			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER : recommencer          B : boutique", 1.3, Sinwave_Canvas.ALIGN_CENTER);
+			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER (E / A) : recommencer          B : boutique", 1.3, Sinwave_Canvas.ALIGN_CENTER);
 		}
 	}
 }

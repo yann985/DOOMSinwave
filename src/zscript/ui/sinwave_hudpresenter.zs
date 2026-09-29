@@ -82,7 +82,7 @@ class Sinwave_HudPresenter : Sinwave_System
 		}
 		if (e is 'Sinwave_ShopRequestedEvent' && m.mRunActive)
 		{
-			ShowBanner("La boutique ouvre entre les runs", "Termine ou abandonne la run (P) pour y accéder");
+			ShowBanner("La boutique ouvre entre les runs", "Termine ou abandonne la run (P ou Start) pour y accéder");
 			return;
 		}
 		if (e is 'Sinwave_RunSuspendedEvent') { mSuspended = true; return; }

@@ -339,11 +339,15 @@ flowchart LR
 
 - Le **présentateur** est un système comme les autres : il traduit les événements en données d'affichage.
 - Le **HUD** et les **menus** ne font que lire le modèle. Pour agir (choisir, acheter, reprendre), un menu envoie une **commande réseau**, que `Sinwave_Game` traduit en événement côté jeu. C'est le seul chemin de l'interface vers le jeu.
-- Les cinq menus (pause, vertu ou péché, boutique, arènes, règles) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, dessin et fermeture automatique sont écrits une fois.
+- Les cinq menus (pause, vertu ou péché, boutique, arènes, règles) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, dessin et fermeture automatique sont écrits une fois. Chaque menu ne décrit que ses options ; il déclare s'il a un bouton *Retour* (`HasBackButton`) et quelles options se règlent (`IsAdjustable`).
+- **Clavier, souris et manette** passent par le même chemin. La manette et le clavier arrivent en actions de menu (`MenuEvent` : haut, bas, gauche, droite, Entrée, Retour), que le moteur produit lui-même pour la croix, le stick gauche, A et B. La souris est gérée par `Sinwave_ChoiceMenu` : au dessin, le menu retient la zone de chaque option, de chaque valeur et du bouton *Retour*. Survol, clic, molette et clic droit appellent ensuite les mêmes fonctions que les touches (`Move`, `AdjustSelected`, `Confirm`, `GoBack`). Un clic n'agit qu'au relâchement, sur la zone où il a commencé : un tir en cours à l'ouverture d'un menu ne choisit rien.
+- `Sinwave_Canvas` place textes et cadres sur un écran de 400 unités de haut, en pixels réels. L'écran virtuel de GZDoom (`DTA_VirtualWidth`) est évité : il suppose un format 4:3 et, sur un écran large, resserrait les textes vers le centre, hors de leurs cadres et des zones cliquables.
 - Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur peut le traduire en action (Entrée...). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu, **pendant ce tic seulement** : une vraie touche du joueur juste après (Échap pour ressortir de la boutique) n'est jamais avalée.
 - `Sinwave_Game.InputProcess` lit les touches de la boutique et de la pause directement, avant le moteur, selon l'écran affiché :
   - la touche liée dans *Options → Commandes → Sinwave* marche toujours ;
-  - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre.
+  - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre ;
+  - manette : B ouvre la boutique ; Start met en pause pendant la run, et garde ailleurs son rôle d'ouverture du menu de GZDoom (options, quitter). Dans le menu pause, P et Start reprennent la run.
+- La manette est désactivée par défaut dans GZDoom (`use_joystick`). Plutôt que de modifier ce réglage global depuis le code du mod, ce sont les lanceurs (`tools/run.ps1`, et `Jouer Sinwave.bat` du build) qui l'activent.
 - Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
@@ -393,7 +397,7 @@ Ce que la désactivation change pour chaque système :
 |---|---|
 | `check.ps1` (Ctrl+Maj+B dans VS Code) | Construit le `.pk3` et vérifie que le ZScript compile. Les erreurs vont dans l'onglet *Problèmes* de VS Code. |
 | `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). |
-| `run.ps1` / `play.ps1` | Construit puis lance le jeu. |
+| `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
 | `generate-arena.ps1` | Génère une carte en cercles concentriques ou en salle carrée. |
 | `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`. |
