@@ -3,9 +3,9 @@
 // =============================================================================
 //
 //  Tous les échanges entre systèmes passent par ces classes. Lire ce fichier
-//  suffit pour connaître tout ce qui peut « se passer » dans une run.
+//  suffit pour connaître tout ce qui peut « se passer » dans le jeu.
 
-// --- Moteur -> jeu (publiés par Sinwave_Game, le pont avec le moteur) --------
+// --- Moteur et interface -> jeu (publiés par Sinwave_Game, le pont) ----------
 
 // Le joueur appuie sur la touche Utiliser (ou « netevent sinwave_confirm »).
 class Sinwave_ConfirmEvent : Sinwave_Event
@@ -28,6 +28,50 @@ class Sinwave_ConfirmEvent : Sinwave_Event
 class Sinwave_PauseRequestedEvent : Sinwave_Event {}
 class Sinwave_ResumeRequestedEvent : Sinwave_Event {}
 class Sinwave_AbandonRequestedEvent : Sinwave_Event {}
+class Sinwave_ShopRequestedEvent : Sinwave_Event {}
+// Quitter un écran de menu (boutique, choix d'arène).
+class Sinwave_BackRequestedEvent : Sinwave_Event {}
+
+// Commandes avec un numéro : amélioration, article ou arène choisis.
+class Sinwave_IndexEvent : Sinwave_Event
+{
+	int mIndex;
+
+	override String Describe()
+	{
+		return String.Format("%d", mIndex);
+	}
+}
+
+class Sinwave_UpgradePickedEvent : Sinwave_IndexEvent
+{
+	static Sinwave_UpgradePickedEvent Create(int index)
+	{
+		let e = new('Sinwave_UpgradePickedEvent');
+		e.mIndex = index;
+		return e;
+	}
+}
+
+class Sinwave_ShopBuyRequestedEvent : Sinwave_IndexEvent
+{
+	static Sinwave_ShopBuyRequestedEvent Create(int index)
+	{
+		let e = new('Sinwave_ShopBuyRequestedEvent');
+		e.mIndex = index;
+		return e;
+	}
+}
+
+class Sinwave_ArenaChosenEvent : Sinwave_IndexEvent
+{
+	static Sinwave_ArenaChosenEvent Create(int index)
+	{
+		let e = new('Sinwave_ArenaChosenEvent');
+		e.mIndex = index;
+		return e;
+	}
+}
 
 // Une partie a été rechargée depuis une sauvegarde du moteur.
 class Sinwave_GameLoadedEvent : Sinwave_Event {}
@@ -52,21 +96,23 @@ class Sinwave_ActorDiedEvent : Sinwave_Event
 	}
 }
 
-// L'interface a choisi l'amélioration numéro mIndex.
-class Sinwave_UpgradePickedEvent : Sinwave_Event
+// Le joueur a blessé un acteur.
+class Sinwave_ActorDamagedEvent : Sinwave_Event
 {
-	int mIndex;
+	Actor mThing;
+	int mDamage;
 
-	static Sinwave_UpgradePickedEvent Create(int index)
+	static Sinwave_ActorDamagedEvent Create(Actor thing, int damage)
 	{
-		let e = new('Sinwave_UpgradePickedEvent');
-		e.mIndex = index;
+		let e = new('Sinwave_ActorDamagedEvent');
+		e.mThing = thing;
+		e.mDamage = damage;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("choix %d", mIndex);
+		return mThing != null ? String.Format("%s -%d", mThing.GetClassName(), mDamage) : "";
 	}
 }
 
@@ -102,14 +148,14 @@ class Sinwave_RunEndedEvent : Sinwave_Event
 	}
 }
 
-// --- Vagues (publiés par Sinwave_WaveSystem) ---------------------------------
+// --- Cercles, ennemis et boss (Sinwave_WaveSystem, Sinwave_BossSystem) -------
 
 class Sinwave_WaveStartedEvent : Sinwave_Event
 {
 	int mIndex;
 	int mCount;
 	String mName;
-	int mDurationTics;
+	int mDurationTics;	// 0 : jusqu'à la mort du boss
 
 	static Sinwave_WaveStartedEvent Create(int index, int count, String name, int durationTics)
 	{
@@ -144,7 +190,7 @@ class Sinwave_WaveEndedEvent : Sinwave_Event
 	}
 }
 
-// Toutes les vagues sont terminées : la run est gagnée.
+// Tous les cercles sont franchis : la run est gagnée.
 class Sinwave_AllWavesClearedEvent : Sinwave_Event {}
 
 class Sinwave_EnemyKilledEvent : Sinwave_Event
@@ -166,7 +212,100 @@ class Sinwave_EnemyKilledEvent : Sinwave_Event
 	}
 }
 
+// Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss...).
+class Sinwave_SpawnRequestedEvent : Sinwave_Event
+{
+	Name mEnemyId;
+	int mCount;
+
+	static Sinwave_SpawnRequestedEvent Create(Name enemyId, int count)
+	{
+		let e = new('Sinwave_SpawnRequestedEvent');
+		e.mEnemyId = enemyId;
+		e.mCount = count;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s x%d", mEnemyId, mCount);
+	}
+}
+
+class Sinwave_BossSpawnedEvent : Sinwave_Event
+{
+	Actor mBoss;
+	Sinwave_EnemyDef mDef;
+
+	static Sinwave_BossSpawnedEvent Create(Actor boss, Sinwave_EnemyDef def)
+	{
+		let e = new('Sinwave_BossSpawnedEvent');
+		e.mBoss = boss;
+		e.mDef = def;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s", mDef.mId);
+	}
+}
+
+class Sinwave_BossDefeatedEvent : Sinwave_Event {}
+
+class Sinwave_BossHealthChangedEvent : Sinwave_Event
+{
+	double mFraction;
+
+	static Sinwave_BossHealthChangedEvent Create(double fraction)
+	{
+		let e = new('Sinwave_BossHealthChangedEvent');
+		e.mFraction = fraction;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%d %%", int(mFraction * 100));
+	}
+}
+
+class Sinwave_BossEnragedEvent : Sinwave_Event {}
+
+// --- Malédictions de cercle (Sinwave_CurseSystem) ----------------------------
+
+class Sinwave_CurseStartedEvent : Sinwave_Event
+{
+	Sinwave_CurseDef mDef;
+
+	static Sinwave_CurseStartedEvent Create(Sinwave_CurseDef def)
+	{
+		let e = new('Sinwave_CurseStartedEvent');
+		e.mDef = def;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s", mDef.mId);
+	}
+}
+
+class Sinwave_CurseEndedEvent : Sinwave_Event {}
+
 // --- Expérience (Sinwave_XpOrb, Sinwave_XpSystem) ----------------------------
+
+class Sinwave_XpOrbDroppedEvent : Sinwave_Event
+{
+	Sinwave_XpOrb mOrb;
+
+	static Sinwave_XpOrbDroppedEvent Create(Sinwave_XpOrb orb)
+	{
+		let e = new('Sinwave_XpOrbDroppedEvent');
+		e.mOrb = orb;
+		return e;
+	}
+}
 
 class Sinwave_XpCollectedEvent : Sinwave_Event
 {
@@ -223,7 +362,7 @@ class Sinwave_LevelUpEvent : Sinwave_Event
 	}
 }
 
-// --- Améliorations (Sinwave_UpgradeSystem, Sinwave_MetaSystem) ---------------
+// --- Vertus, péchés et corruption --------------------------------------------
 
 class Sinwave_UpgradeOfferedEvent : Sinwave_Event
 {
@@ -257,7 +396,7 @@ class Sinwave_UpgradeChosenEvent : Sinwave_Event
 	}
 }
 
-// Un effet doit être appliqué (amélioration choisie ou bénédiction débloquée).
+// Un effet doit être appliqué au joueur (vertu, péché, article de boutique, malédiction).
 class Sinwave_EffectGrantedEvent : Sinwave_Event
 {
 	Sinwave_Effect mEffect;
@@ -273,11 +412,36 @@ class Sinwave_EffectGrantedEvent : Sinwave_Event
 
 	override String Describe()
 	{
-		return String.Format("%s %.2f (%s)", mEffect.mType, mEffect.mValue, mSource);
+		return String.Format("%s (%s)", mEffect.Describe(), mSource);
 	}
 }
 
-// --- Score et méta-progression -----------------------------------------------
+// La corruption de la run a changé. La règle du verdict est ici, à un seul endroit.
+class Sinwave_CorruptionChangedEvent : Sinwave_Event
+{
+	int mCorruption;
+	int mThreshold;
+
+	static Sinwave_CorruptionChangedEvent Create(int corruption, int threshold)
+	{
+		let e = new('Sinwave_CorruptionChangedEvent');
+		e.mCorruption = corruption;
+		e.mThreshold = threshold;
+		return e;
+	}
+
+	bool IsDamned()
+	{
+		return mCorruption >= mThreshold;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%d/%d", mCorruption, mThreshold);
+	}
+}
+
+// --- Score, méta-progression et boutique -------------------------------------
 
 class Sinwave_ScoreChangedEvent : Sinwave_Event
 {
@@ -298,23 +462,43 @@ class Sinwave_ScoreChangedEvent : Sinwave_Event
 	}
 }
 
-// État actuel de la méta-progression (au démarrage, après un chargement ou une sauvegarde).
+// État actuel de la méta-progression (au démarrage, après un achat ou une sauvegarde).
 class Sinwave_MetaLoadedEvent : Sinwave_Event
 {
 	Sinwave_MetaData mMeta;
-	Sinwave_UnlockDef mNextUnlock;	// null si tout est débloqué
 
-	static Sinwave_MetaLoadedEvent Create(Sinwave_MetaData metaData, Sinwave_UnlockDef nextUnlock)
+	static Sinwave_MetaLoadedEvent Create(Sinwave_MetaData metaData)
 	{
 		let e = new('Sinwave_MetaLoadedEvent');
 		e.mMeta = metaData;
-		e.mNextUnlock = nextUnlock;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("%d âmes, record %d, %d runs", mMeta.mSouls, mMeta.mBestScore, mMeta.mRuns);
+		return String.Format("%d indulgences, record %d, %d runs", mMeta.mIndulgences, mMeta.mBestScore, mMeta.mRuns);
+	}
+}
+
+// Résultat d'une tentative d'achat à la boutique.
+class Sinwave_PurchaseEvent : Sinwave_Event
+{
+	Sinwave_ShopItemDef mItem;
+	bool mSuccess;
+	String mMessage;
+
+	static Sinwave_PurchaseEvent Create(Sinwave_ShopItemDef item, bool success, String message)
+	{
+		let e = new('Sinwave_PurchaseEvent');
+		e.mItem = item;
+		e.mSuccess = success;
+		e.mMessage = message;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s %s", mItem != null ? String.Format("%s", mItem.mId) : "?", mSuccess ? "ok" : "refusé");
 	}
 }
 
@@ -322,22 +506,22 @@ class Sinwave_MetaLoadedEvent : Sinwave_Event
 class Sinwave_MetaSavedEvent : Sinwave_Event
 {
 	Sinwave_MetaData mMeta;
-	int mSoulsEarned;
+	int mEarned;
 	bool mNewBest;
-	String mUnlocked;	// noms des déblocages obtenus pendant cette run
+	bool mDamned;
 
-	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int soulsEarned, bool newBest, String unlocked)
+	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, bool damned)
 	{
 		let e = new('Sinwave_MetaSavedEvent');
 		e.mMeta = metaData;
-		e.mSoulsEarned = soulsEarned;
+		e.mEarned = earned;
 		e.mNewBest = newBest;
-		e.mUnlocked = unlocked;
+		e.mDamned = damned;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("+%d âmes (total %d)", mSoulsEarned, mMeta.mSouls);
+		return String.Format("+%d indulgences (total %d), %s", mEarned, mMeta.mIndulgences, mDamned ? "damnation" : "absolution");
 	}
 }

@@ -1,7 +1,11 @@
 // Méta-progression. Écrites uniquement par Sinwave_CVarSaveService.
-user int sinwave_meta_souls = 0;
+user int sinwave_meta_indulgences = 0;
 user int sinwave_meta_best = 0;
 user int sinwave_meta_runs = 0;
+user string sinwave_meta_purchases = "";
+
+// Lancer la run dès l'arrivée sur la carte (après un choix d'arène). Jamais sauvegardée.
+user noarchive bool sinwave_autostart = false;
 
 // 1 : affiche chaque événement du bus dans la console (Sinwave_EventLogger).
 user bool sinwave_debug = false;

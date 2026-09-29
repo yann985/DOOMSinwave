@@ -9,6 +9,7 @@ class Sinwave_XpOrb : Actor
 	private Sinwave_EventBus mBus;
 	private int mValue;
 	private double mMagnetRadius;
+	private int mLifetime;	// en tics ; 0 = illimitée
 
 	Default
 	{
@@ -37,10 +38,27 @@ class Sinwave_XpOrb : Actor
 		mMagnetRadius = magnetRadius;
 	}
 
+	// Utilisé par la malédiction de l'Avarice : l'orbe s'efface au bout du délai.
+	void SetLifetime(int tics)
+	{
+		if (mLifetime == 0 || tics < mLifetime) mLifetime = max(1, tics);
+	}
+
 	override void Tick()
 	{
 		Super.Tick();
 		if (bDestroyed || mBus == null) return;
+
+		if (mLifetime > 0)
+		{
+			mLifetime--;
+			if (mLifetime < TICRATE) Alpha = mLifetime / double(TICRATE);
+			if (mLifetime == 0)
+			{
+				Destroy();
+				return;
+			}
+		}
 
 		let pawn = Sinwave_World.Player();
 		if (pawn == null || pawn.health <= 0) return;

@@ -1,11 +1,18 @@
-# Types d'ennemis : un bloc par péché capital.
+# Types d'ennemis : un bloc par péché capital, plus le boss final.
 #
 #   name   : nom affiché
 #   actor  : classe d'acteur du moteur (monstres de Doom II / Freedoom)
 #   health : multiplicateur des points de vie de base
 #   speed  : multiplicateur de vitesse
+#   scale  : multiplicateur de taille (1 par défaut)
 #   xp     : valeur de l'orbe d'expérience lâchée à la mort
 #   score  : points gagnés en le tuant
+#
+# Boss uniquement :
+#   boss        = true
+#   rage_at     : fraction de vie sous laquelle il entre en rage (0.5 = mi-vie)
+#   rage_speed  : multiplicateur de vitesse une fois enragé
+#   rage_summon : renforts appelés en rage, « identifiant:nombre »
 
 [enemy sloth]
 name   = Paresse
@@ -23,13 +30,13 @@ speed  = 1.0
 xp     = 2
 score  = 15
 
-[enemy wrath]
-name   = Colère
-actor  = LostSoul
-health = 0.6
-speed  = 1.2
-xp     = 2
-score  = 15
+[enemy lust]
+name   = Luxure
+actor  = DoomImp
+health = 1.0
+speed  = 1.0
+xp     = 3
+score  = 25
 
 [enemy envy]
 name   = Envie
@@ -39,14 +46,6 @@ speed  = 1.0
 xp     = 2
 score  = 20
 
-[enemy lust]
-name   = Luxure
-actor  = DoomImp
-health = 1.0
-speed  = 1.0
-xp     = 3
-score  = 25
-
 [enemy greed]
 name   = Avarice
 actor  = ChaingunGuy
@@ -55,6 +54,14 @@ speed  = 1.0
 xp     = 4
 score  = 35
 
+[enemy wrath]
+name   = Colère
+actor  = LostSoul
+health = 0.6
+speed  = 1.2
+xp     = 2
+score  = 15
+
 [enemy pride]
 name   = Orgueil
 actor  = HellKnight
@@ -62,3 +69,16 @@ health = 0.8
 speed  = 1.0
 xp     = 10
 score  = 100
+
+[enemy lucifer]
+name        = Lucifer, l'Orgueil
+actor       = BaronOfHell
+health      = 2.5
+speed       = 1.0
+scale       = 1.6
+xp          = 0
+score       = 1000
+boss        = true
+rage_at     = 0.5
+rage_speed  = 1.6
+rage_summon = pride:3

@@ -1,0 +1,55 @@
+# Malédictions : une par péché. Un cercle (data/waves/...) en porte une, qui
+# change les règles tant que le cercle dure.
+#
+#   name        : nom affiché
+#   description : règle affichée au joueur
+#   class       : classe ZScript qui applique la règle (gameplay/curses/)
+#   les autres clés sont les réglages lus par cette classe
+
+[curse sloth]
+name        = Paresse
+description = Tu es ralenti, mais tu te soignes en restant immobile
+class       = Sinwave_SlothCurse
+speed       = -0.25
+heal        = 3
+
+[curse gluttony]
+name        = Gourmandise
+description = Les ennemis dévorent les orbes proches et grossissent
+class       = Sinwave_GluttonyCurse
+radius      = 96
+health      = 25
+
+[curse lust]
+name        = Luxure
+description = Charme trompeur : les ennemis éloignés sont presque invisibles
+class       = Sinwave_LustCurse
+distance    = 450
+alpha       = 0.12
+
+[curse envy]
+name        = Envie
+description = Quand un ennemi meurt, ses voisins se soignent et accélèrent
+class       = Sinwave_EnvyCurse
+radius      = 256
+health      = 20
+speed       = 1.1
+
+[curse greed]
+name        = Avarice
+description = Les orbes d'expérience disparaissent au bout de 3 secondes
+class       = Sinwave_GreedCurse
+lifetime    = 3
+
+[curse wrath]
+name        = Colère
+description = Chaque ennemi blessé entre en rage et accélère
+class       = Sinwave_WrathCurse
+speed       = 1.5
+
+[curse pride]
+name        = Orgueil
+description = Au-dessus de la moitié de tes PV, tu subis 50 % de dégâts en plus
+class       = Sinwave_PrideCurse
+threshold   = 0.5
+vulnerability = 0.5

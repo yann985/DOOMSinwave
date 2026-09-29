@@ -1,0 +1,87 @@
+# Boutique des indulgences : achats permanents, entre les runs.
+# Chaque niveau acheté applique ses effets au début de chaque run.
+#
+#   name         : nom affiché
+#   description  : texte affiché
+#   category     : weapon (arme) ou blessing (amélioration permanente)
+#   price        : prix du premier niveau, en indulgences
+#   price_growth : multiplicateur du prix à chaque niveau (1.5 = +50 %)
+#   max          : nombre de niveaux
+#   effects      : mêmes effets que data/upgrades.txt
+
+# --- Armes : on commence chaque run avec -------------------------------------
+
+[item shotgun]
+name        = Fusil à pompe
+description = Commence chaque run avec le fusil à pompe et 20 cartouches
+category    = weapon
+price       = 15
+effects     = give:Shotgun, give:Shell:20
+
+[item chaingun]
+name        = Mitrailleuse
+description = Commence avec la mitrailleuse et 100 balles
+category    = weapon
+price       = 45
+effects     = give:Chaingun, give:Clip:100
+
+[item supershotgun]
+name        = Super fusil de chasse
+description = Commence avec le super fusil de chasse et 20 cartouches
+category    = weapon
+price       = 90
+effects     = give:SuperShotgun, give:Shell:20
+
+[item rocketlauncher]
+name        = Lance-roquettes
+description = Commence avec le lance-roquettes et 10 roquettes
+category    = weapon
+price       = 150
+effects     = give:RocketLauncher, give:RocketAmmo:10
+
+# --- Améliorations permanentes -----------------------------------------------
+
+[item vigor]
+name         = Vigueur
+description  = +15 points de vie maximum
+category     = blessing
+price        = 10
+price_growth = 1.6
+max          = 5
+effects      = maxhealth:15
+
+[item fury]
+name         = Fureur sainte
+description  = +10 % de dégâts
+category     = blessing
+price        = 20
+price_growth = 1.6
+max          = 5
+effects      = damage:0.1
+
+[item swiftness]
+name         = Célérité
+description  = +5 % de vitesse
+category     = blessing
+price        = 15
+price_growth = 1.8
+max          = 3
+effects      = speed:0.05
+
+[item shield]
+name         = Bouclier béni
+description  = +25 points d'armure au départ
+category     = blessing
+price        = 10
+price_growth = 1.5
+max          = 4
+effects      = armor:25
+
+[item grace]
+name         = Grâce
+description  = Les orbes d'expérience sont attirées 20 % plus loin
+category     = blessing
+price        = 12
+price_growth = 1.7
+max          = 3
+effects      = magnet:0.2

@@ -1,13 +1,16 @@
 # Orbes attirées de très loin et un seul niveau à gagner, pour un test rapide.
 
 [progression default]
-xp_first_level  = 3
-xp_growth       = 50
-upgrade_choices = 3
-magnet_radius   = 8000
-souls_per_score = 10
-souls_per_wave  = 3
-souls_victory   = 10
-start_items     = Shotgun, Shell:40
-supply_seconds  = 2
-supply_items    = Shell:1
+xp_first_level         = 3
+xp_growth              = 50
+offer_virtues          = 2
+offer_sins             = 1
+damnation_threshold    = 5
+magnet_radius          = 8000
+indulgences_per_score  = 10
+indulgences_per_circle = 3
+indulgences_absolution = 10
+indulgences_damnation  = 2
+start_items            = Shell:40
+supply_seconds         = 2
+supply_items           = Shell:1

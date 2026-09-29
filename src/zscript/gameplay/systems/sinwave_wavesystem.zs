@@ -1,17 +1,18 @@
 // =============================================================================
-//  Vagues d'ennemis.
+//  Cercles (vagues d'ennemis) et apparition du boss.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied
-//  Publie : WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled
+//  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested
+//  Publie : WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated
 //
-//  Lit les vagues et les types d'ennemis dans GameData, fait apparaître les
-//  ennemis sur les points d'apparition de la carte (Sinwave_SpawnPoint) et
-//  reconnaît leur mort pour publier EnemyKilled.
+//  Lit les cercles de l'arène courante dans GameData, fait apparaître les ennemis
+//  sur les points d'apparition de la carte (Sinwave_SpawnPoint) en appliquant les
+//  règles de l'arène (vie, vitesse, rythme), et reconnaît leur mort. Un cercle
+//  sans durée se termine à la mort de son boss.
 
 class Sinwave_WaveSystem : Sinwave_System
 {
-	const MIN_SPAWN_DISTANCE = 384.0;	// pas d'apparition collée au joueur
+	const MIN_SPAWN_DISTANCE = 384.0;		// pas d'apparition collée au joueur
 	const FALLBACK_SPAWN_RADIUS = 640.0;	// carte sans points d'apparition
 	const SPAWN_ATTEMPTS = 6;
 
@@ -22,6 +23,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	private int mWaveTics;
 	private int mSpawnTimer;
 	private int mBreakTics;
+	private Actor mBoss;
 	private Array<Actor> mAlive;
 	private Array<Sinwave_EnemyDef> mAliveDefs;
 	private Array<Actor> mSpawnPoints;
@@ -34,6 +36,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_RunResumedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_ActorDiedEvent');
+		mBus.Subscribe(self, 'Sinwave_SpawnRequestedEvent');
 	}
 
 	override void OnEvent(Sinwave_Event e)
@@ -43,6 +46,12 @@ class Sinwave_WaveSystem : Sinwave_System
 		else if (e is 'Sinwave_RunResumedEvent') mSuspended = false;
 		else if (e is 'Sinwave_RunEndedEvent') StopRun();
 		else if (e is 'Sinwave_ActorDiedEvent') OnActorDied(Sinwave_ActorDiedEvent(e).mThing);
+		else if (e is 'Sinwave_SpawnRequestedEvent' && mRunning)
+		{
+			let request = Sinwave_SpawnRequestedEvent(e);
+			let def = mData.FindEnemy(request.mEnemyId);
+			for (int i = 0; def != null && i < request.mCount; i++) SpawnEnemy(def);
+		}
 	}
 
 	override void Tick()
@@ -58,7 +67,9 @@ class Sinwave_WaveSystem : Sinwave_System
 
 		let wave = mData.mWaves[mWave];
 		mWaveTics++;
-		if (mWaveTics >= wave.mDurationTics)
+		bool timeUp = wave.mDurationTics > 0 && mWaveTics >= wave.mDurationTics;
+		bool bossGone = wave.HasBoss() && mBoss == null;	// supprimé sans mourir
+		if (timeUp || bossGone)
 		{
 			EndWave();
 			return;
@@ -67,9 +78,12 @@ class Sinwave_WaveSystem : Sinwave_System
 		mSpawnTimer--;
 		if (mSpawnTimer <= 0)
 		{
-			mSpawnTimer = wave.mIntervalTics;
+			mSpawnTimer = max(1, int(wave.mIntervalTics / mData.mArena.mSpawnRate));
 			PruneAlive();
-			if (mAlive.Size() < wave.mMaxAlive) SpawnEnemy(wave);
+			if (mAlive.Size() < wave.mMaxAlive && wave.mTotalWeight > 0)
+			{
+				SpawnEnemy(mData.FindEnemy(wave.PickEnemy(Random[SinwaveWaves](0, wave.mTotalWeight - 1))));
+			}
 		}
 	}
 
@@ -78,6 +92,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		mRunning = true;
 		mSuspended = false;
 		mBreakTics = 0;
+		mBoss = null;
 		CollectSpawnPoints();
 		if (mData.mWaves.Size() == 0)
 		{
@@ -103,6 +118,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		}
 		mAlive.Clear();
 		mAliveDefs.Clear();
+		mBoss = null;
 	}
 
 	private void StartWave(int index)
@@ -112,6 +128,14 @@ class Sinwave_WaveSystem : Sinwave_System
 		mSpawnTimer = 0;
 		let wave = mData.mWaves[index];
 		mBus.Publish(Sinwave_WaveStartedEvent.Create(index, mData.mWaves.Size(), wave.mName, wave.mDurationTics));
+
+		if (wave.HasBoss())
+		{
+			let def = mData.FindEnemy(wave.mBossId);
+			mBoss = SpawnEnemy(def);
+			if (mBoss != null) mBus.Publish(Sinwave_BossSpawnedEvent.Create(mBoss, def));
+			else EndWave();	// impossible de placer le boss : on ne bloque pas la run
+		}
 	}
 
 	private void EndWave()
@@ -126,26 +150,32 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBreakTics = max(1, mData.mWaves[mWave].mBreakTics);
 	}
 
-	private void SpawnEnemy(Sinwave_WaveDef wave)
+	// Fait apparaître un ennemi en appliquant sa définition et les règles de l'arène.
+	private Actor SpawnEnemy(Sinwave_EnemyDef def)
 	{
-		let def = mData.FindEnemy(wave.PickEnemy(Random[SinwaveWaves](0, wave.mTotalWeight - 1)));
-		if (def == null) return;
+		if (def == null) return null;
 
 		bool found;
 		Vector3 pos;
 		[found, pos] = FindSpawnPosition();
-		if (!found) return;
+		if (!found) return null;
 
 		let mo = Actor.Spawn(def.mActor, pos, ALLOW_REPLACE);
-		if (mo == null) return;
+		if (mo == null) return null;
 		if (!mo.TestMobjLocation())
 		{
 			mo.Destroy();
-			return;
+			return null;
 		}
 
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor));
-		mo.Speed *= def.mSpeedFactor;
+		let arena = mData.mArena;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth));
+		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed;
+		if (def.mScale != 1.0)
+		{
+			mo.Scale *= def.mScale;
+			mo.A_SetSize(mo.radius * def.mScale, mo.height * def.mScale);
+		}
 
 		// L'ennemi connaît déjà le joueur : il fonce sur lui au lieu d'attendre de le voir.
 		let pawn = Sinwave_World.Player();
@@ -158,6 +188,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		Actor.Spawn('TeleportFog', pos, ALLOW_REPLACE);
 		mAlive.Push(mo);
 		mAliveDefs.Push(def);
+		return mo;
 	}
 
 	private bool, Vector3 FindSpawnPosition()
@@ -206,6 +237,12 @@ class Sinwave_WaveSystem : Sinwave_System
 			mAlive.Delete(i);
 			mAliveDefs.Delete(i);
 			mBus.Publish(Sinwave_EnemyKilledEvent.Create(def, thing.pos));
+			if (thing == mBoss && mRunning)
+			{
+				mBoss = null;
+				mBus.Publish(new('Sinwave_BossDefeatedEvent'));
+				EndWave();
+			}
 			return;
 		}
 	}

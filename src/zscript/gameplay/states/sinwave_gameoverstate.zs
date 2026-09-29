@@ -25,9 +25,6 @@ class Sinwave_GameOverState : Sinwave_GameState
 
 		// Joueur mort : le moteur recharge déjà le niveau quand on appuie sur Utiliser.
 		let pawn = Sinwave_World.Player();
-		if (pawn != null && pawn.health > 0)
-		{
-			level.ChangeLevel(level.MapName, 0, CHANGELEVEL_RESETINVENTORY | CHANGELEVEL_RESETHEALTH | CHANGELEVEL_NOINTERMISSION);
-		}
+		if (pawn != null && pawn.health > 0) Sinwave_World.Travel(level.MapName, false);
 	}
 }
