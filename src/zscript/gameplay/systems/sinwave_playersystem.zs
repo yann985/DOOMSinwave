@@ -7,7 +7,7 @@
 //
 //  Remet le joueur à zéro en début de run, lui donne l'équipement de départ,
 //  le ravitaille régulièrement et applique les effets qui le concernent :
-//  maxhealth, heal, armor, damage, speed, regen, give.
+//  maxhealth, heal, armor, damage, vulnerability, speed, regen, give.
 
 class Sinwave_PlayerSystem : Sinwave_System
 {
@@ -17,6 +17,9 @@ class Sinwave_PlayerSystem : Sinwave_System
 	private int mTics;
 	private double mRegenPerSecond;
 	private double mRegenCarry;
+	private double mDamageBonus;		// dégâts infligés : +0.2 = +20 %
+	private double mSpeedBonus;			// vitesse de déplacement
+	private double mVulnerability;		// dégâts subis : +0.25 = +25 %
 
 	override void Setup()
 	{
@@ -64,13 +67,15 @@ class Sinwave_PlayerSystem : Sinwave_System
 		mTics = 0;
 		mRegenPerSecond = 0;
 		mRegenCarry = 0;
+		mDamageBonus = 0;
+		mSpeedBonus = 0;
+		mVulnerability = 0;
 
 		let pawn = Sinwave_World.Player();
 		if (pawn == null) return;
 		// Ces valeurs survivent au rechargement de la carte : on les remet à zéro.
 		pawn.stamina = 0;
-		pawn.DamageMultiply = 1;
-		pawn.Speed = 1;
+		ApplyStats(pawn);
 		pawn.A_SetHealth(pawn.GetMaxHealth(true));
 		GiveItems(pawn, mProgression.mStartItems);
 	}
@@ -80,23 +85,28 @@ class Sinwave_PlayerSystem : Sinwave_System
 		let pawn = Sinwave_World.Player();
 		if (pawn == null) return;
 
+		int amount = int(effect.mValue);
 		switch (effect.mType)
 		{
 		case 'maxhealth':
-			pawn.stamina += int(effect.mValue);
-			pawn.GiveBody(int(effect.mValue));
+			pawn.stamina += amount;
+			if (amount > 0) pawn.GiveBody(amount);
+			else if (pawn.health > pawn.GetMaxHealth(true)) pawn.A_SetHealth(max(1, pawn.GetMaxHealth(true)));
 			break;
 		case 'heal':
-			pawn.GiveBody(int(effect.mValue));
+			pawn.GiveBody(amount);
 			break;
 		case 'armor':
-			pawn.GiveInventory('ArmorBonus', int(effect.mValue));
+			if (amount > 0) pawn.GiveInventory('ArmorBonus', amount);
 			break;
 		case 'damage':
-			pawn.DamageMultiply += effect.mValue;
+			mDamageBonus += effect.mValue;
+			break;
+		case 'vulnerability':
+			mVulnerability += effect.mValue;
 			break;
 		case 'speed':
-			pawn.Speed += effect.mValue;
+			mSpeedBonus += effect.mValue;
 			break;
 		case 'regen':
 			mRegenPerSecond += effect.mValue;
@@ -105,6 +115,16 @@ class Sinwave_PlayerSystem : Sinwave_System
 			if (effect.mItem != null) GiveItem(pawn, effect.mItem, effect.mAmount);
 			break;
 		}
+		ApplyStats(pawn);
+	}
+
+	// Les bonus s'additionnent ; les valeurs appliquées ont un plancher pour
+	// qu'aucun cumul de malus ne rende le joueur immobile ou invincible.
+	private void ApplyStats(Actor pawn)
+	{
+		pawn.DamageMultiply = max(0.1, 1 + mDamageBonus);
+		pawn.DamageFactor = max(0.1, 1 + mVulnerability);
+		pawn.Speed = max(0.3, 1 + mSpeedBonus);
 	}
 
 	private void GiveItems(Actor pawn, Array<Sinwave_ItemStack> items)

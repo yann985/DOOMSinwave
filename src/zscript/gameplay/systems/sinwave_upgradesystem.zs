@@ -1,13 +1,15 @@
 // =============================================================================
-//  Améliorations proposées à la montée de niveau.
+//  Choix d'une vertu ou d'un péché à la montée de niveau.
 // =============================================================================
 //
 //  Écoute : RunStarted, RunEnded, LevelUp, UpgradePicked
 //  Publie : UpgradeOffered, UpgradeChosen, EffectGranted
 //
-//  Tire au hasard des améliorations dans GameData (en respectant leur maximum
-//  par run). Ce système ne sait pas ce que fait une amélioration : il publie
-//  EffectGranted, et le système concerné l'applique.
+//  Propose des vertus (sûres) et des péchés (puissants, avec un défaut et de la
+//  corruption), tirés au hasard dans data/upgrades.txt en respectant leur maximum
+//  par run. Ce système ne sait pas ce que fait un effet : il publie EffectGranted
+//  et le système concerné l'applique. Il ne gère pas non plus la corruption :
+//  Sinwave_CorruptionSystem réagit à UpgradeChosen.
 
 class Sinwave_UpgradeSystem : Sinwave_System
 {
@@ -55,28 +57,35 @@ class Sinwave_UpgradeSystem : Sinwave_System
 
 	private void MakeOffer()
 	{
-		Array<int> candidates;
-		for (int i = 0; i < mData.mUpgrades.Size(); i++)
-		{
-			if (mStacks[i] < mData.mUpgrades[i].mMaxStacks) candidates.Push(i);
-		}
-		int count = min(mData.mProgression.mUpgradeChoices, candidates.Size());
-		if (count == 0)
+		mOffer.Clear();
+		PickRandom(false, mData.mProgression.mOfferVirtues);
+		PickRandom(true, mData.mProgression.mOfferSins);
+		if (mOffer.Size() == 0)
 		{
 			mPending = 0;	// tout est au maximum : plus rien à proposer
 			return;
 		}
 
 		let offer = new('Sinwave_UpgradeOfferedEvent');
-		for (int n = 0; n < count; n++)
+		for (int i = 0; i < mOffer.Size(); i++) offer.mChoices.Push(mOffer[i]);
+		mBus.Publish(offer);
+	}
+
+	// Ajoute à la proposition `count` améliorations différentes du type demandé.
+	private void PickRandom(bool sins, int count)
+	{
+		Array<int> candidates;
+		for (int i = 0; i < mData.mUpgrades.Size(); i++)
+		{
+			let upgrade = mData.mUpgrades[i];
+			if (upgrade.mIsSin == sins && mStacks[i] < upgrade.mMaxStacks) candidates.Push(i);
+		}
+		for (int n = 0; n < count && candidates.Size() > 0; n++)
 		{
 			int pick = Random[SinwaveUpgrades](0, candidates.Size() - 1);
-			let upgrade = mData.mUpgrades[candidates[pick]];
-			mOffer.Push(upgrade);
-			offer.mChoices.Push(upgrade);
+			mOffer.Push(mData.mUpgrades[candidates[pick]]);
 			candidates.Delete(pick);
 		}
-		mBus.Publish(offer);
 	}
 
 	private void Pick(int index)
@@ -91,7 +100,10 @@ class Sinwave_UpgradeSystem : Sinwave_System
 		mPending--;
 
 		mBus.Publish(Sinwave_UpgradeChosenEvent.Create(upgrade));
-		mBus.Publish(Sinwave_EffectGrantedEvent.Create(upgrade.mEffect, upgrade.mName));
+		for (int i = 0; i < upgrade.mEffects.Size(); i++)
+		{
+			mBus.Publish(Sinwave_EffectGrantedEvent.Create(upgrade.mEffects[i], upgrade.mName));
+		}
 		if (mPending > 0) MakeOffer();
 	}
 }
