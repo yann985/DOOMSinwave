@@ -58,6 +58,12 @@ class Sinwave_DataBlock play
 		return index >= 0 ? mValues[index].ToDouble() : fallback;
 	}
 
+	// Durée écrite en secondes, convertie en tics (35 par seconde).
+	int GetTics(String key, double fallbackSeconds = 0)
+	{
+		return int(GetDouble(key, fallbackSeconds) * TICRATE + 0.5);
+	}
+
 	bool GetBool(String key, bool fallback = false)
 	{
 		int index = IndexOf(key);

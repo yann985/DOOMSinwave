@@ -3,7 +3,7 @@
 // =============================================================================
 //
 //  Écoute : RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted
-//  Publie : XpChanged, LevelUp
+//  Publie : XpOrbDropped, XpChanged, LevelUp
 //
 //  Chaque ennemi tué lâche une orbe (Sinwave_XpOrb). Quand le joueur la ramasse,
 //  l'orbe publie XpCollected : elle connaît le bus, pas ce système.
@@ -74,12 +74,14 @@ class Sinwave_XpSystem : Sinwave_System
 	{
 		if (value <= 0) return;
 		let orb = Sinwave_XpOrb(Actor.Spawn('Sinwave_XpOrb', pos + (0, 0, 16)));
-		if (orb != null) orb.Setup(mBus, value, mProgression.mMagnetRadius * mMagnetFactor);
+		if (orb == null) return;
+		orb.Setup(mBus, value, mProgression.mMagnetRadius * max(0.1, mMagnetFactor));
+		mBus.Publish(Sinwave_XpOrbDroppedEvent.Create(orb));
 	}
 
 	private void Gain(int amount)
 	{
-		mXp += max(1, int(amount * mGainFactor + 0.5));
+		mXp += max(1, int(amount * max(0.1, mGainFactor) + 0.5));
 		while (mXp >= mNeeded)
 		{
 			mXp -= mNeeded;
