@@ -18,7 +18,7 @@
 name   = Paresse
 actor  = Zombieman
 health = 1.5
-speed  = 0.6
+speed  = 0.85
 xp     = 1
 score  = 10
 

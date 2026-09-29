@@ -25,8 +25,8 @@ L'arène est jouable tout de suite : lance le jeu, appuie sur Utiliser au menu e
 Ouvre la carte dans Ultimate Doom Builder (*File → Open Map*, configuration **GZDoom: Doom 2 (UDMF)**, ressources `freedoom2.wad` et `build/sinwave.pk3`). Le raccourci « Sinwave - Travailler » ouvre directement le Purgatoire avec ces réglages.
 
 - Garde un **départ du joueur** (Player 1 Start).
-- Place des **points d'apparition** des ennemis : catégorie *Sinwave*, « Point d'apparition des ennemis » (numéro 30001). Mets-les loin du centre : les ennemis n'apparaissent jamais à moins de 384 unités du joueur.
-- Sans aucun point d'apparition, les ennemis apparaissent en cercle autour du joueur.
+- Par défaut, les ennemis apparaissent **autour du joueur**, juste hors de portée (clé `spawn = player`, voir plus bas).
+- Tu peux aussi placer des **points d'apparition** : catégorie *Sinwave*, « Point d'apparition des ennemis » (numéro 30001). Ils servent de secours quand la place manque autour du joueur, ou de seule source avec `spawn = points`. Mets-les loin du centre : ils ne servent jamais à moins de 384 unités du joueur.
 - Les marches ne doivent pas dépasser 24 unités de haut, sinon le joueur ne peut pas les monter.
 
 Enregistre (Ctrl+S). Attention : relancer `new-arena.ps1` ou `generate-arena.ps1` sur la même carte l'écrase.
@@ -66,7 +66,10 @@ enemy_health = 1.2     # vie des ennemis ×1,2
 enemy_speed  = 1.1     # vitesse des ennemis ×1,1
 spawn_rate   = 1.5     # apparitions 1,5 fois plus fréquentes
 reward       = 1.5     # indulgences gagnées ×1,5
+spawn        = player  # player : autour du joueur ; points : sur les points d'apparition
 ```
+
+Choisis `spawn = points` pour une carte faite de couloirs ou de pièces : autour du joueur, un ennemi pourrait apparaître derrière un mur et rester coincé.
 
 ## 5. Tester
 

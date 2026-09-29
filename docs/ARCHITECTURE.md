@@ -146,6 +146,14 @@ Pour qu'une action survive au changement de carte (lancer la run dans l'arène c
 
 Les états **ne font pas le travail** : ils décident seulement des transitions. Quand la run démarre, ils publient `RunStartedEvent`, et ce sont les systèmes qui réagissent (cercles, joueur, XP, achats de la boutique...).
 
+### La horde vise toujours le joueur
+
+Dans un survivors-like, les ennemis foncent sur le joueur ; l'IA de Doom, elle, attend de le voir et se laisse distraire. `Sinwave_WaveSystem` corrige cela sans toucher aux monstres du moteur :
+- **Apparition autour du joueur** (clé `spawn = player` de l'arène, par défaut) : à 550–850 unités, juste hors de portée, sur le sol du secteur. Une position hors de la carte ou dans un pilier est rejetée ; après 6 essais, on se rabat sur les points d'apparition de la carte. Avec `spawn = points`, seuls ces points servent.
+- **Cible dès l'apparition** : l'ennemi reçoit le joueur comme cible et passe directement en poursuite.
+- **Rappel de cible** chaque seconde : un ennemi qui a changé de cible ou qui erre est relancé sur le joueur.
+- **`noinfighting`** dans `MAPINFO` : les monstres ne se battent plus entre eux quand ils se touchent par erreur.
+
 ### Exemple : un ennemi meurt
 
 ```mermaid
@@ -240,7 +248,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | Fichier | Contenu | Lu par |
 |---|---|---|
 | `systems.txt` | Systèmes à créer, dans quel ordre, activés ou non | `Sinwave_Game` |
-| `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense) | `Sinwave_GameData`, choix d'arène |
+| `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense), mode d'apparition des ennemis | `Sinwave_GameData`, choix d'arène |
 | `waves/*.txt` | Cercles d'une arène : durée, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
 | `enemies.txt` | Les 7 péchés et le boss : classe du moteur, vie, vitesse, taille, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
@@ -421,6 +429,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 - **Ajout d'arènes par un mod :** un mod qui veut ajouter une arène doit fournir son propre `data/arenas.txt` complet, qui remplace celui du jeu. Les listes ne se cumulent pas encore entre archives.
 - **Sauvegarde modifiable :** les CVars sont dans un fichier `.ini` lisible ; un joueur peut changer ses indulgences. C'est acceptable pour un prototype solo.
 - **Jeu solo :** le code suppose un seul joueur (`Sinwave_World.Player()`).
+- **Apparition derrière un mur :** autour du joueur, un ennemi peut apparaître de l'autre côté d'une cloison. Il le poursuit quand même, mais l'IA de Doom ne cherche pas de chemin : dans une carte très cloisonnée, `spawn = points` est préférable.
 - **Tests d'intégration sur un vrai moteur :** `test.ps1` ouvre une fenêtre GZDoom ; il ne tourne donc pas sur le serveur d'intégration continue de GitHub, qui ne fait que construire le `.pk3` et le build.
 
 ## 12. Avec plus de temps

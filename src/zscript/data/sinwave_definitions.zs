@@ -368,6 +368,7 @@ class Sinwave_ArenaDef play
 	double mEnemySpeed;
 	double mSpawnRate;
 	double mRewardFactor;
+	bool mSpawnAroundPlayer;	// vrai : autour du joueur ; faux : points d'apparition de la carte
 	Array<String> mCircleNames;
 
 	// Arène neutre, utilisée si data/arenas.txt est vide ou absent.
@@ -379,6 +380,7 @@ class Sinwave_ArenaDef play
 		def.mEnemySpeed = 1;
 		def.mSpawnRate = 1;
 		def.mRewardFactor = 1;
+		def.mSpawnAroundPlayer = true;
 		return def;
 	}
 
@@ -394,6 +396,9 @@ class Sinwave_ArenaDef play
 		def.mEnemySpeed = max(0.1, block.GetDouble("enemy_speed", 1.0));
 		def.mSpawnRate = max(0.1, block.GetDouble("spawn_rate", 1.0));
 		def.mRewardFactor = max(0.0, block.GetDouble("reward", 1.0));
+		String spawn = block.GetString("spawn", "player").MakeLower();
+		if (spawn != "player" && spawn != "points") block.Warn("spawn doit valoir player ou points.");
+		def.mSpawnAroundPlayer = spawn != "points";
 		if (def.mMap.Length() == 0 || def.mWavesFile.Length() == 0)
 		{
 			block.Warn("une arène doit indiquer « map » et « waves ».");

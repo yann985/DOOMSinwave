@@ -88,6 +88,7 @@ enemy_health = 1.0
 enemy_speed  = 1.0
 spawn_rate   = 1.0
 reward       = 1.0
+spawn        = player
 "@
 [IO.File]::AppendAllText($arenas, $arenaBlock.Replace("`r`n", "`n") + "`n", $utf8)
 
@@ -100,6 +101,7 @@ map $Map "$Name"
 	sky1 = "SKY1"
 	music = "D_DEAD"
 	nointermission
+	noinfighting
 }
 "@
 [IO.File]::AppendAllText($mapinfo, $mapBlock.Replace("`r`n", "`n") + "`n", $utf8)
