@@ -459,6 +459,7 @@ class Sinwave_SoulTierDef play
 	Array<Sinwave_Effect> mEffects;
 	double mHealthDrop;			// chance de butin ajoutée, en %
 	double mAmmoDrop;
+	int mTemptation;			// choix de niveau tirés vers ce camp
 
 	static Sinwave_SoulTierDef FromBlock(Sinwave_DataBlock block)
 	{
@@ -477,6 +478,7 @@ class Sinwave_SoulTierDef play
 		Sinwave_Effect.ParseList(block, "effects", def.mEffects);
 		def.mHealthDrop = block.GetDouble("health_drop", 0);
 		def.mAmmoDrop = block.GetDouble("ammo_drop", 0);
+		def.mTemptation = max(0, block.GetInt("temptation", 0));
 		return def;
 	}
 
@@ -606,6 +608,16 @@ class Sinwave_SoulDef play
 		for (int i = 0; i < reached.Size(); i++) chance += health ? reached[i].mHealthDrop : reached[i].mAmmoDrop;
 		return clamp(chance, 0.0, 100.0);
 	}
+
+	// Choix de niveau tirés vers le camp où penche l'âme (la pente glissante).
+	int Temptation(int soul)
+	{
+		Array<Sinwave_SoulTierDef> reached;
+		ReachedTiers(soul, reached);
+		int total = 0;
+		for (int i = 0; i < reached.Size(); i++) total += reached[i].mTemptation;
+		return total;
+	}
 }
 
 // Réglages généraux de progression (data/progression.txt).
@@ -615,6 +627,7 @@ class Sinwave_ProgressionDef play
 	double mXpGrowth;
 	int mOfferVirtues;
 	int mOfferSins;
+	int mOfferFree;			// choix de l'un ou l'autre camp (tirés par l'âme, sinon au hasard)
 	double mMagnetRadius;
 	int mIndulgencesPerScore;
 	int mIndulgencesPerCircle;
@@ -639,6 +652,7 @@ class Sinwave_ProgressionDef play
 		def.mXpGrowth = max(1.0, block.GetDouble("xp_growth", 1.5));
 		def.mOfferVirtues = max(0, block.GetInt("offer_virtues", 2));
 		def.mOfferSins = max(0, block.GetInt("offer_sins", 1));
+		def.mOfferFree = max(0, block.GetInt("offer_free", 0));
 		def.mMagnetRadius = max(0.0, block.GetDouble("magnet_radius", 192));
 		def.mIndulgencesPerScore = max(1, block.GetInt("indulgences_per_score", 20));
 		def.mIndulgencesPerCircle = max(0, block.GetInt("indulgences_per_circle", 2));

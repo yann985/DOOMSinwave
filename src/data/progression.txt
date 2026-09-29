@@ -3,8 +3,9 @@
 [progression default]
 xp_first_level         = 5              # XP pour passer au niveau 2
 xp_growth              = 1.6            # chaque niveau demande 60 % d'XP en plus
-offer_virtues          = 2              # vertus proposées à chaque niveau
+offer_virtues          = 1              # vertus proposées à chaque niveau
 offer_sins             = 1              # péchés proposés à chaque niveau
+offer_free             = 1              # choix libres : vers le camp où penche l'âme (pente glissante), sinon au hasard
 magnet_radius          = 192            # distance d'attraction des orbes (unités de carte)
 indulgences_per_score  = 20             # 1 indulgence pour 20 points de score
 indulgences_per_circle = 2              # indulgences par cercle franchi

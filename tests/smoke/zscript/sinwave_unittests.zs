@@ -311,7 +311,7 @@ class Sinwave_UnitTests : StaticEventHandler
 			"[soul s]\nmin = 0\nmax = 30\nbalance = 15\nhealth_drop = 10\nammo_drop = 10\n"
 			.. "sin_ammo_drop = 2\nsin_health_drop = -1\nvirtue_health_drop = 2\nvirtue_ammo_drop = -1\n"
 			.. "[tier b]\nside = sin\nat = 30\nhealth_drop = -100\n"
-			.. "[tier a]\nside = sin\nat = 20\nammo_drop = 5\neffects = damage:0.1\n"
+			.. "[tier a]\nside = sin\nat = 20\nammo_drop = 5\neffects = damage:0.1\ntemptation = 1\n"
 			.. "[tier c]\nside = virtue\nat = 10\n", blocks);
 		let soul = Sinwave_SoulDef.FromBlocks(blocks);
 
@@ -326,6 +326,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		soul.ReachedTiers(30, reached);
 		Check(reached.Size() == 2, "âme : les paliers d'un même côté s'additionnent");
 		Check(soul.DropChance(5, true) == 30 && soul.DropChance(5, false) == 0, "âme : l'inverse côté vertu");
+		Check(soul.Temptation(15) == 0 && soul.Temptation(25) == 1, "âme : la pente glissante tire les choix vers le camp atteint");
 
 		Check(Sinwave_CorruptionChangedEvent.Create(19, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_PURGATORY, "verdict : Purgatoire sans palier");
 		Check(Sinwave_CorruptionChangedEvent.Create(20, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION, "verdict : Damnation dès un palier du péché");

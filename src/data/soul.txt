@@ -38,6 +38,7 @@ virtue_ammo_drop   = -0.3
 #                 plus : aura (dégâts par seconde aux ennemis proches),
 #                        infiniteammo (1 : munitions infinies)
 #   health_drop, ammo_drop : chance de butin ajoutée, en %
+#   temptation  : choix de niveau tirés vers ce camp (la pente glissante)
 
 # --- Paliers du péché ---------------------------------------------------------
 
@@ -48,6 +49,7 @@ name        = Souillure
 description = Tes coups portent (+10 % dégâts) ; ta chair faiblit (-10 PV max)
 effects     = damage:0.1, maxhealth:-10
 ammo_drop   = 5
+temptation  = 1
 
 [tier perdition]
 side        = sin
@@ -73,6 +75,7 @@ name        = Piété
 description = Foi : -10 % de dégâts subis ; tes coups faiblissent (-5 %)
 effects     = vulnerability:-0.1, damage:-0.05
 health_drop = 5
+temptation  = 1
 
 [tier grace]
 side        = virtue
