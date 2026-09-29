@@ -1,5 +1,8 @@
-// Touche de pause de la run (modifiable dans Options > Commandes > Sinwave).
+// Touches de Sinwave (modifiables dans Options > Commandes > Sinwave).
 addkeysection "Sinwave" SinwaveKeys
 addmenukey "Pause de la run" sinwave_pause
+addmenukey "Boutique des indulgences" sinwave_shop
 alias sinwave_pause "netevent sinwave_pause"
+alias sinwave_shop "netevent sinwave_shop"
 defaultbind P sinwave_pause
+defaultbind B sinwave_shop

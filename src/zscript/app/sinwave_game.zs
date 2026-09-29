@@ -50,7 +50,7 @@ class Sinwave_Game : EventHandler
 		mServices.Register('EventBus', mBus);
 
 		let data = new('Sinwave_GameData');
-		data.LoadAll();
+		data.LoadAll(level.MapName);
 		mServices.Register('GameData', data);
 
 		mServices.Register('Save', new('Sinwave_CVarSaveService'));
@@ -76,6 +76,8 @@ class Sinwave_Game : EventHandler
 		mMachine = new('Sinwave_StateMachine');
 		mMachine.Init(mBus);
 		AddState('Sinwave_MenuState');
+		AddState('Sinwave_ArenaSelectState');
+		AddState('Sinwave_ShopState');
 		AddState('Sinwave_InGameState');
 		AddState('Sinwave_PauseState');
 		AddState('Sinwave_UpgradeState');
@@ -132,6 +134,14 @@ class Sinwave_Game : EventHandler
 		else mBus.Publish(Sinwave_ActorDiedEvent.Create(e.Thing));
 	}
 
+	// Seuls les dégâts infligés par le joueur sont publiés (malédiction de la Colère...).
+	override void WorldThingDamaged(WorldEvent e)
+	{
+		if (!mReady || e.Thing == null || e.DamageSource == null || e.DamageSource.player == null) return;
+		if (e.Thing.player != null) return;
+		mBus.Publish(Sinwave_ActorDamagedEvent.Create(e.Thing, e.Damage));
+	}
+
 	// Commandes envoyées par l'interface (SendNetworkEvent) ou tapées dans la
 	// console (« netevent sinwave_pause »...). C'est le seul chemin ui -> jeu.
 	override void NetworkProcess(ConsoleEvent e)
@@ -141,7 +151,11 @@ class Sinwave_Game : EventHandler
 		else if (e.Name ~== "sinwave_pause") mBus.Publish(new('Sinwave_PauseRequestedEvent'));
 		else if (e.Name ~== "sinwave_resume") mBus.Publish(new('Sinwave_ResumeRequestedEvent'));
 		else if (e.Name ~== "sinwave_abandon") mBus.Publish(new('Sinwave_AbandonRequestedEvent'));
+		else if (e.Name ~== "sinwave_shop") mBus.Publish(new('Sinwave_ShopRequestedEvent'));
+		else if (e.Name ~== "sinwave_back") mBus.Publish(new('Sinwave_BackRequestedEvent'));
 		else if (e.Name ~== "sinwave_pick") mBus.Publish(Sinwave_UpgradePickedEvent.Create(e.Args[0]));
+		else if (e.Name ~== "sinwave_buy") mBus.Publish(Sinwave_ShopBuyRequestedEvent.Create(e.Args[0]));
+		else if (e.Name ~== "sinwave_arena") mBus.Publish(Sinwave_ArenaChosenEvent.Create(e.Args[0]));
 	}
 
 	// -------------------------------------------------------------------------

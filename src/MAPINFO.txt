@@ -10,20 +10,32 @@ DoomEdNums
 	30001 = Sinwave_SpawnPoint
 }
 
-// « Nouvelle partie » mène directement à l'arène.
+// « Nouvelle partie » mène directement au Purgatoire ; les autres arènes se
+// choisissent ensuite dans le jeu (data/arenas.txt).
 clearepisodes
-episode SW01
+episode SW02
 {
 	name = "Sinwave"
 	key = "s"
 	noskillmenu
 }
 
-map SW01 "Le Purgatoire"
+// Le Purgatoire : cercles concentriques qui descendent vers le centre.
+map SW02 "Le Purgatoire"
+{
+	levelnum = 2
+	next = "SW02"
+	sky1 = "SKY3"
+	music = "D_RUNNIN"
+	nointermission
+}
+
+// Les Limbes : une salle carrée.
+map SW01 "Les Limbes"
 {
 	levelnum = 1
 	next = "SW01"
-	sky1 = "SKY3"
-	music = "D_RUNNIN"
+	sky1 = "SKY2"
+	music = "D_STALKS"
 	nointermission
 }
