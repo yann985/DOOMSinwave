@@ -271,10 +271,10 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `systems.txt` | Systèmes à créer, dans quel ordre, activés ou non | `Sinwave_Game` |
 | `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense), mode d'apparition des ennemis | `Sinwave_GameData`, choix d'arène |
 | `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
-| `enemies.txt` | Les 7 péchés et le boss : classe du moteur, vie, vitesse, taille, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
+| `enemies.txt` | Les 7 péchés, le boss et le reflet damné : classe du moteur, vie, vitesse, taille, couleur, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
-| `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem` |
+| `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets, pente des choix, force du boss, épreuves | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem`, `Sinwave_UpgradeSystem`, `Sinwave_WaveSystem`, `Sinwave_SoulTrialSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
 | `progression.txt` | Courbe d'XP, composition des choix (vertus, péchés, choix libres), gains d'indulgences (dont le bonus de chaque verdict), équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
@@ -355,6 +355,11 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 - **Grands changements, à chaque palier :** les paliers d'un même côté s'additionnent. `Sinwave_CorruptionSystem` publie les effets d'un palier atteint et, s'il est perdu, leur inverse ; un bandeau l'annonce (`SoulTierChangedEvent`). Au début d'une run, les paliers ne sont appliqués qu'au tic suivant, après la remise à zéro du joueur : l'ordre de diffusion de `RunStarted` n'est pas garanti.
 - **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
 - **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie de Lucifer et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
+- **Épreuves, au bout de la balance :** `Sinwave_SoulTrialSystem` compte le temps passé à 0 ou à 30 (hors pause et menus). Au bout de `trial_seconds` (20 s), une fois par séjour :
+  - côté péché, il demande l'apparition du **reflet damné** (`SpawnRequested`), un mini-boss rouge qui rapporte 80 XP ;
+  - côté vertu, un **ange** soigne le joueur (`EffectGranted` heal), dans une gerbe de lumière dorée.
+
+  `SoulTrialEvent` fait afficher un bandeau. Quitter le bout de la balance remet le compte à zéro.
 - **Verdict :** un palier du péché atteint en fin de run, Damnation ; un palier de la vertu, Absolution ; sinon, Purgatoire. La règle est écrite **une seule fois**, dans `Sinwave_CorruptionChangedEvent.Verdict()`, et utilisée par la méta-progression (bonus de victoire : 20, 12 ou 5 indulgences) comme par l'interface.
 - **Interface :** une jauge sous la barre d'XP, avec l'équilibre au milieu, la vertu en or vers la gauche, le péché en violet vers la droite, et un trait par palier. L'écran se teinte de rouge vers le péché, d'une lueur dorée vers la vertu.
 - **Débogage :** avec `sinwave_debug 1`, `netevent sinwave_soul 5` (ou `-5`) décale l'âme sans passer par un choix, pour essayer les paliers.
@@ -414,6 +419,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
 | `threats` : `Sinwave_ThreatSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed | ThreatStarted, ThreatEnded |
 | `loot` : `Sinwave_LootSystem` | EventBus, GameData | RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned | rien |
+| `trials` : `Sinwave_SoulTrialSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed, CorruptionChanged | SoulTrial, SpawnRequested, EffectGranted |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
@@ -433,6 +439,7 @@ Ce que la désactivation change pour chaque système :
 - **xp** : plus de montée de niveau ;
 - **meta** : rien n'est sauvegardé et la boutique ne vend plus rien ;
 - **threats** : plus d'alerte d'attaque dans l'angle mort ;
+- **trials** : ni reflet damné ni ange au bout de la balance ;
 - **waves** : aucun ennemi.
 
 ---

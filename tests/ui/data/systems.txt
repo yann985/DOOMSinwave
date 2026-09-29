@@ -40,5 +40,8 @@ class   = Sinwave_ThreatSystem
 [system loot]
 class   = Sinwave_LootSystem
 
+[system trials]
+class   = Sinwave_SoulTrialSystem
+
 [system hud]
 class   = Sinwave_HudPresenter
