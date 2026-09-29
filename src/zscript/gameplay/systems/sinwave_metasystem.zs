@@ -1,13 +1,20 @@
 // =============================================================================
-//  Méta-progression : âmes, record et déblocages conservés entre les runs.
+//  Méta-progression : indulgences, record et boutique, conservés entre les runs.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunEnded, ScoreChanged, WaveEnded, GameLoaded
-//  Publie : MetaLoaded, MetaSaved, EffectGranted (bénédictions débloquées)
+//  Écoute : RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged,
+//           ShopBuyRequested, GameLoaded
+//  Publie : MetaLoaded, MetaSaved, Purchase, EffectGranted (achats de la boutique)
 //
-//  Ne connaît ni les vagues ni le score : il retient seulement les valeurs
-//  annoncées sur le bus, et passe par le service de sauvegarde (Sinwave_SaveService)
-//  sans savoir comment celui-ci enregistre les données.
+//  Gagner : à la fin de la run, les indulgences viennent du score, des cercles
+//  franchis et du verdict (Absolution ou Damnation), multipliées par la
+//  récompense de l'arène.
+//  Dépenser : à la boutique, entre les runs, contre des armes et des améliorations
+//  permanentes, accordées au début de chaque run.
+//
+//  Ne connaît ni les vagues, ni le score, ni la corruption : il retient seulement
+//  les valeurs annoncées sur le bus, et passe par le service de sauvegarde sans
+//  savoir comment celui-ci enregistre les données.
 
 class Sinwave_MetaSystem : Sinwave_System
 {
@@ -17,6 +24,7 @@ class Sinwave_MetaSystem : Sinwave_System
 	private bool mRunning;
 	private int mScore;
 	private int mWavesEnded;
+	private bool mDamned;
 
 	override void Setup()
 	{
@@ -27,6 +35,8 @@ class Sinwave_MetaSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_ScoreChangedEvent');
 		mBus.Subscribe(self, 'Sinwave_WaveEndedEvent');
+		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
+		mBus.Subscribe(self, 'Sinwave_ShopBuyRequestedEvent');
 		mBus.Subscribe(self, 'Sinwave_GameLoadedEvent');
 	}
 
@@ -42,7 +52,8 @@ class Sinwave_MetaSystem : Sinwave_System
 			mRunning = true;
 			mScore = 0;
 			mWavesEnded = 0;
-			GrantUnlocks();
+			mDamned = false;
+			GrantPurchases();
 		}
 		else if (e is 'Sinwave_ScoreChangedEvent')
 		{
@@ -52,10 +63,18 @@ class Sinwave_MetaSystem : Sinwave_System
 		{
 			mWavesEnded++;
 		}
+		else if (e is 'Sinwave_CorruptionChangedEvent')
+		{
+			mDamned = Sinwave_CorruptionChangedEvent(e).IsDamned();
+		}
 		else if (e is 'Sinwave_RunEndedEvent' && mRunning)
 		{
 			mRunning = false;
 			SaveRun(Sinwave_RunEndedEvent(e).mReason);
+		}
+		else if (e is 'Sinwave_ShopBuyRequestedEvent')
+		{
+			Buy(Sinwave_ShopBuyRequestedEvent(e).mIndex);
 		}
 		else if (e is 'Sinwave_GameLoadedEvent')
 		{
@@ -65,61 +84,75 @@ class Sinwave_MetaSystem : Sinwave_System
 		}
 	}
 
-	// Chaque bénédiction débloquée est accordée au début de la run.
-	private void GrantUnlocks()
+	// Chaque niveau acheté d'un article applique ses effets au début de la run.
+	private void GrantPurchases()
 	{
-		for (int i = 0; i < mData.mUnlocks.Size(); i++)
+		for (int i = 0; i < mData.mShopItems.Size(); i++)
 		{
-			let unlock = mData.mUnlocks[i];
-			if (mMeta.mSouls >= unlock.mSoulsRequired)
+			let item = mData.mShopItems[i];
+			int level = mMeta.GetLevel(item.mId);
+			for (int n = 0; n < level; n++)
 			{
-				mBus.Publish(Sinwave_EffectGrantedEvent.Create(unlock.mEffect, unlock.mName));
+				for (int k = 0; k < item.mEffects.Size(); k++)
+				{
+					mBus.Publish(Sinwave_EffectGrantedEvent.Create(item.mEffects[k], item.mName));
+				}
 			}
 		}
+	}
+
+	private void Buy(int index)
+	{
+		if (index < 0 || index >= mData.mShopItems.Size()) return;
+		let item = mData.mShopItems[index];
+
+		if (mRunning)
+		{
+			mBus.Publish(Sinwave_PurchaseEvent.Create(item, false, "La boutique est fermée pendant une run."));
+			return;
+		}
+		int level = mMeta.GetLevel(item.mId);
+		if (level >= item.mMaxLevel)
+		{
+			mBus.Publish(Sinwave_PurchaseEvent.Create(item, false, "Déjà au niveau maximum."));
+			return;
+		}
+		int price = item.PriceForLevel(level);
+		if (mMeta.mIndulgences < price)
+		{
+			mBus.Publish(Sinwave_PurchaseEvent.Create(item, false, "Pas assez d'indulgences."));
+			return;
+		}
+
+		mMeta.mIndulgences -= price;
+		mMeta.SetLevel(item.mId, level + 1);
+		mSave.Save(mMeta);
+		mBus.Publish(Sinwave_PurchaseEvent.Create(item, true, item.mName .. " acquis !"));
+		PublishMeta();
 	}
 
 	private void SaveRun(int reason)
 	{
 		let progression = mData.mProgression;
-		int earned = mScore / progression.mSoulsPerScore + mWavesEnded * progression.mSoulsPerWave;
-		if (reason == Sinwave_RunEndedEvent.REASON_VICTORY) earned += progression.mSoulsVictory;
+		int earned = mScore / progression.mIndulgencesPerScore + mWavesEnded * progression.mIndulgencesPerCircle;
+		if (reason == Sinwave_RunEndedEvent.REASON_VICTORY)
+		{
+			earned += mDamned ? progression.mIndulgencesDamnation : progression.mIndulgencesAbsolution;
+		}
+		earned = int(earned * mData.mArena.mRewardFactor + 0.5);
 
-		int soulsBefore = mMeta.mSouls;
-		mMeta.mSouls += earned;
+		mMeta.mIndulgences += earned;
 		mMeta.mRuns++;
 		bool newBest = mScore > mMeta.mBestScore;
 		if (newBest) mMeta.mBestScore = mScore;
 		mSave.Save(mMeta);
 
-		String unlocked = "";
-		for (int i = 0; i < mData.mUnlocks.Size(); i++)
-		{
-			let unlock = mData.mUnlocks[i];
-			if (soulsBefore < unlock.mSoulsRequired && mMeta.mSouls >= unlock.mSoulsRequired)
-			{
-				unlocked = unlocked .. (unlocked.Length() > 0 ? ", " : "") .. unlock.mName;
-			}
-		}
-
-		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, unlocked));
+		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, mDamned));
 		PublishMeta();
 	}
 
 	private void PublishMeta()
 	{
-		mBus.Publish(Sinwave_MetaLoadedEvent.Create(mMeta, NextUnlock()));
-	}
-
-	// Le prochain déblocage à atteindre (le moins cher parmi ceux non obtenus).
-	private Sinwave_UnlockDef NextUnlock()
-	{
-		Sinwave_UnlockDef next = null;
-		for (int i = 0; i < mData.mUnlocks.Size(); i++)
-		{
-			let unlock = mData.mUnlocks[i];
-			if (unlock.mSoulsRequired <= mMeta.mSouls) continue;
-			if (next == null || unlock.mSoulsRequired < next.mSoulsRequired) next = unlock;
-		}
-		return next;
+		mBus.Publish(Sinwave_MetaLoadedEvent.Create(mMeta));
 	}
 }
