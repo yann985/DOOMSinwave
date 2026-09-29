@@ -43,9 +43,10 @@ lifetime    = 3
 
 [curse wrath]
 name        = Colère
-description = Chaque ennemi blessé entre en rage et accélère
+description = Un ennemi blessé entre en rage : rouge et plus rapide pendant 5 s
 class       = Sinwave_WrathCurse
 speed       = 1.5
+duration    = 5
 
 [curse pride]
 name        = Orgueil

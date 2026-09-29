@@ -158,21 +158,64 @@ class Sinwave_GreedCurse : Sinwave_Curse
 	}
 }
 
-// Colère : un ennemi blessé entre en rage et accélère, pour de bon.
+// Colère : un ennemi blessé entre en rage quelques secondes. Il devient rouge et
+// accélère, puis retrouve sa couleur et sa vitesse. Le toucher relance sa rage.
 class Sinwave_WrathCurse : Sinwave_Curse
 {
 	private Array<Actor> mEnraged;
+	private Array<int> mTicsLeft;
+	private Array<double> mOriginalSpeed;
+	private Array<TranslationID> mOriginalTranslation;
 
 	override void OnEvent(Sinwave_Event e)
 	{
 		let damaged = Sinwave_ActorDamagedEvent(e);
 		if (damaged == null) return;
 		let mo = damaged.mThing;
-		if (mo == null || !mo.bIsMonster || mo.health <= 0 || mEnraged.Find(mo) != mEnraged.Size()) return;
+		if (mo == null || !mo.bIsMonster || mo.health <= 0) return;
 
+		int duration = int(Param("duration", 5) * TICRATE);
+		int index = mEnraged.Find(mo);
+		if (index < mEnraged.Size())
+		{
+			mTicsLeft[index] = duration;	// déjà enragé : la rage repart pour un tour
+			return;
+		}
 		mEnraged.Push(mo);
+		mTicsLeft.Push(duration);
+		mOriginalSpeed.Push(mo.Speed);
+		mOriginalTranslation.Push(mo.Translation);
 		mo.Speed *= Param("speed", 1.5);
-		mo.A_SetTranslation("Ice");	// teinte visible : cet ennemi est enragé
+		mo.A_SetTranslation('SinwaveRage');
+	}
+
+	override void Tick()
+	{
+		Super.Tick();
+		for (int i = mEnraged.Size() - 1; i >= 0; i--)
+		{
+			mTicsLeft[i]--;
+			if (mEnraged[i] == null || mTicsLeft[i] <= 0) Calm(i);
+		}
+	}
+
+	override void End()
+	{
+		for (int i = mEnraged.Size() - 1; i >= 0; i--) Calm(i);
+	}
+
+	private void Calm(int index)
+	{
+		let mo = mEnraged[index];
+		if (mo != null)
+		{
+			mo.Speed = mOriginalSpeed[index];
+			mo.Translation = mOriginalTranslation[index];
+		}
+		mEnraged.Delete(index);
+		mTicsLeft.Delete(index);
+		mOriginalSpeed.Delete(index);
+		mOriginalTranslation.Delete(index);
 	}
 }
 
