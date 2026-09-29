@@ -12,6 +12,10 @@
 class   = Sinwave_EventLogger
 enabled = true
 
+[system rules]
+class   = Sinwave_RulesSystem
+enabled = true
+
 [system waves]
 class   = Sinwave_WaveSystem
 enabled = true

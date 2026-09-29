@@ -7,9 +7,15 @@ class Sinwave_UiController ui
 	private int mOpenedPause;
 	private int mOpenedShop;
 	private int mOpenedArenaSelect;
+	private int mOpenedRules;
 
 	void Update(Sinwave_HudModel model)
 	{
+		// Menu ouvert sur une carte précédente : il affiche une partie qui n'existe
+		// plus et bloquerait le jeu en pause. On le ferme.
+		let current = Sinwave_ChoiceMenu(Menu.GetCurrentMenu());
+		if (current != null && !current.IsBoundTo(model)) current.Close();
+
 		switch (model.mScreen)
 		{
 		case Sinwave_HudModel.SCREEN_UPGRADE:
@@ -23,6 +29,9 @@ class Sinwave_UiController ui
 			break;
 		case Sinwave_HudModel.SCREEN_ARENA_SELECT:
 			if (model.mArenaSelectSerial != mOpenedArenaSelect && Open('Sinwave_ArenaMenu', model)) mOpenedArenaSelect = model.mArenaSelectSerial;
+			break;
+		case Sinwave_HudModel.SCREEN_RULES:
+			if (model.mRulesSerial != mOpenedRules && Open('Sinwave_RulesMenu', model)) mOpenedRules = model.mRulesSerial;
 			break;
 		}
 	}

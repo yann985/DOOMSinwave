@@ -368,6 +368,7 @@ class Sinwave_ArenaDef play
 	double mEnemySpeed;
 	double mSpawnRate;
 	double mRewardFactor;
+	Array<String> mCircleNames;
 
 	// Arène neutre, utilisée si data/arenas.txt est vide ou absent.
 	static Sinwave_ArenaDef Neutral()

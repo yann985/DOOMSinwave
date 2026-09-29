@@ -1,6 +1,5 @@
-# Test de découplage : le système « hud » (présentateur de l'interface) est
-# désactivé. La run doit se dérouler jusqu'au bout sans lui ; le choix
-# d'amélioration se fait alors automatiquement (voir Sinwave_UpgradeState).
+# Archive chargée après tests/smoke pour le scénario « interface » : même jeu de
+# systèmes, mais avec l'interface (hud) activée, pour tester les menus.
 
 [system debug]
 class   = Sinwave_EventLogger
@@ -37,4 +36,3 @@ class   = Sinwave_MetaSystem
 
 [system hud]
 class   = Sinwave_HudPresenter
-enabled = false

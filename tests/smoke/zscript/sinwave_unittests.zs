@@ -89,6 +89,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestUpgradeKinds();
 		TestShopPrices();
 		TestPurchasesEncoding();
+		TestRules();
 
 		Console.Printf("[test] %d réussis, %d échoués", mPassed, mFailed);
 	}
@@ -271,5 +272,25 @@ class Sinwave_UnitTests : StaticEventHandler
 
 		Check(copy.GetLevel('shotgun') == 1 && copy.GetLevel('vigor') == 3, "sauvegarde : achats relus à l'identique");
 		Check(copy.GetLevel('absent') == 0, "sauvegarde : article jamais acheté au niveau 0");
+	}
+
+	private void TestRules()
+	{
+		let normal = Sinwave_RunRules.Create();
+		Check(normal.RewardFactor() == 1.0, "règles : récompense x1 en difficulté normale");
+
+		let hard = Sinwave_RunRules.Create();
+		hard.mEnemyHealth = 2;
+		hard.mSpawnRate = 2;
+		Check(hard.RewardFactor() > 1.0, "règles : un défi plus dur rapporte plus");
+
+		let copy = Sinwave_RunRules.Create();
+		hard.mStartCircle = 3;
+		hard.mPreset = 'None';
+		copy.Decode(hard.Encode());
+		Check(copy.mEnemyHealth == 2 && copy.mSpawnRate == 2 && copy.mStartCircle == 3, "règles : relues à l'identique");
+
+		copy.Decode("health=99;circle=0");
+		Check(copy.mEnemyHealth == Sinwave_RunRules.HEALTH_MAX && copy.mStartCircle == 1, "règles : valeurs hors bornes corrigées");
 	}
 }

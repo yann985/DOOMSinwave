@@ -12,16 +12,23 @@ param([int]$TimeoutSeconds = 90)
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "config.ps1")
 
-& (Join-Path $PSScriptRoot "build.ps1")
+# Archives séparées : les tests marchent même si le jeu est ouvert (il verrouille sinwave.pk3).
+$Pk3Path = Join-Path $BuildDir "$PackageName-test.pk3"
+& (Join-Path $PSScriptRoot "build.ps1") -Output $Pk3Path
 $smokePk3 = Join-Path $BuildDir "$PackageName-smoke.pk3"
 & (Join-Path $PSScriptRoot "build.ps1") -Source (Join-Path $RepoRoot "tests\smoke") -Output $smokePk3
+$uiPk3 = Join-Path $BuildDir "$PackageName-ui.pk3"
+& (Join-Path $PSScriptRoot "build.ps1") -Source (Join-Path $RepoRoot "tests\ui") -Output $uiPk3
 
 $exe = Get-EnginePath "gzdoom"
 Assert-Iwad
 
 # Joue un scénario (commandes de console, 35 tics = 1 seconde) et renvoie la liste des échecs.
-function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected)
+# -WithInterface : charge aussi tests\ui, qui réactive l'interface (menus).
+function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected, [switch]$WithInterface)
 {
+	$archives = "`"$Pk3Path`" `"$smokePk3`""
+	if ($WithInterface) { $archives += " `"$uiPk3`"" }
 	Write-Host ""
 	Write-Host "=== Scénario : $Name"
 	# Configuration isolée : les réglages et la méta-progression du développeur ne sont pas touchés.
@@ -32,7 +39,7 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 
 	# Une seule commande : « wait » ne retarde que la suite de la même ligne de commandes.
 	$scenario = (@("sinwave_debug 1", "disableautosave 1") + $Commands + @("quit")) -join "; "
-	$engineArgs = @("-iwad", "`"$IwadPath`"", "-file", "`"$Pk3Path`"", "`"$smokePk3`"", "-config", "`"$config`"",
+	$engineArgs = @("-iwad", "`"$IwadPath`"", "-file", $archives, "-config", "`"$config`"",
 		"-nosound", "-width", "800", "-height", "500", "+logfile", "`"$log`"", "+map", "SW01", "`"+$scenario`"")
 
 	$started = (Get-Date).AddSeconds(-1)
@@ -90,7 +97,7 @@ $allFailures = @()
 $allFailures += Invoke-Scenario "victoire" @(
 	"wait 35", "god",
 	"wait 35", "netevent sinwave_confirm",		# t=70   Menu -> choix d'arène
-	"wait 5", "netevent sinwave_arena 0",		# t=75   arène de la carte courante : la run démarre
+	"wait 5", "netevent sinwave_arena 0", "netevent sinwave_descend",	# t=75   arène courante, règles validées : la run démarre
 	"wait 105", "kill monsters",				# t=180  XP -> niveau -> choix (automatique, 2 s)
 	"wait 105", "netevent sinwave_pause",		# t=285  pause pendant le cercle 1...
 	"wait 35", "netevent sinwave_resume",		# t=320  ...et reprise
@@ -101,7 +108,8 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_MetaLoadedEvent : 0 indulgences',
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
-	'Sinwave_StateChangedEvent : ArenaSelect -> InGame',
+	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
+	'Sinwave_StateChangedEvent : Rules -> InGame',
 	'Sinwave_RunStartedEvent',
 	'Sinwave_WaveStartedEvent : 1/2',
 	'Sinwave_CurseStartedEvent : sloth',
@@ -131,18 +139,24 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_StateChangedEvent : None -> Menu'
 )
 
-# 2. Mort du joueur pendant la run.
+# 2. Mort du joueur pendant la run, puis boutique depuis l'écran de fin.
 $allFailures += Invoke-Scenario "mort" @(
 	"wait 35", "netevent sinwave_confirm",
-	"wait 5", "netevent sinwave_arena 0",
-	"wait 70", "kill",							# suicide du joueur
+	"wait 5", "netevent sinwave_arena 0", "netevent sinwave_descend",
+	"wait 35", "netevent sinwave_shop",			# pendant la run : refusé (bandeau)
+	"wait 35", "kill",							# suicide du joueur
+	"wait 70", "netevent sinwave_shop",			# écran de fin : la carte recharge sur la boutique
 	"wait 70"
 ) @(
 	'Sinwave_RunStartedEvent',
+	'Sinwave_ShopRequestedEvent',
 	'Sinwave_PlayerDiedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : mort',
-	'Sinwave_MetaSavedEvent'
+	'Sinwave_MetaSavedEvent',
+	'Sinwave_ShopRequestedEvent',
+	'Sinwave_StateChangedEvent : None -> Menu',
+	'Sinwave_StateChangedEvent : Menu -> Shop'
 )
 
 # 3. Boutique puis voyage vers l'autre arène : les achats s'appliquent au début de la run.
@@ -154,7 +168,10 @@ $allFailures += Invoke-Scenario "boutique" @(
 	"wait 5", "netevent sinwave_buy 0",			# déjà acheté : refusé
 	"wait 5", "netevent sinwave_back",			# retour au menu
 	"wait 5", "netevent sinwave_confirm",		# choix d'arène...
-	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : voyage puis démarrage automatique
+	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : écran des règles
+	"wait 5", "netevent sinwave_rule 1 1",		# vie des ennemis +25 %
+	"wait 5", "netevent sinwave_rule 5 1",		# départ au cercle 2
+	"wait 5", "netevent sinwave_descend",		# voyage puis démarrage automatique
 	"wait 105"
 ) @(
 	'Sinwave_MetaLoadedEvent : 500 indulgences',
@@ -166,13 +183,38 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_PurchaseEvent : shotgun refusé',
 	'Sinwave_StateChangedEvent : Shop -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
+	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
+	'Sinwave_RulesChangedEvent : health=1\.25',
+	'Sinwave_RulesChangedEvent : .*circle=2',
 	'Sinwave_MetaLoadedEvent : 475 indulgences',			# nouvelle carte : méta relue
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',
+	'Sinwave_WaveStartedEvent : 2/2',						# départ au cercle choisi
 	'Sinwave_EffectGrantedEvent : give Shotgun',
 	'Sinwave_EffectGrantedEvent : maxhealth'
 )
+
+# 4. Avec l'interface : un menu ne doit pas survivre au changement de carte (il
+#    bloquerait le jeu en pause), et B ouvre la boutique depuis l'écran de fin.
+$allFailures += Invoke-Scenario "interface" @(
+	"wait 35", "netevent sinwave_confirm",		# menu du choix d'arène
+	"wait 10", "netevent sinwave_arena 1",		# menu des règles
+	"wait 10", "netevent sinwave_descend",		# voyage vers l'autre carte
+	"wait 70", "god", "netevent sinwave_pause",	# le jeu doit tourner à l'arrivée (t > 0)
+	"wait 20", "netevent sinwave_abandon",
+	"wait 70", "netevent sinwave_shop",			# écran de fin -> boutique
+	"wait 70"
+) @(
+	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
+	'Sinwave_StateChangedEvent : None -> Menu',
+	'Sinwave_StateChangedEvent : Menu -> InGame',
+	'Sinwave_StateChangedEvent : InGame -> Pause \(t=[1-9]\d+\)',	# pas de menu resté ouvert en pause
+	'Sinwave_StateChangedEvent : Pause -> GameOver',
+	'Sinwave_ShopRequestedEvent',
+	'Sinwave_StateChangedEvent : None -> Menu',
+	'Sinwave_StateChangedEvent : Menu -> Shop'
+) -WithInterface
 
 ""
 if ($allFailures.Count -gt 0)
