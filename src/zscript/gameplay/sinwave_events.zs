@@ -530,28 +530,110 @@ class Sinwave_EffectGrantedEvent : Sinwave_Event
 	}
 }
 
-// La corruption de la run a changé. La règle du verdict est ici, à un seul endroit.
+// La corruption (balance de l'âme) a changé. La règle du verdict est ici, à un
+// seul endroit : un palier du péché atteint, Damnation ; un palier de la vertu,
+// Absolution ; sinon, Purgatoire.
 class Sinwave_CorruptionChangedEvent : Sinwave_Event
 {
-	int mCorruption;
-	int mThreshold;
+	enum EVerdict
+	{
+		VERDICT_ABSOLUTION,
+		VERDICT_PURGATORY,
+		VERDICT_DAMNATION
+	}
 
-	static Sinwave_CorruptionChangedEvent Create(int corruption, int threshold)
+	int mCorruption;
+	Sinwave_SoulDef mSoul;
+	int mSide;						// +1 : péché ; -1 : vertu ; 0 : équilibre
+	int mLevel;						// paliers atteints de ce côté (0 à 3)
+	Sinwave_SoulTierDef mTier;		// le plus extrême des paliers atteints (ou null)
+
+	static Sinwave_CorruptionChangedEvent Create(int corruption, Sinwave_SoulDef soul)
 	{
 		let e = new('Sinwave_CorruptionChangedEvent');
 		e.mCorruption = corruption;
-		e.mThreshold = threshold;
+		e.mSoul = soul;
+		e.mSide = soul.Side(corruption);
+		Array<Sinwave_SoulTierDef> reached;
+		soul.ReachedTiers(corruption, reached);
+		e.mLevel = reached.Size();
+		e.mTier = reached.Size() > 0 ? reached[reached.Size() - 1] : null;
 		return e;
 	}
 
-	bool IsDamned()
+	int Verdict()
 	{
-		return mCorruption >= mThreshold;
+		if (mLevel == 0) return VERDICT_PURGATORY;
+		return mSide > 0 ? VERDICT_DAMNATION : VERDICT_ABSOLUTION;
+	}
+
+	static String VerdictName(int verdict)
+	{
+		static const String NAMES[] = { "absolution", "purgatoire", "damnation" };
+		return NAMES[clamp(verdict, 0, 2)];
 	}
 
 	override String Describe()
 	{
-		return String.Format("%d/%d", mCorruption, mThreshold);
+		return String.Format("%d/%d (%s)", mCorruption, mSoul.mMax, mTier != null ? mTier.mName : "équilibre");
+	}
+}
+
+// Un objet ramassable vient d'apparaître dans le monde (butin, objet lâché par un
+// monstre...). Publié par Sinwave_Game depuis le moteur.
+class Sinwave_ItemSpawnedEvent : Sinwave_Event
+{
+	Inventory mItem;
+
+	static Sinwave_ItemSpawnedEvent Create(Inventory item)
+	{
+		let e = new('Sinwave_ItemSpawnedEvent');
+		e.mItem = item;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mItem != null ? String.Format("%s", mItem.GetClassName()) : "?";
+	}
+}
+
+// Débogage : décale l'âme sans passer par un choix (« netevent sinwave_soul 5 »
+// dans la console, avec sinwave_debug 1). Sert à essayer les paliers.
+class Sinwave_SoulShiftEvent : Sinwave_Event
+{
+	int mDelta;
+
+	static Sinwave_SoulShiftEvent Create(int delta)
+	{
+		let e = new('Sinwave_SoulShiftEvent');
+		e.mDelta = delta;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%+d", mDelta);
+	}
+}
+
+// Un palier de la balance de l'âme vient d'être atteint (reached) ou perdu.
+class Sinwave_SoulTierChangedEvent : Sinwave_Event
+{
+	Sinwave_SoulTierDef mTier;
+	bool mReached;
+
+	static Sinwave_SoulTierChangedEvent Create(Sinwave_SoulTierDef tier, bool reached)
+	{
+		let e = new('Sinwave_SoulTierChangedEvent');
+		e.mTier = tier;
+		e.mReached = reached;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s %s", mTier.mName, mReached ? "atteint" : "perdu");
 	}
 }
 
@@ -641,20 +723,20 @@ class Sinwave_MetaSavedEvent : Sinwave_Event
 	Sinwave_MetaData mMeta;
 	int mEarned;
 	bool mNewBest;
-	bool mDamned;
+	int mVerdict;		// Sinwave_CorruptionChangedEvent.VERDICT_...
 
-	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, bool damned)
+	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, int verdict)
 	{
 		let e = new('Sinwave_MetaSavedEvent');
 		e.mMeta = metaData;
 		e.mEarned = earned;
 		e.mNewBest = newBest;
-		e.mDamned = damned;
+		e.mVerdict = verdict;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("+%d indulgences (total %d), %s", mEarned, mMeta.mIndulgences, mDamned ? "damnation" : "absolution");
+		return String.Format("+%d indulgences (total %d), %s", mEarned, mMeta.mIndulgences, Sinwave_CorruptionChangedEvent.VerdictName(mVerdict));
 	}
 }

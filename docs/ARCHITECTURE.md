@@ -13,7 +13,7 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes.
 - **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
-- **À chaque niveau :** choix entre deux **vertus** (sûres) et un **péché** (puissant, avec un défaut). Les péchés remplissent une jauge de **corruption** qui décide du verdict final : **Absolution** ou **Damnation**.
+- **À chaque niveau :** choix entre deux **vertus** (modestes) et un **péché** (puissant, avec un défaut). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
 - **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes.
 
 ### Ce qui distingue Sinwave des mods existants
@@ -24,7 +24,7 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 |---|---|---|
 | Structure | Vagues sans fin | Descente finie : des cercles de quelques vagues chacun, un boss, une fin |
 | Vagues | Plus d'ennemis à chaque vague | Les vagues se resserrent aussi, mais chaque cercle **change une règle** (malédiction) |
-| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu ou péché**, avec une conséquence (corruption, verdict) |
+| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu ou péché**, qui fait pencher l'âme : la partie change à chaque palier, et le verdict en dépend |
 | Monnaie | Âmes, boutique en cours de partie | Indulgences, boutique **entre les runs** (méta-progression) |
 | Contenu | Dans le code | Dans des **fichiers de données** ; arènes personnalisées sans code |
 | Architecture | DoomSurvivor : un gestionnaire d'événements central qui gère vagues, difficulté et réinitialisations | Systèmes indépendants reliés par un bus d'événements, activables un par un |
@@ -274,9 +274,10 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `enemies.txt` | Les 7 péchés et le boss : classe du moteur, vie, vitesse, taille, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
+| `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
-| `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
+| `progression.txt` | Courbe d'XP, composition des choix, gains d'indulgences (dont le bonus de chaque verdict), équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
 
 Exemple, un péché (`upgrades.txt`) :
 
@@ -285,14 +286,14 @@ Exemple, un péché (`upgrades.txt`) :
 name        = Colère
 description = +40 % de dégâts, mais tu subis +25 % de dégâts
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = damage:0.4, vulnerability:0.25
 max         = 2
 ```
 
 C'est l'équivalent des ScriptableObject d'Unity. Chaque bloc devient une définition (`Sinwave_UpgradeDef`...), vérifiée au chargement par `Sinwave_GameData` : classe du moteur inexistante, cercle qui cite un ennemi ou une malédiction inconnus, identifiant en double...
 
-**Un seul langage d'effets** (`maxhealth`, `heal`, `armor`, `damage`, `vulnerability`, `speed`, `regen`, `magnet`, `xpgain`, `give`) sert aux vertus, aux péchés, aux articles de la boutique et aux malédictions. Tous passent par le même événement `EffectGrantedEvent`, appliqué par un seul système : `Sinwave_PlayerSystem` ou `Sinwave_XpSystem`.
+**Un seul langage d'effets** (`maxhealth`, `heal`, `armor`, `damage`, `vulnerability`, `speed`, `regen`, `magnet`, `xpgain`, `give`, `aura`, `infiniteammo`) sert aux vertus, aux péchés, aux articles de la boutique, aux malédictions et aux paliers de l'âme. Tous passent par le même événement `EffectGrantedEvent`, appliqué par un seul système : `Sinwave_PlayerSystem` ou `Sinwave_XpSystem`. Un effet temporaire se retire en publiant son inverse (`Sinwave_Effect.Negated()`).
 
 **Ce qu'on peut ajouter sans code :**
 - un ennemi, une vertu, un péché ou un article de boutique ;
@@ -334,9 +335,26 @@ Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle le
 - **Appliquer :** au début de chaque run, chaque niveau acheté publie ses effets (`EffectGrantedEvent`), par le même chemin que les vertus.
 - **Après le chargement d'une sauvegarde de partie** (`GameLoadedEvent`) : il relit les CVars.
 
-### Corruption et verdict
+### Balance de l'âme, paliers et verdict
 
-`Sinwave_CorruptionSystem` additionne la corruption des améliorations choisies : les péchés en ajoutent, la vertu Pénitence en retire. La règle du verdict (corruption ≥ seuil → Damnation) est écrite **une seule fois**, dans `Sinwave_CorruptionChangedEvent.IsDamned()`, et utilisée par la méta-progression comme par l'interface.
+La corruption est une balance (`data/soul.txt`) : elle va de 0 (sainteté) à 30 (damnation) et chaque run commence à 15, l'équilibre, sans aucun effet. Les péchés la font monter (+3 ou +4), les vertus la font descendre (-3, ou -5 pour Pénitence). Plus elle s'éloigne de l'équilibre, plus la partie change :
+
+| Âme | Palier | Effets |
+|---|---|---|
+| 0 | Sainteté | **Aura sainte** : les ennemis proches brûlent ; plus de munitions lâchées ; -15 % de dégâts |
+| ≤ 5 | Grâce | Régénération, +15 PV max ; -10 % de vitesse |
+| ≤ 10 | Piété | -10 % de dégâts subis ; -10 % de dégâts |
+| 15 | équilibre | aucun effet |
+| ≥ 20 | Souillure | +10 % de dégâts ; -10 PV max |
+| ≥ 25 | Perdition | +15 % de dégâts, +10 % de vitesse ; +15 % de dégâts subis |
+| 30 | Damnation | **Munitions infinies** ; plus aucun soin lâché ; -25 PV max |
+
+- **Petits changements, à chaque point :** `Sinwave_LootSystem` fait lâcher aux ennemis tués un soin ou des munitions (celles de l'arme en main). Les chances partent de 8 % chacune à l'équilibre : vers le péché, plus de munitions et moins de soins ; vers la vertu, l'inverse. Les chargeurs que les monstres de Doom lâchent d'eux-mêmes sont retirés (`monster_drops`), pour que le butin ne dépende que de l'âme ; leurs armes restent.
+- **Grands changements, à chaque palier :** les paliers d'un même côté s'additionnent. `Sinwave_CorruptionSystem` publie les effets d'un palier atteint et, s'il est perdu, leur inverse ; un bandeau l'annonce (`SoulTierChangedEvent`). Au début d'une run, les paliers ne sont appliqués qu'au tic suivant, après la remise à zéro du joueur : l'ordre de diffusion de `RunStarted` n'est pas garanti.
+- **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
+- **Verdict :** un palier du péché atteint en fin de run, Damnation ; un palier de la vertu, Absolution ; sinon, Purgatoire. La règle est écrite **une seule fois**, dans `Sinwave_CorruptionChangedEvent.Verdict()`, et utilisée par la méta-progression (bonus de victoire : 20, 12 ou 5 indulgences) comme par l'interface.
+- **Interface :** une jauge sous la barre d'XP, avec l'équilibre au milieu, la vertu en or vers la gauche, le péché en violet vers la droite, et un trait par palier. L'écran se teinte de rouge vers le péché, d'une lueur dorée vers la vertu.
+- **Débogage :** avec `sinwave_debug 1`, `netevent sinwave_soul 5` (ou `-5`) décale l'âme sans passer par un choix, pour essayer les paliers.
 
 ---
 
@@ -387,15 +405,16 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `boss` : `Sinwave_BossSystem` | EventBus | BossSpawned, BossDefeated, RunEnded | BossHealthChanged, BossEnraged, SpawnRequested |
 | `xp` : `Sinwave_XpSystem` | EventBus, GameData | RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted | XpOrbDropped, XpChanged, LevelUp |
 | `upgrades` : `Sinwave_UpgradeSystem` | EventBus, GameData | RunStarted, RunEnded, LevelUp, UpgradePicked | UpgradeOffered, UpgradeChosen, EffectGranted |
-| `corruption` : `Sinwave_CorruptionSystem` | EventBus, GameData | RunStarted, UpgradeChosen | CorruptionChanged |
+| `corruption` : `Sinwave_CorruptionSystem` | EventBus, GameData | RunStarted, RunEnded, UpgradeChosen, SoulShift | CorruptionChanged, SoulTierChanged, EffectGranted |
 | `score` : `Sinwave_ScoreSystem` | EventBus | RunStarted, RunEnded, EnemyKilled | ScoreChanged |
 | `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
 | `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
 | `threats` : `Sinwave_ThreatSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed | ThreatStarted, ThreatEnded |
+| `loot` : `Sinwave_LootSystem` | EventBus, GameData | RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned | rien |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
-- du moteur : `ActorDied`, `PlayerDied`, `ActorDamaged` (dégâts infligés par le joueur), `GameLoaded` ;
+- du moteur : `ActorDied`, `PlayerDied`, `ActorDamaged` (dégâts infligés par le joueur), `ItemSpawned` (objets ramassables), `GameLoaded` ;
 - de la touche Utiliser : `Confirm` ;
 - des touches de la boutique et de la pause (`InputProcess`) : les commandes `sinwave_shop` et `sinwave_pause`, qui deviennent `ShopRequested` et `PauseRequested` ;
 - de l'interface : `PauseRequested`, `ResumeRequested`, `AbandonRequested`, `ShopRequested`, `BackRequested`, `UpgradePicked`, `ShopBuyRequested`, `ArenaChosen`, `RuleAdjusted`, `DescendRequested`.
@@ -405,7 +424,8 @@ Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface
 Ce que la désactivation change pour chaque système :
 - **curses** : les cercles n'ont plus de règle spéciale ;
 - **boss** : Lucifer n'entre plus en rage ;
-- **corruption** : le verdict est toujours Absolution ;
+- **corruption** : l'âme reste à l'équilibre, sans palier ; le verdict est toujours Purgatoire ;
+- **loot** : les ennemis ne lâchent plus que ce que Doom leur fait lâcher ;
 - **score** : les indulgences ne viennent plus que des cercles ;
 - **xp** : plus de montée de niveau ;
 - **meta** : rien n'est sauvegardé et la boutique ne vend plus rien ;
@@ -440,12 +460,13 @@ Ce que la désactivation change pour chaque système :
    - les achats s'appliquent au début de la run ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **47 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **58 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids du tirage des ennemis et les effets ;
 - les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
 - les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
-- vertus et péchés, verdict, prix de la boutique, enregistrement des achats ;
+- vertus et péchés, prix de la boutique, enregistrement des achats ;
+- la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 
 Les tests et la vérification construisent leur propre archive (`build/sinwave-test.pk3`, `build/sinwave-check.pk3`) : ils fonctionnent même quand le jeu est ouvert.

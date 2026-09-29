@@ -88,6 +88,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestCircleWaves();
 		TestEffects();
 		TestUpgradeKinds();
+		TestSoul();
 		TestShopPrices();
 		TestPurchasesEncoding();
 		TestRules();
@@ -297,11 +298,61 @@ class Sinwave_UnitTests : StaticEventHandler
 		let virtue = Sinwave_UpgradeDef.FromBlock(blocks[0]);
 		let sin = Sinwave_UpgradeDef.FromBlock(blocks[1]);
 
-		Check(!virtue.mIsSin && virtue.mCorruption == 0, "améliorations : une vertu ne corrompt pas");
+		Check(!virtue.mIsSin && virtue.mCorruption == 0, "améliorations : sans clé corruption, aucune corruption");
 		Check(sin.mIsSin && sin.mCorruption == 2 && sin.mEffects.Size() == 2, "améliorations : un péché a un défaut et de la corruption");
-		let damned = Sinwave_CorruptionChangedEvent.Create(5, 5);
-		let saved = Sinwave_CorruptionChangedEvent.Create(4, 5);
-		Check(damned.IsDamned() && !saved.IsDamned(), "corruption : Damnation à partir du seuil");
+	}
+
+	// Balance de l'âme : paliers des deux côtés, butin, verdict, puis le système
+	// qui applique et retire les effets des paliers.
+	private void TestSoul()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[soul s]\nmin = 0\nmax = 30\nbalance = 15\nhealth_drop = 10\nammo_drop = 10\n"
+			.. "sin_ammo_drop = 2\nsin_health_drop = -1\nvirtue_health_drop = 2\nvirtue_ammo_drop = -1\n"
+			.. "[tier b]\nside = sin\nat = 30\nhealth_drop = -100\n"
+			.. "[tier a]\nside = sin\nat = 20\nammo_drop = 5\neffects = damage:0.1\n"
+			.. "[tier c]\nside = virtue\nat = 10\n", blocks);
+		let soul = Sinwave_SoulDef.FromBlocks(blocks);
+
+		Check(soul.mTiers.Size() == 3 && soul.mTiers[2].mAt == 30, "âme : paliers rangés du plus proche au plus extrême");
+		Array<Sinwave_SoulTierDef> reached;
+		soul.ReachedTiers(15, reached);
+		Check(soul.Side(15) == 0 && reached.Size() == 0, "âme : aucun palier à l'équilibre");
+		Check(soul.DropChance(15, true) == 10 && soul.DropChance(15, false) == 10, "âme : butin de base à l'équilibre");
+		soul.ReachedTiers(25, reached);
+		Check(reached.Size() == 1 && reached[0].mAt == 20, "âme : paliers atteints côté péché");
+		Check(soul.DropChance(25, false) == 35 && soul.DropChance(25, true) == 0, "âme : plus de munitions, moins de soins côté péché");
+		soul.ReachedTiers(30, reached);
+		Check(reached.Size() == 2, "âme : les paliers d'un même côté s'additionnent");
+		Check(soul.DropChance(5, true) == 30 && soul.DropChance(5, false) == 0, "âme : l'inverse côté vertu");
+
+		Check(Sinwave_CorruptionChangedEvent.Create(19, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_PURGATORY, "verdict : Purgatoire sans palier");
+		Check(Sinwave_CorruptionChangedEvent.Create(20, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION, "verdict : Damnation dès un palier du péché");
+		Check(Sinwave_CorruptionChangedEvent.Create(10, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_ABSOLUTION, "verdict : Absolution dès un palier de la vertu");
+
+		// Le système, branché sur un bus de test.
+		let services = new('Sinwave_Services');
+		let bus = new('Sinwave_EventBus');
+		services.Register('EventBus', bus);
+		let data = new('Sinwave_GameData');
+		data.mSoul = soul;
+		services.Register('GameData', data);
+		let system = new('Sinwave_CorruptionSystem');
+		system.Init('corruption', services);
+		let listener = new('Sinwave_TestListener');
+		bus.Subscribe(listener);
+		bus.Publish(new('Sinwave_RunStartedEvent'));
+		system.Tick();
+
+		let sin = new('Sinwave_UpgradeDef');
+		sin.mCorruption = 6;								// 15 -> 21 : palier « a »
+		bus.Publish(Sinwave_UpgradeChosenEvent.Create(sin));
+		Check(listener.Count('Sinwave_SoulTierChangedEvent') == 1 && listener.Count('Sinwave_EffectGrantedEvent') == 1, "âme : un palier atteint applique ses effets");
+		let virtue = new('Sinwave_UpgradeDef');
+		virtue.mCorruption = -3;							// 21 -> 18 : palier perdu
+		bus.Publish(Sinwave_UpgradeChosenEvent.Create(virtue));
+		Check(listener.Count('Sinwave_SoulTierChangedEvent') == 2 && listener.Count('Sinwave_EffectGrantedEvent') == 2, "âme : un palier perdu retire ses effets");
 	}
 
 	private void TestShopPrices()

@@ -1,0 +1,92 @@
+# La balance de l'âme : la corruption va de 0 (sainteté) à 30 (damnation).
+# Chaque run commence à l'équilibre (15), sans aucun effet. Les péchés la font
+# monter, les vertus la font descendre (clé « corruption » de data/upgrades.txt).
+#
+# Plus elle s'éloigne de l'équilibre, plus la partie change :
+#   - petits changements à chaque point : le butin des ennemis tués
+#     (côté péché : plus de munitions, moins de soins ; côté vertu : l'inverse) ;
+#   - grands changements à chaque palier franchi (blocs [tier] plus bas). Les
+#     paliers d'un même côté s'additionnent, et leurs effets se retirent si
+#     l'âme repasse en dessous.
+#
+# En fin de run, le verdict dépend du côté où penche l'âme :
+#   un palier du péché atteint : Damnation ; un palier de la vertu : Absolution ;
+#   sinon : Purgatoire. Le bonus de victoire en dépend (data/progression.txt).
+
+[soul default]
+min         = 0
+max         = 30
+balance     = 15              # départ de chaque run, et point d'équilibre
+health_item = Stimpack        # soin lâché par les ennemis (la munition suit l'arme en main)
+# Ce que les monstres de Doom lâchent d'eux-mêmes en mourant : weapons (leurs
+# armes seulement, pas leurs chargeurs), none (plus rien) ou all (comme Doom).
+monster_drops = weapons
+# Chance de butin par ennemi tué, en %, à l'équilibre :
+health_drop = 8
+ammo_drop   = 8
+# Par point au-dessus de l'équilibre (péché) :
+sin_ammo_drop      = 1.2
+sin_health_drop    = -0.5
+# Par point en dessous de l'équilibre (vertu) :
+virtue_health_drop = 1.2
+virtue_ammo_drop   = -0.5
+
+# --- Paliers du péché ---------------------------------------------------------
+#   side        : sin ou virtue
+#   at          : valeur de l'âme qui déclenche le palier
+#   effects     : effets appliqués tant que le palier est atteint (data/upgrades.txt)
+#                 plus : aura (dégâts par seconde aux ennemis proches),
+#                        infiniteammo (1 : munitions infinies)
+#   health_drop, ammo_drop : chance de butin ajoutée, en % (-100 : plus rien)
+
+[tier souillure]
+side        = sin
+at          = 20
+name        = Souillure
+description = Tes coups portent (+10 % dégâts) ; ta chair faiblit (-10 PV max)
+effects     = damage:0.1, maxhealth:-10
+ammo_drop   = 5
+health_drop = -2
+
+[tier perdition]
+side        = sin
+at          = 25
+name        = Perdition
+description = Rage : +15 % dégâts, +10 % vitesse ; tu subis +15 % de dégâts
+effects     = damage:0.15, speed:0.1, vulnerability:0.15
+ammo_drop   = 5
+
+[tier damnation]
+side        = sin
+at          = 30
+name        = Damnation
+description = MUNITIONS INFINIES ; plus aucun soin, -25 PV max
+effects     = infiniteammo:1, maxhealth:-25
+health_drop = -100
+
+# --- Paliers de la vertu ------------------------------------------------------
+
+[tier piete]
+side        = virtue
+at          = 10
+name        = Piété
+description = Foi : -10 % de dégâts subis ; tes coups faiblissent (-10 %)
+effects     = vulnerability:-0.1, damage:-0.1
+health_drop = 5
+ammo_drop   = -2
+
+[tier grace]
+side        = virtue
+at          = 5
+name        = Grâce
+description = Régénération 1 PV/s, +15 PV max ; tu ralentis (-10 %)
+effects     = regen:1, maxhealth:15, speed:-0.1
+health_drop = 5
+
+[tier saintete]
+side        = virtue
+at          = 0
+name        = Sainteté
+description = AURA SAINTE qui brûle ; plus de munitions, -15 % dégâts
+effects     = aura:8, damage:-0.15
+ammo_drop   = -100

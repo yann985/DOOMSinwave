@@ -56,6 +56,10 @@ enabled = true
 class   = Sinwave_ThreatSystem
 enabled = true
 
+[system loot]
+class   = Sinwave_LootSystem
+enabled = true
+
 [system hud]
 class   = Sinwave_HudPresenter
 enabled = true

@@ -5,12 +5,13 @@ xp_first_level         = 5              # XP pour passer au niveau 2
 xp_growth              = 1.6            # chaque niveau demande 60 % d'XP en plus
 offer_virtues          = 2              # vertus proposées à chaque niveau
 offer_sins             = 1              # péchés proposés à chaque niveau
-damnation_threshold    = 5              # corruption à partir de laquelle la run finit en Damnation
 magnet_radius          = 192            # distance d'attraction des orbes (unités de carte)
 indulgences_per_score  = 20             # 1 indulgence pour 20 points de score
 indulgences_per_circle = 2              # indulgences par cercle franchi
-indulgences_absolution = 20             # bonus de victoire en Absolution
-indulgences_damnation  = 5              # bonus de victoire en Damnation
+# Bonus de victoire selon le verdict (balance de l'âme, data/soul.txt) :
+indulgences_absolution = 20             # un palier de la vertu atteint
+indulgences_purgatory  = 12             # aucun palier : l'âme reste près de l'équilibre
+indulgences_damnation  = 5              # un palier du péché atteint
 start_items            = Clip:50        # le pistolet est donné par le moteur ; les armes s'achètent à la boutique
 supply_seconds         = 6              # ravitaillement toutes les N secondes
 supply_items           = Clip:10, Shell:3

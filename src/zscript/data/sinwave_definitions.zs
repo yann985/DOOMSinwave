@@ -119,7 +119,8 @@ class Sinwave_Effect play
 	}
 
 	// Effets reconnus. Chacun est appliqué par un seul système :
-	//   Sinwave_PlayerSystem : maxhealth, heal, armor, damage, vulnerability, speed, regen, give
+	//   Sinwave_PlayerSystem : maxhealth, heal, armor, damage, vulnerability, speed,
+	//                          regen, give, aura, infiniteammo
 	//   Sinwave_XpSystem     : magnet, xpgain
 	static bool IsKnownType(Name type)
 	{
@@ -133,11 +134,21 @@ class Sinwave_Effect play
 		case 'speed':
 		case 'regen':
 		case 'give':
+		case 'aura':
+		case 'infiniteammo':
 		case 'magnet':
 		case 'xpgain':
 			return true;
 		}
 		return false;
+	}
+
+	// L'effet inverse, pour retirer un effet temporaire (palier de l'âme...).
+	// Un objet donné, des soins ou de l'armure ne se reprennent pas : null.
+	Sinwave_Effect Negated()
+	{
+		if (mType == 'give' || mType == 'heal' || mType == 'armor') return null;
+		return Create(mType, -mValue);
 	}
 
 	String Describe()
@@ -436,6 +447,167 @@ class Sinwave_ArenaDef play
 	}
 }
 
+// Un palier de la balance de l'âme (data/soul.txt) : atteint quand l'âme penche
+// assez d'un côté ; ses effets durent tant qu'il reste atteint.
+class Sinwave_SoulTierDef play
+{
+	Name mId;
+	String mName;
+	String mDescription;
+	int mSide;					// +1 : péché ; -1 : vertu
+	int mAt;					// valeur de l'âme qui déclenche le palier
+	Array<Sinwave_Effect> mEffects;
+	double mHealthDrop;			// chance de butin ajoutée, en %
+	double mAmmoDrop;
+
+	static Sinwave_SoulTierDef FromBlock(Sinwave_DataBlock block)
+	{
+		let def = new('Sinwave_SoulTierDef');
+		def.mId = block.mId;
+		def.mName = block.GetString("name", block.mId);
+		def.mDescription = block.GetString("description");
+		String side = block.GetString("side").MakeLower();
+		if (side != "sin" && side != "virtue")
+		{
+			block.Warn("side doit valoir sin ou virtue.");
+			return null;
+		}
+		def.mSide = side == "sin" ? 1 : -1;
+		def.mAt = block.GetInt("at", 0);
+		Sinwave_Effect.ParseList(block, "effects", def.mEffects);
+		def.mHealthDrop = block.GetDouble("health_drop", 0);
+		def.mAmmoDrop = block.GetDouble("ammo_drop", 0);
+		return def;
+	}
+
+	bool IsReached(int soul)
+	{
+		return mSide > 0 ? soul >= mAt : soul <= mAt;
+	}
+}
+
+// La balance de l'âme (data/soul.txt) : bornes, équilibre, butin et paliers.
+class Sinwave_SoulDef play
+{
+	enum EMonsterDrops
+	{
+		MONSTER_DROPS_NONE,			// les monstres ne lâchent plus rien d'eux-mêmes
+		MONSTER_DROPS_WEAPONS,		// seulement leurs armes (fusil, mitrailleuse...)
+		MONSTER_DROPS_ALL			// comme dans Doom (chargeurs compris)
+	}
+
+	int mMin;
+	int mMax;
+	int mBalance;
+	int mMonsterDrops;
+	class<Inventory> mHealthItem;
+	double mHealthDrop;			// chance de butin à l'équilibre, en %
+	double mAmmoDrop;
+	double mSinHealthDrop;		// par point au-dessus de l'équilibre
+	double mSinAmmoDrop;
+	double mVirtueHealthDrop;	// par point en dessous
+	double mVirtueAmmoDrop;
+	// Paliers, du plus proche de l'équilibre au plus extrême, pour chaque côté.
+	Array<Sinwave_SoulTierDef> mTiers;
+
+	// Lit le bloc [soul] et les blocs [tier] ; sans fichier, une balance sans effet.
+	static Sinwave_SoulDef FromBlocks(Array<Sinwave_DataBlock> blocks)
+	{
+		let def = new('Sinwave_SoulDef');
+		Sinwave_DataBlock soul = null;
+		for (int i = 0; i < blocks.Size() && soul == null; i++)
+		{
+			if (blocks[i].mType == 'soul') soul = blocks[i];
+		}
+		if (soul == null) soul = new('Sinwave_DataBlock');
+		def.mMin = soul.GetInt("min", 0);
+		def.mMax = max(def.mMin + 2, soul.GetInt("max", 30));
+		def.mBalance = clamp(soul.GetInt("balance", 15), def.mMin + 1, def.mMax - 1);
+		def.mHealthItem = Sinwave_ClassLookup.FindItem(soul, soul.GetString("health_item", "Stimpack"));
+		String drops = soul.GetString("monster_drops", "weapons").MakeLower();
+		if (drops == "none") def.mMonsterDrops = MONSTER_DROPS_NONE;
+		else if (drops == "all") def.mMonsterDrops = MONSTER_DROPS_ALL;
+		else
+		{
+			if (drops != "weapons") soul.Warn("monster_drops doit valoir none, weapons ou all.");
+			def.mMonsterDrops = MONSTER_DROPS_WEAPONS;
+		}
+		def.mHealthDrop = soul.GetDouble("health_drop", 0);
+		def.mAmmoDrop = soul.GetDouble("ammo_drop", 0);
+		def.mSinHealthDrop = soul.GetDouble("sin_health_drop", 0);
+		def.mSinAmmoDrop = soul.GetDouble("sin_ammo_drop", 0);
+		def.mVirtueHealthDrop = soul.GetDouble("virtue_health_drop", 0);
+		def.mVirtueAmmoDrop = soul.GetDouble("virtue_ammo_drop", 0);
+
+		for (int i = 0; i < blocks.Size(); i++)
+		{
+			if (blocks[i].mType == 'soul') continue;
+			if (blocks[i].mType != 'tier')
+			{
+				blocks[i].Warn("type de bloc inattendu, [soul ...] ou [tier ...] attendu.");
+				continue;
+			}
+			let tier = Sinwave_SoulTierDef.FromBlock(blocks[i]);
+			if (tier == null) continue;
+			if (tier.mSide * (tier.mAt - def.mBalance) <= 0)
+			{
+				blocks[i].Warn("un palier doit être du côté de son camp par rapport à l'équilibre.");
+				continue;
+			}
+			def.InsertTier(tier);
+		}
+		return def;
+	}
+
+	// Rangement par distance à l'équilibre : les paliers se franchissent dans cet ordre.
+	private void InsertTier(Sinwave_SoulTierDef tier)
+	{
+		int distance = abs(tier.mAt - mBalance);
+		int i = 0;
+		while (i < mTiers.Size() && abs(mTiers[i].mAt - mBalance) <= distance) i++;
+		mTiers.Insert(i, tier);
+	}
+
+	// Faux : cet objet lâché par un monstre (à sa mort) doit disparaître, pour que
+	// le butin ne dépende que de la balance.
+	bool KeepsMonsterDrop(Inventory item)
+	{
+		if (mMonsterDrops == MONSTER_DROPS_ALL) return true;
+		return mMonsterDrops == MONSTER_DROPS_WEAPONS && item is 'Weapon';
+	}
+
+	// +1 : l'âme penche vers le péché ; -1 : vers la vertu ; 0 : équilibre.
+	int Side(int soul)
+	{
+		return soul > mBalance ? 1 : (soul < mBalance ? -1 : 0);
+	}
+
+	// Paliers atteints, du plus proche de l'équilibre au plus extrême.
+	void ReachedTiers(int soul, out Array<Sinwave_SoulTierDef> result)
+	{
+		result.Clear();
+		for (int i = 0; i < mTiers.Size(); i++)
+		{
+			if (mTiers[i].IsReached(soul)) result.Push(mTiers[i]);
+		}
+	}
+
+	// Chance (en %) qu'un ennemi tué lâche un soin (health) ou des munitions :
+	// valeur à l'équilibre, plus un petit changement par point d'écart, plus les
+	// paliers atteints.
+	double DropChance(int soul, bool health)
+	{
+		double chance = health ? mHealthDrop : mAmmoDrop;
+		int distance = abs(soul - mBalance);
+		if (soul > mBalance) chance += distance * (health ? mSinHealthDrop : mSinAmmoDrop);
+		else if (soul < mBalance) chance += distance * (health ? mVirtueHealthDrop : mVirtueAmmoDrop);
+		Array<Sinwave_SoulTierDef> reached;
+		ReachedTiers(soul, reached);
+		for (int i = 0; i < reached.Size(); i++) chance += health ? reached[i].mHealthDrop : reached[i].mAmmoDrop;
+		return clamp(chance, 0.0, 100.0);
+	}
+}
+
 // Réglages généraux de progression (data/progression.txt).
 class Sinwave_ProgressionDef play
 {
@@ -444,10 +616,10 @@ class Sinwave_ProgressionDef play
 	int mOfferVirtues;
 	int mOfferSins;
 	double mMagnetRadius;
-	int mDamnationThreshold;
 	int mIndulgencesPerScore;
 	int mIndulgencesPerCircle;
-	int mIndulgencesAbsolution;
+	int mIndulgencesAbsolution;		// bonus de victoire selon le verdict
+	int mIndulgencesPurgatory;
 	int mIndulgencesDamnation;
 	Array<Sinwave_ItemStack> mStartItems;
 	int mSupplyTics;
@@ -468,10 +640,10 @@ class Sinwave_ProgressionDef play
 		def.mOfferVirtues = max(0, block.GetInt("offer_virtues", 2));
 		def.mOfferSins = max(0, block.GetInt("offer_sins", 1));
 		def.mMagnetRadius = max(0.0, block.GetDouble("magnet_radius", 192));
-		def.mDamnationThreshold = max(1, block.GetInt("damnation_threshold", 5));
 		def.mIndulgencesPerScore = max(1, block.GetInt("indulgences_per_score", 20));
 		def.mIndulgencesPerCircle = max(0, block.GetInt("indulgences_per_circle", 2));
 		def.mIndulgencesAbsolution = max(0, block.GetInt("indulgences_absolution", 20));
+		def.mIndulgencesPurgatory = max(0, block.GetInt("indulgences_purgatory", 12));
 		def.mIndulgencesDamnation = max(0, block.GetInt("indulgences_damnation", 5));
 		def.mSupplyTics = block.GetTics("supply_seconds", 0);
 		def.mWaveSpawnGrowth = max(0.0, block.GetDouble("wave_spawn_growth", 0.15));

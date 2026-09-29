@@ -46,8 +46,15 @@ class Sinwave_HudModel : Sinwave_Service
 	bool mBetweenCircles;	// répit avant le cercle suivant
 	String mCurseName;
 	String mCurseDescription;
+	// Balance de l'âme (data/soul.txt)
 	int mCorruption;
-	int mCorruptionThreshold;
+	int mSoulMin;
+	int mSoulMax;
+	int mSoulBalance;
+	int mSoulSide;				// +1 : péché ; -1 : vertu ; 0 : équilibre
+	int mSoulLevel;				// paliers atteints (0 à 3)
+	String mSoulTierName;		// le plus extrême des paliers atteints, ou « équilibre »
+	Array<int> mSoulMarks;		// position des paliers, pour la jauge
 
 	// Attaques qui se préparent contre le joueur (Sinwave_ThreatSystem). Le HUD ne
 	// montre que celles venues de l'angle mort, en suivant leur source.
@@ -114,7 +121,7 @@ class Sinwave_HudModel : Sinwave_Service
 	bool mResultReady;
 	int mEarned;
 	bool mNewBest;
-	bool mDamned;
+	int mVerdict;				// Sinwave_CorruptionChangedEvent.VERDICT_...
 
 	// Bandeau temporaire au centre de l'écran
 	String mBanner;

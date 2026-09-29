@@ -7,7 +7,7 @@
 //  Publie : MetaLoaded, MetaSaved, Purchase, EffectGranted (achats de la boutique)
 //
 //  Gagner : à la fin de la run, les indulgences viennent du score, des cercles
-//  franchis et du verdict (Absolution ou Damnation), multipliées par la
+//  franchis et du verdict (Absolution, Purgatoire ou Damnation), multipliées par la
 //  récompense de l'arène et celle des règles de la descente (difficulté).
 //  Dépenser : à la boutique, entre les runs, contre des armes et des améliorations
 //  permanentes, accordées au début de chaque run.
@@ -24,7 +24,7 @@ class Sinwave_MetaSystem : Sinwave_System
 	private bool mRunning;
 	private int mScore;
 	private int mCirclesEnded;
-	private bool mDamned;
+	private int mVerdict;	// Sinwave_CorruptionChangedEvent.VERDICT_...
 
 	override void Setup()
 	{
@@ -52,7 +52,7 @@ class Sinwave_MetaSystem : Sinwave_System
 			mRunning = true;
 			mScore = 0;
 			mCirclesEnded = 0;
-			mDamned = false;
+			mVerdict = Sinwave_CorruptionChangedEvent.VERDICT_PURGATORY;
 			GrantPurchases();
 		}
 		else if (e is 'Sinwave_ScoreChangedEvent')
@@ -65,7 +65,7 @@ class Sinwave_MetaSystem : Sinwave_System
 		}
 		else if (e is 'Sinwave_CorruptionChangedEvent')
 		{
-			mDamned = Sinwave_CorruptionChangedEvent(e).IsDamned();
+			mVerdict = Sinwave_CorruptionChangedEvent(e).Verdict();
 		}
 		else if (e is 'Sinwave_RunEndedEvent' && mRunning)
 		{
@@ -137,7 +137,12 @@ class Sinwave_MetaSystem : Sinwave_System
 		int earned = mScore / progression.mIndulgencesPerScore + mCirclesEnded * progression.mIndulgencesPerCircle;
 		if (reason == Sinwave_RunEndedEvent.REASON_VICTORY)
 		{
-			earned += mDamned ? progression.mIndulgencesDamnation : progression.mIndulgencesAbsolution;
+			switch (mVerdict)
+			{
+			case Sinwave_CorruptionChangedEvent.VERDICT_ABSOLUTION:	earned += progression.mIndulgencesAbsolution; break;
+			case Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION:	earned += progression.mIndulgencesDamnation; break;
+			default:												earned += progression.mIndulgencesPurgatory; break;
+			}
 		}
 		// Arènes et règles plus dures rapportent davantage.
 		earned = int(earned * mData.mArena.mRewardFactor * Sinwave_RunRules.From(mServices).RewardFactor() + 0.5);
@@ -148,7 +153,7 @@ class Sinwave_MetaSystem : Sinwave_System
 		if (newBest) mMeta.mBestScore = mScore;
 		mSave.Save(mMeta);
 
-		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, mDamned));
+		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, mVerdict));
 		PublishMeta();
 	}
 
