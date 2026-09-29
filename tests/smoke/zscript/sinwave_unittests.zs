@@ -89,6 +89,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestEffects();
 		TestUpgradeKinds();
 		TestSoul();
+		TestJudgement();
 		TestShopPrices();
 		TestPurchasesEncoding();
 		TestRules();
@@ -245,6 +246,31 @@ class Sinwave_UnitTests : StaticEventHandler
 		data.mCircles.Push(first);
 		data.mCircles.Push(second);
 		Check(data.WaveRank(0, 0) == 0 && data.WaveRank(1, 1) == 4, "vagues : rang compté depuis le début de l'arène");
+	}
+
+	// Jugement de l'âme : paliers, rayons de la boutique, déplacement après une run.
+	private void TestJudgement()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[judgement j]\nneutral = 50\nneutral_zone = 15\ngrace_tiers = 40, 25, 10\ncorruption_tiers = 60, 75, 90\nrun_shift = 6, 10, 15\nbalance_pull = 4\n"
+			.. "[item holy]\nside = grace\ntier = 2\n[item evil]\nside = corruption\ntier = 1\n[item mid]\nside = neutral\n[item gun]\n", blocks);
+		let judgement = Sinwave_JudgementDef.FromBlock(blocks[0]);
+		let holy = Sinwave_ShopItemDef.FromBlock(blocks[1]);
+		let evil = Sinwave_ShopItemDef.FromBlock(blocks[2]);
+		let mid = Sinwave_ShopItemDef.FromBlock(blocks[3]);
+		let gun = Sinwave_ShopItemDef.FromBlock(blocks[4]);
+
+		Check(judgement.Tier(50) == 0 && judgement.Tier(40) == -1 && judgement.Tier(10) == -3 && judgement.Tier(60) == 1 && judgement.Tier(95) == 3,
+			"jugement : paliers de Grâce et de Corruption");
+		Check(!judgement.IsUnlocked(holy, 30) && judgement.IsUnlocked(holy, 25), "jugement : un rayon de Grâce s'ouvre sous son seuil");
+		Check(judgement.IsUnlocked(evil, 60) && !judgement.IsUnlocked(evil, 59), "jugement : un rayon de Corruption s'ouvre au-dessus du sien");
+		Check(judgement.IsUnlocked(mid, 65) && !judgement.IsUnlocked(mid, 66), "jugement : l'Équilibre n'est ouvert que près de la neutralité");
+		Check(judgement.IsUnlocked(gun, 0) && judgement.IsUnlocked(gun, 100), "jugement : l'armurerie est toujours ouverte");
+		Check(!judgement.CanBuy(holy, 50, 0) && judgement.CanBuy(holy, 50, 1), "jugement : un article acheté reste débloqué pour toujours");
+		Check(judgement.AfterRun(50, 1, 3) == 65 && judgement.AfterRun(50, -1, 1) == 44, "jugement : plus l'âme a penché, plus il bouge");
+		Check(judgement.AfterRun(60, 0, 0) == 56 && judgement.AfterRun(48, 0, 0) == 50, "jugement : une run à l'équilibre le ramène vers la neutralité");
+		Check(judgement.AfterRun(98, 1, 3) == 100, "jugement : borné");
 	}
 
 	// Menaces : un ennemi qui prend son élan contre le joueur, un projectile qui arrive.

@@ -20,7 +20,11 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
    - Lucifer suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
 
    En fin de run : **Absolution**, **Purgatoire** ou **Damnation**.
-6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique** : des armes de départ et des améliorations permanentes.
+6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique**. Elle a quatre rayons :
+   - l'**Armurerie**, toujours ouverte ;
+   - la **Grâce** (vie, défense, soins), l'**Équilibre** (objets compensés) et la **Corruption** (dégâts, vitesse), ouverts selon ton **Jugement**.
+
+   Le Jugement est la réputation de ton âme, gardée d'une run à l'autre (de 0 à 100, neutre à 50). Il bouge à chaque fin de run, d'autant plus que l'âme a penché. Plus il s'éloigne du neutre, meilleurs sont les objets ouverts de son côté. Un rayon se referme si le Jugement revient en arrière, mais un objet déjà acheté reste à toi.
 
 Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activée automatiquement par les lanceurs).
 
@@ -31,7 +35,7 @@ Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activ�
 | Boutique des indulgences (écran titre ou écran de fin) | B | | B |
 | Pause de la run | P | | Start |
 | Choisir dans un menu | flèches + Entrée, ou 1 à 9 | survol + clic, molette | croix ou stick gauche + A |
-| Régler une valeur (règles de la descente) | Gauche / Droite | clic sur `<` ou `>` | croix gauche / droite |
+| Régler une valeur (règles de la descente), changer de rayon (boutique) | Gauche / Droite | clic sur `<` ou `>`, clic sur un rayon | croix gauche / droite |
 | Revenir en arrière | Échap | clic droit ou bouton *Retour* | B |
 
 Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom. Hors d'une run, Start ouvre le menu de GZDoom (options, quitter).
@@ -72,7 +76,7 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/data/          définitions chargées depuis data/, sauvegarde
   zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
-  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, boutique
+  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, âme, boutique, Jugement
   maps/                  SW01 Les Limbes, SW02 Le Purgatoire (tools/generate-arena.ps1)
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging

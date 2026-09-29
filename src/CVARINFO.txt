@@ -3,6 +3,8 @@ user int sinwave_meta_indulgences = 0;
 user int sinwave_meta_best = 0;
 user int sinwave_meta_runs = 0;
 user string sinwave_meta_purchases = "";
+// Jugement de l'âme (data/judgement.txt) : -1 tant qu'aucune run ne l'a fixé (neutre).
+user int sinwave_meta_judgement = -1;
 
 // Règles de la descente (difficulté, défi personnalisé, cercle de départ).
 user string sinwave_rules = "";

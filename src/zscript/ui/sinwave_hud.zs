@@ -56,7 +56,7 @@ class Sinwave_Hud ui
 		c.Text(BigFont, Font.CR_RED, center, 50, "SINWAVE", 3.0, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_GOLD, center, 115, "Les sept cercles du péché", 1.5, Sinwave_Canvas.ALIGN_CENTER);
 
-		c.Text(NewSmallFont, Font.CR_ORANGE, center, 160, String.Format("Indulgences : %d", m.mIndulgences), 1.4, Sinwave_Canvas.ALIGN_CENTER);
+		c.Text(NewSmallFont, Font.CR_ORANGE, center, 160, String.Format("Indulgences : %d     Jugement : %d (%s)", m.mIndulgences, m.mJudgement, m.mJudgementTierName), 1.4, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_GRAY, center, 184, String.Format("Meilleur score : %d     Runs : %d", m.mBestScore, m.mRuns), 1.1, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_WHITE, center, 212, "Arène : " .. m.mArenaName, 1.2, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_GRAY, center, 234, "Difficulté : " .. DifficultyLabel(m), 1.1, Sinwave_Canvas.ALIGN_CENTER);
@@ -287,6 +287,11 @@ class Sinwave_Hud ui
 			c.Text(NewSmallFont, Font.CR_ORANGE, center, 212,
 				String.Format("+%d indulgences   (total : %d)", m.mEarned, m.mIndulgences), 1.4, Sinwave_Canvas.ALIGN_CENTER);
 			if (m.mNewBest) c.Text(NewSmallFont, Font.CR_GOLD, center, 240, "NOUVEAU RECORD !", 1.4, Sinwave_Canvas.ALIGN_CENTER);
+			// Le Jugement de l'âme a bougé : la boutique n'ouvre plus les mêmes rayons.
+			int shift = m.mJudgement - m.mJudgementBefore;
+			int judgementColor = shift > 0 ? Font.CR_PURPLE : (shift < 0 ? Font.CR_GOLD : Font.CR_GRAY);
+			c.Text(NewSmallFont, judgementColor, center, 264,
+				String.Format("Jugement : %d -> %d  (%s)", m.mJudgementBefore, m.mJudgement, m.mJudgementTierName), 1.2, Sinwave_Canvas.ALIGN_CENTER);
 		}
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)

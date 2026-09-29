@@ -280,6 +280,9 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mIndulgences = loaded.mMeta.mIndulgences;
 			m.mBestScore = loaded.mMeta.mBestScore;
 			m.mRuns = loaded.mMeta.mRuns;
+			m.mJudgement = loaded.mMeta.mJudgement;
+			m.mJudgementTier = mData.mJudgement.Tier(m.mJudgement);
+			m.mJudgementTierName = Sinwave_JudgementDef.TierName(m.mJudgementTier);
 			RefreshShop(loaded.mMeta);
 			return;
 		}
@@ -296,6 +299,7 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 			m.mEarned = saved.mEarned;
 			m.mNewBest = saved.mNewBest;
+			m.mJudgementBefore = saved.mJudgementBefore;
 			m.mResultReady = true;
 		}
 	}
@@ -335,6 +339,10 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mShopLevels.Clear();
 		m.mShopMaxLevels.Clear();
 		m.mShopIsWeapon.Clear();
+		m.mShopSides.Clear();
+		m.mShopLocked.Clear();
+		m.mShopRequirements.Clear();
+		let judgement = mData.mJudgement;
 		for (int i = 0; i < mData.mShopItems.Size(); i++)
 		{
 			let item = mData.mShopItems[i];
@@ -345,6 +353,9 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mShopLevels.Push(level);
 			m.mShopMaxLevels.Push(item.mMaxLevel);
 			m.mShopIsWeapon.Push(item.mIsWeapon);
+			m.mShopSides.Push(item.mSide);
+			m.mShopLocked.Push(!judgement.CanBuy(item, metaData.mJudgement, level));
+			m.mShopRequirements.Push(judgement.Requirement(item));
 		}
 		m.mShopRevision++;
 	}

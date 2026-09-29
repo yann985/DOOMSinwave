@@ -18,6 +18,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 {
 	const BACK_WIDTH = 110.0;
 	const BACK_HEIGHT = 20.0;
+	const TAB_HEIGHT = 18.0;
 
 	protected Sinwave_HudModel mModel;
 	protected String mTitle;
@@ -47,6 +48,11 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	private int mPressedRow;
 	private bool mPressedBack;
 	private bool mRightPressed;
+	// Onglets (boutique) : zones cliquables, et onglet sous le clic en cours.
+	private Array<double> mTabLeft;
+	private double mTabWidth;
+	private double mTabTop;
+	private int mPressedTab;
 
 	override void Init(Menu parent)
 	{
@@ -55,6 +61,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		DontDim = true;
 		mCanvas = new('Sinwave_Canvas');
 		mPressedRow = -1;
+		mPressedTab = -1;
 	}
 
 	// Appelé par Sinwave_UiController juste après l'ouverture.
@@ -92,6 +99,12 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	virtual bool IsAdjustable(int index) { return false; }
 	// Vrai : un bouton « Retour » cliquable est affiché (le menu gère OnBack).
 	virtual bool HasBackButton() { return false; }
+	// Onglets sous le titre (aucun par défaut) : nom, couleur, onglet affiché, changement.
+	virtual int TabCount() { return 0; }
+	virtual String TabLabel(int index) { return ""; }
+	virtual int TabColor(int index) { return Font.CR_GRAY; }
+	virtual int CurrentTab() { return 0; }
+	virtual void SelectTab(int index) {}
 
 	protected void AddOption(String label, String detail, int textColor, String value = "")
 	{
@@ -165,6 +178,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	{
 		Vector2 p = Sinwave_Canvas.FromScreen(ev.MouseX, ev.MouseY);
 		int row = RowAt(p);
+		int tab = TabAt(p);
 		bool onBack = HasBackButton() && Sinwave_Canvas.Inside(p, mBackLeft, mBackTop, BACK_WIDTH, BACK_HEIGHT);
 
 		switch (ev.type)
@@ -176,13 +190,16 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		case UIEvent.Type_LButtonDown:
 			mPressedRow = row;
 			mPressedBack = onBack;
+			mPressedTab = tab;
 			if (row >= 0) mSelected = row;
 			return true;
 		case UIEvent.Type_LButtonUp:
 			if (mPressedBack && onBack) GoBack();
+			else if (mPressedTab >= 0 && tab == mPressedTab) ChangeTab(tab);
 			else if (mPressedRow >= 0 && row == mPressedRow) Click(row, p.x);
 			mPressedRow = -1;
 			mPressedBack = false;
+			mPressedTab = -1;
 			return true;
 		case UIEvent.Type_RButtonDown:
 			mRightPressed = true;
@@ -211,6 +228,28 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 			return;
 		}
 		Confirm(row);
+	}
+
+	// Onglet sous le point p (-1 : aucun).
+	private int TabAt(Vector2 p)
+	{
+		for (int i = 0; i < mTabLeft.Size(); i++)
+		{
+			if (Sinwave_Canvas.Inside(p, mTabLeft[i], mTabTop, mTabWidth, TAB_HEIGHT)) return i;
+		}
+		return -1;
+	}
+
+	protected void ChangeTab(int index)
+	{
+		int count = TabCount();
+		if (count <= 0) return;
+		index = (index + count) % count;
+		if (index == CurrentTab()) return;
+		SelectTab(index);
+		mSelected = 0;
+		Rebuild();
+		MenuSound("menu/change");
 	}
 
 	// Option sous le point p (-1 : aucune).
@@ -299,6 +338,8 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		bool detailsInline = ShowDetailsInline();
 		double center = c.mWidth / 2;
 		double header = mSubtitle.Length() > 0 ? 72 : 56;
+		int tabs = TabCount();
+		if (tabs > 0) header += TAB_HEIGHT + 6;
 		double rowHeight = detailsInline ? clamp((260 - header) / max(1, count), 30.0, 50.0) : 20;
 		double labelSize = detailsInline ? (rowHeight >= 40 ? 1.5 : 1.25) : 1.15;
 		double detailSize = detailsInline ? 1.1 : 1.0;
@@ -313,6 +354,22 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		c.Box(left, top, panelWidth, panelHeight, Color(45, 5, 5), 0.9);
 		c.Text(BigFont, Font.CR_GOLD, center, top + 10, mTitle, 1.5, Sinwave_Canvas.ALIGN_CENTER);
 		if (mSubtitle.Length() > 0) c.Text(NewSmallFont, Font.CR_ORANGE, center, top + 44, mSubtitle, 1.2, Sinwave_Canvas.ALIGN_CENTER);
+
+		// Onglets, sur toute la largeur du cadre, juste au-dessus des options.
+		mTabLeft.Clear();
+		if (tabs > 0)
+		{
+			mTabTop = top + header - TAB_HEIGHT - 6;
+			mTabWidth = (panelWidth - 16) / tabs;
+			for (int i = 0; i < tabs; i++)
+			{
+				double x = left + 8 + i * mTabWidth;
+				mTabLeft.Push(x);
+				bool current = i == CurrentTab();
+				c.Box(x + 1, mTabTop, mTabWidth - 2, TAB_HEIGHT, current ? Color(170, 30, 30) : Color(70, 12, 12), current ? 0.9 : 0.7);
+				c.Text(NewSmallFont, current ? Font.CR_WHITE : TabColor(i), x + mTabWidth / 2, mTabTop + 4, TabLabel(i), 1.05, Sinwave_Canvas.ALIGN_CENTER);
+			}
+		}
 
 		mRowLeft = left + 8;
 		mRowWidth = panelWidth - 16;
@@ -441,21 +498,36 @@ class Sinwave_PauseMenu : Sinwave_ChoiceMenu
 }
 
 // Boutique des indulgences : armes et améliorations permanentes.
+// Quatre rayons en onglets : l'armurerie, toujours ouverte, et trois rayons que
+// le Jugement de l'âme ouvre ou ferme (Grâce, Équilibre, Corruption).
 class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 {
 	private int mRevision;
+	private int mTab;				// rayon affiché : Sinwave_ShopItemDef.SIDE_...
+	private bool mTabChosen;
+	private Array<int> mRowItems;	// article (index dans la boutique) de chaque ligne
 
 	override void Build()
 	{
 		mRevision = mModel.mShopRevision;
+		// À l'ouverture : le rayon vers lequel penche le Jugement.
+		if (!mTabChosen)
+		{
+			mTabChosen = true;
+			int tier = mModel.mJudgementTier;
+			mTab = tier == 0 ? Sinwave_ShopItemDef.SIDE_NEUTRAL : (tier < 0 ? Sinwave_ShopItemDef.SIDE_GRACE : Sinwave_ShopItemDef.SIDE_CORRUPTION);
+		}
 		mTitle = "BOUTIQUE DES INDULGENCES";
-		mSubtitle = String.Format("Indulgences : %d", mModel.mIndulgences);
-		mHint = "Clic, Entrée ou A : acheter     Échap, B ou clic droit : retour";
+		mSubtitle = String.Format("Indulgences : %d     Jugement : %d (%s)", mModel.mIndulgences, mModel.mJudgement, mModel.mJudgementTierName);
+		mHint = "Gauche / Droite : rayon     Entrée, A ou clic : acheter     Échap, B : retour";
 		mMessage = mModel.mShopMessage;
 		mMessageColor = mModel.mShopMessageOk ? Font.CR_GREEN : Font.CR_RED;
 
+		mRowItems.Clear();
 		for (int i = 0; i < mModel.mShopNames.Size(); i++)
 		{
+			if (mModel.mShopSides[i] != mTab) continue;
+			mRowItems.Push(i);
 			int level = mModel.mShopLevels[i];
 			int maxLevel = mModel.mShopMaxLevels[i];
 			int price = mModel.mShopPrices[i];
@@ -464,6 +536,7 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 			String detail = String.Format("%s : %s", kind, mModel.mShopDescriptions[i]);
 
 			if (level >= maxLevel) AddOption(label, detail, Font.CR_GREEN, "acquis");
+			else if (mModel.mShopLocked[i]) AddOption(label, detail .. "\nVerrouillé. " .. mModel.mShopRequirements[i], Font.CR_BRICK, "verrouillé");
 			else if (price > mModel.mIndulgences) AddOption(label, detail, Font.CR_DARKGRAY, String.Format("%d", price));
 			else AddOption(label, detail, Font.CR_GRAY, String.Format("%d", price));
 		}
@@ -473,6 +546,30 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 	override bool ShowDetailsInline() { return false; }
 	override bool HasBackButton() { return true; }
 
+	override int TabCount() { return Sinwave_ShopItemDef.NUM_SIDES; }
+
+	override String TabLabel(int index)
+	{
+		static const String NAMES[] = { "Armurerie", "Grâce", "Équilibre", "Corruption" };
+		return NAMES[clamp(index, 0, 3)];
+	}
+
+	override int TabColor(int index)
+	{
+		static const int COLORS[] = { Font.CR_GRAY, Font.CR_GOLD, Font.CR_WHITE, Font.CR_PURPLE };
+		return COLORS[clamp(index, 0, 3)];
+	}
+
+	override int CurrentTab() { return mTab; }
+	override void SelectTab(int index) { mTab = index; }
+
+	// Gauche / Droite changent de rayon.
+	override bool Adjust(int index, int delta)
+	{
+		ChangeTab(mTab + delta);
+		return false;
+	}
+
 	override bool NeedsRebuild()
 	{
 		return mModel.mShopRevision != mRevision;
@@ -480,7 +577,7 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 
 	override void Choose(int index)
 	{
-		EventHandler.SendNetworkEvent("sinwave_buy", index);
+		if (index >= 0 && index < mRowItems.Size()) EventHandler.SendNetworkEvent("sinwave_buy", mRowItems[index]);
 	}
 
 	override bool OnBack()

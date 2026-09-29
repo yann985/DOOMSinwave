@@ -11,10 +11,10 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
 - **Hors run :**
   - le joueur choisit une **arène** : Le Purgatoire, Les Limbes, ou une arène personnalisée ;
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
-  - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes.
+  - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes. Ses rayons s'ouvrent selon le **Jugement** de son âme, gardé d'une run à l'autre.
 - **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
 - **À chaque niveau :** choix entre deux **vertus** (modestes) et un **péché** (puissant, avec un défaut). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
-- **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes.
+- **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes, et le Jugement bouge selon l'âme.
 
 ### Ce qui distingue Sinwave des mods existants
 
@@ -275,7 +275,8 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets, pente des choix, force du boss, épreuves | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem`, `Sinwave_UpgradeSystem`, `Sinwave_WaveSystem`, `Sinwave_SoulTrialSystem` |
-| `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
+| `shop.txt` | Armes et améliorations permanentes : rayon, palier du Jugement demandé, prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
+| `judgement.txt` | Jugement de l'âme : bornes, neutralité, seuils des rayons de la boutique, déplacement en fin de run | `Sinwave_MetaSystem`, boutique |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
 | `progression.txt` | Courbe d'XP, composition des choix (vertus, péchés, choix libres), gains d'indulgences (dont le bonus de chaque verdict), équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
 
@@ -325,13 +326,13 @@ Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle le
 
 ## 7. Méta-progression et boutique
 
-- **Données :** `Sinwave_MetaData` : indulgences, meilleur score, nombre de runs, et niveau de chaque article acheté.
+- **Données :** `Sinwave_MetaData` : indulgences, meilleur score, nombre de runs, Jugement, et niveau de chaque article acheté.
 - **Stockage :** `Sinwave_CVarSaveService`.
   - Il écrit des CVars archivées (déclarées dans `CVARINFO`), dont les achats sous forme de texte : `shotgun=1;vigor=3`.
   - Il force l'écriture du fichier `.ini` du moteur (`CVar.SaveConfig()`).
 - **Découplage :** `Sinwave_MetaSystem` ne dépend que du contrat abstrait `Sinwave_SaveService`. Il ne connaît ni les cercles, ni le score, ni la corruption : il retient les valeurs annoncées sur le bus (`ScoreChangedEvent`, `CircleEndedEvent`, `CorruptionChangedEvent`).
 - **Gagner :** à la fin de la run, les indulgences viennent du score, des cercles franchis et du bonus de victoire, qui dépend du verdict. Le tout est multiplié par la récompense de l'arène.
-- **Dépenser :** en état Shop, `ShopBuyRequestedEvent` fait vérifier le prix (qui augmente à chaque niveau) et le niveau maximum. L'achat est ensuite sauvegardé. Le résultat est annoncé par `PurchaseEvent`, que la boutique affiche.
+- **Dépenser :** en état Shop, `ShopBuyRequestedEvent` fait vérifier que l'article est ouvert par le Jugement, puis le prix (qui augmente à chaque niveau) et le niveau maximum. L'achat est ensuite sauvegardé. Le résultat est annoncé par `PurchaseEvent`, que la boutique affiche.
 - **Appliquer :** au début de chaque run, chaque niveau acheté publie ses effets (`EffectGrantedEvent`), par le même chemin que les vertus.
 - **Après le chargement d'une sauvegarde de partie** (`GameLoadedEvent`) : il relit les CVars.
 
@@ -342,7 +343,7 @@ La corruption est une balance (`data/soul.txt`) : elle va de 0 (sainteté) à 30
 | Âme | Palier | Effets |
 |---|---|---|
 | 0 | Sainteté | **Aura sainte** : les ennemis proches brûlent ; -5 % de dégâts |
-| ≤ 5 | Grâce | Régénération, +15 PV max ; -5 % de vitesse |
+| ≤ 5 | Bénédiction | Régénération, +15 PV max ; -5 % de vitesse |
 | ≤ 10 | Piété | -10 % de dégâts subis ; -5 % de dégâts |
 | 15 | équilibre | aucun effet |
 | ≥ 20 | Souillure | +10 % de dégâts ; -10 PV max |
@@ -363,6 +364,24 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 - **Verdict :** un palier du péché atteint en fin de run, Damnation ; un palier de la vertu, Absolution ; sinon, Purgatoire. La règle est écrite **une seule fois**, dans `Sinwave_CorruptionChangedEvent.Verdict()`, et utilisée par la méta-progression (bonus de victoire : 20, 12 ou 5 indulgences) comme par l'interface.
 - **Interface :** une jauge sous la barre d'XP, avec l'équilibre au milieu, la vertu en or vers la gauche, le péché en violet vers la droite, et un trait par palier. L'écran se teinte de rouge vers le péché, d'une lueur dorée vers la vertu.
 - **Débogage :** avec `sinwave_debug 1`, `netevent sinwave_soul 5` (ou `-5`) décale l'âme sans passer par un choix, pour essayer les paliers.
+
+### Le Jugement : une boutique à quatre rayons
+
+Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'autre** : de 0 (Grâce) à 100 (Corruption), neutre à 50, sauvegardé dans une CVar (`sinwave_meta_judgement`).
+
+- **Il bouge en fin de run**, selon le palier de l'âme atteint : +6, +10 ou +15 vers la Corruption (Souillure, Perdition, Damnation), autant vers la Grâce (Piété, Bénédiction, Sainteté). Une run restée sans palier le ramène de 4 vers le neutre. L'écran de fin l'affiche (`Jugement : 50 -> 65`).
+- **Il ouvre les rayons** de la boutique (`side` et `tier` de `data/shop.txt`) :
+
+| Rayon | Esprit | Ouvert quand le Jugement est... |
+|---|---|---|
+| Armurerie | armes de départ | toujours |
+| Grâce | le bien protège : vie, armure, défense, soins, aura ; super fusil, fusil à plasma | ≤ 40 (I), ≤ 25 (II), ≤ 10 (III) |
+| Équilibre | objets compensés, un peu des deux | entre 35 et 65 |
+| Corruption | le mal frappe : dégâts, vitesse, XP ; lance-roquettes, BFG | ≥ 60 (I), ≥ 75 (II), ≥ 90 (III) |
+
+- Plus le palier est haut, meilleurs sont les objets. Un objet se verrouille si le Jugement repasse le seuil, mais **un objet acheté une fois reste débloqué** : on peut continuer à le monter en niveau.
+- **Une seule règle, un seul endroit :** `Sinwave_JudgementDef` (`Tier`, `IsUnlocked`, `CanBuy`, `AfterRun`) sert à la méta-progression, qui refuse un achat verrouillé et déplace le Jugement, comme au présentateur, qui grise les articles verrouillés et affiche la condition (« Grâce III : Jugement 10 ou moins »).
+- **Interface :** la boutique s'ouvre sur le rayon du Jugement. Gauche/Droite, ou un clic sur un onglet, change de rayon (`TabCount`, `SelectTab` de `Sinwave_ChoiceMenu`).
 
 ---
 
@@ -464,7 +483,7 @@ Ce que la désactivation change pour chaque système :
    - sauvegarde, rechargement de la carte et relecture de la méta ;
 2. **mort** : boutique refusée pendant la run, mort du joueur, sauvegarde, puis boutique ouverte depuis l'écran de fin ;
 3. **boutique** :
-   - deux achats réussis et un achat refusé (déjà acquis), retour au menu ;
+   - deux achats réussis (Armurerie, Équilibre), un achat refusé (déjà acquis) et un article verrouillé par le Jugement neutre (Grâce), retour au menu ;
    - choix de l'autre arène, défi personnalisé (vie des ennemis +25 %) et départ au cercle 2 ;
    - voyage vers l'autre carte, démarrage automatique au cercle 2 ;
    - les achats s'appliquent au début de la run ;
@@ -477,6 +496,7 @@ Le script vérifie dans le journal que chaque événement attendu apparaît, dan
 - les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
 - vertus et péchés, prix de la boutique, enregistrement des achats ;
 - la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
+- le Jugement : paliers, rayons ouverts ou verrouillés, article acheté qui reste débloqué, déplacement en fin de run ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 
 Les tests et la vérification construisent leur propre archive (`build/sinwave-test.pk3`, `build/sinwave-check.pk3`) : ils fonctionnent même quand le jeu est ouvert.

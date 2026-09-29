@@ -19,6 +19,7 @@ class Sinwave_GameData : Sinwave_Service
 	Array<Sinwave_DifficultyDef> mDifficulties;
 	Sinwave_ProgressionDef mProgression;
 	Sinwave_SoulDef mSoul;
+	Sinwave_JudgementDef mJudgement;
 
 	// Arène de la carte courante et ses cercles.
 	Sinwave_ArenaDef mArena;
@@ -76,6 +77,9 @@ class Sinwave_GameData : Sinwave_Service
 		Array<Sinwave_DataBlock> soulBlocks;
 		Sinwave_DataParser.ParseLump("data/soul.txt", soulBlocks);
 		mSoul = Sinwave_SoulDef.FromBlocks(soulBlocks);
+
+		ReadBlocks("data/judgement.txt", 'judgement', blocks);
+		mJudgement = Sinwave_JudgementDef.FromBlock(blocks.Size() > 0 ? blocks[0] : null);
 
 		ReadBlocks("data/difficulties.txt", 'difficulty', blocks);
 		for (int i = 0; i < blocks.Size(); i++)
