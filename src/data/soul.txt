@@ -26,18 +26,20 @@ health_drop = 8
 ammo_drop   = 8
 # Par point au-dessus de l'équilibre (péché) :
 sin_ammo_drop      = 1.2
-sin_health_drop    = -0.5
+sin_health_drop    = -0.3
 # Par point en dessous de l'équilibre (vertu) :
 virtue_health_drop = 1.2
-virtue_ammo_drop   = -0.5
+virtue_ammo_drop   = -0.3
 
-# --- Paliers du péché ---------------------------------------------------------
+# --- Paliers ------------------------------------------------------------------
 #   side        : sin ou virtue
 #   at          : valeur de l'âme qui déclenche le palier
 #   effects     : effets appliqués tant que le palier est atteint (data/upgrades.txt)
 #                 plus : aura (dégâts par seconde aux ennemis proches),
 #                        infiniteammo (1 : munitions infinies)
-#   health_drop, ammo_drop : chance de butin ajoutée, en % (-100 : plus rien)
+#   health_drop, ammo_drop : chance de butin ajoutée, en %
+
+# --- Paliers du péché ---------------------------------------------------------
 
 [tier souillure]
 side        = sin
@@ -46,23 +48,21 @@ name        = Souillure
 description = Tes coups portent (+10 % dégâts) ; ta chair faiblit (-10 PV max)
 effects     = damage:0.1, maxhealth:-10
 ammo_drop   = 5
-health_drop = -2
 
 [tier perdition]
 side        = sin
 at          = 25
 name        = Perdition
-description = Rage : +15 % dégâts, +10 % vitesse ; tu subis +15 % de dégâts
-effects     = damage:0.15, speed:0.1, vulnerability:0.15
+description = Rage : +15 % dégâts, +10 % vitesse ; tu subis +10 % de dégâts
+effects     = damage:0.15, speed:0.1, vulnerability:0.1
 ammo_drop   = 5
 
 [tier damnation]
 side        = sin
 at          = 30
 name        = Damnation
-description = MUNITIONS INFINIES ; plus aucun soin, -25 PV max
-effects     = infiniteammo:1, maxhealth:-25
-health_drop = -100
+description = MUNITIONS INFINIES ; soins rares, -10 PV max
+effects     = infiniteammo:1, maxhealth:-10
 
 # --- Paliers de la vertu ------------------------------------------------------
 
@@ -70,23 +70,21 @@ health_drop = -100
 side        = virtue
 at          = 10
 name        = Piété
-description = Foi : -10 % de dégâts subis ; tes coups faiblissent (-10 %)
-effects     = vulnerability:-0.1, damage:-0.1
+description = Foi : -10 % de dégâts subis ; tes coups faiblissent (-5 %)
+effects     = vulnerability:-0.1, damage:-0.05
 health_drop = 5
-ammo_drop   = -2
 
 [tier grace]
 side        = virtue
 at          = 5
 name        = Grâce
-description = Régénération 1 PV/s, +15 PV max ; tu ralentis (-10 %)
-effects     = regen:1, maxhealth:15, speed:-0.1
+description = Régénération 1 PV/s, +15 PV max ; tu ralentis (-5 %)
+effects     = regen:1, maxhealth:15, speed:-0.05
 health_drop = 5
 
 [tier saintete]
 side        = virtue
 at          = 0
 name        = Sainteté
-description = AURA SAINTE qui brûle ; plus de munitions, -15 % dégâts
-effects     = aura:8, damage:-0.15
-ammo_drop   = -100
+description = AURA SAINTE qui brûle ; munitions rares, -5 % dégâts
+effects     = aura:8, damage:-0.05

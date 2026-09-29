@@ -341,15 +341,17 @@ La corruption est une balance (`data/soul.txt`) : elle va de 0 (sainteté) à 30
 
 | Âme | Palier | Effets |
 |---|---|---|
-| 0 | Sainteté | **Aura sainte** : les ennemis proches brûlent ; plus de munitions lâchées ; -15 % de dégâts |
-| ≤ 5 | Grâce | Régénération, +15 PV max ; -10 % de vitesse |
-| ≤ 10 | Piété | -10 % de dégâts subis ; -10 % de dégâts |
+| 0 | Sainteté | **Aura sainte** : les ennemis proches brûlent ; -5 % de dégâts |
+| ≤ 5 | Grâce | Régénération, +15 PV max ; -5 % de vitesse |
+| ≤ 10 | Piété | -10 % de dégâts subis ; -5 % de dégâts |
 | 15 | équilibre | aucun effet |
 | ≥ 20 | Souillure | +10 % de dégâts ; -10 PV max |
-| ≥ 25 | Perdition | +15 % de dégâts, +10 % de vitesse ; +15 % de dégâts subis |
-| 30 | Damnation | **Munitions infinies** ; plus aucun soin lâché ; -25 PV max |
+| ≥ 25 | Perdition | +15 % de dégâts, +10 % de vitesse ; +10 % de dégâts subis |
+| 30 | Damnation | **Munitions infinies** ; encore -10 PV max |
 
-- **Petits changements, à chaque point :** `Sinwave_LootSystem` fait lâcher aux ennemis tués un soin ou des munitions (celles de l'arme en main). Les chances partent de 8 % chacune à l'équilibre : vers le péché, plus de munitions et moins de soins ; vers la vertu, l'inverse. Les chargeurs que les monstres de Doom lâchent d'eux-mêmes sont retirés (`monster_drops`), pour que le butin ne dépende que de l'âme ; leurs armes restent.
+Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts et -20 PV max, le saint -10 % de dégâts et +15 PV max. Les extrêmes restent des choix forts, pas des punitions.
+
+- **Petits changements, à chaque point :** `Sinwave_LootSystem` fait lâcher aux ennemis tués un soin ou des munitions (celles de l'arme en main). Les chances partent de 8 % chacune à l'équilibre : vers le péché, plus de munitions et un peu moins de soins ; vers la vertu, l'inverse. Les chargeurs que les monstres de Doom lâchent d'eux-mêmes sont retirés (`monster_drops`), pour que le butin ne dépende que de l'âme ; leurs armes restent.
 - **Grands changements, à chaque palier :** les paliers d'un même côté s'additionnent. `Sinwave_CorruptionSystem` publie les effets d'un palier atteint et, s'il est perdu, leur inverse ; un bandeau l'annonce (`SoulTierChangedEvent`). Au début d'une run, les paliers ne sont appliqués qu'au tic suivant, après la remise à zéro du joueur : l'ordre de diffusion de `RunStarted` n'est pas garanti.
 - **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
 - **Verdict :** un palier du péché atteint en fin de run, Damnation ; un palier de la vertu, Absolution ; sinon, Purgatoire. La règle est écrite **une seule fois**, dans `Sinwave_CorruptionChangedEvent.Verdict()`, et utilisée par la méta-progression (bonus de victoire : 20, 12 ou 5 indulgences) comme par l'interface.
