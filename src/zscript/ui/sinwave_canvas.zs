@@ -22,13 +22,16 @@ class Sinwave_Canvas ui
 		mWidth = Screen.GetWidth() / mScale;
 	}
 
+	// Le texte est placé en pixels réels, comme les cadres (Box). Un écran virtuel
+	// (DTA_VirtualWidth) ne convient pas : GZDoom le suppose en 4:3 et, sur un
+	// écran large, resserre le texte vers le centre, hors de ses cadres.
 	void Text(Font fnt, int textColor, double x, double y, String text, double size = 1.0, int align = ALIGN_LEFT, double alpha = 1.0)
 	{
 		double textWidth = fnt.StringWidth(text) * size;
 		if (align == ALIGN_CENTER) x -= textWidth / 2;
 		else if (align == ALIGN_RIGHT) x -= textWidth;
-		Screen.DrawText(fnt, textColor, x / size, y / size, text,
-			DTA_VirtualWidthF, mWidth / size, DTA_VirtualHeightF, HEIGHT / size, DTA_Alpha, alpha);
+		double scale = size * mScale;
+		Screen.DrawText(fnt, textColor, x * mScale, y * mScale, text, DTA_ScaleX, scale, DTA_ScaleY, scale, DTA_Alpha, alpha);
 	}
 
 	void Box(double x, double y, double w, double h, Color fill, double alpha)
@@ -39,6 +42,18 @@ class Sinwave_Canvas ui
 	double TextHeight(Font fnt, double size = 1.0)
 	{
 		return fnt.GetHeight() * size;
+	}
+
+	// Position de la souris (pixels de l'écran) dans les coordonnées du canvas.
+	static Vector2 FromScreen(double x, double y)
+	{
+		double scale = Screen.GetHeight() / HEIGHT;
+		return (x / scale, y / scale);
+	}
+
+	static bool Inside(Vector2 p, double x, double y, double w, double h)
+	{
+		return p.x >= x && p.x < x + w && p.y >= y && p.y < y + h;
 	}
 
 	static String FormatTime(int tics)

@@ -14,15 +14,19 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 4. Les péchés remplissent ta **corruption** ; au seuil, la run finit en **Damnation** plutôt qu'en **Absolution**.
 5. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique** : des armes de départ et des améliorations permanentes.
 
-| Touche | Action |
-|---|---|
-| Utiliser (E / Espace) | Choisir l'arène et lancer la run, recommencer après le bilan |
-| B | Boutique des indulgences (écran titre ou écran de fin) |
-| P | Pause de la run |
-| 1 à 9 ou flèches + Entrée | Choisir dans les menus |
-| Gauche / Droite | Régler une valeur (règles de la descente) |
+Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activée automatiquement par les lanceurs).
 
-Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom.
+| Action | Clavier | Souris | Manette |
+|---|---|---|---|
+| Se déplacer, viser, tirer | touches de GZDoom | viser, clic pour tirer | stick gauche, stick droit, gâchette droite |
+| Choisir l'arène, recommencer après le bilan | Utiliser (E) | | A |
+| Boutique des indulgences (écran titre ou écran de fin) | B | | B |
+| Pause de la run | P | | Start |
+| Choisir dans un menu | flèches + Entrée, ou 1 à 9 | survol + clic, molette | croix ou stick gauche + A |
+| Régler une valeur (règles de la descente) | Gauche / Droite | clic sur `<` ou `>` | croix gauche / droite |
+| Revenir en arrière | Échap | clic droit ou bouton *Retour* | B |
+
+Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom. Hors d'une run, Start ouvre le menu de GZDoom (options, quitter).
 
 ## Démarrage rapide (développement)
 

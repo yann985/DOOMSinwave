@@ -24,6 +24,7 @@ uzdoom*.ini
 *.backup1
 *.backup2
 *.backup3
+*.autosave*
 *.dbs
 *.bak
 *.tmp

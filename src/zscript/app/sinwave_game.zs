@@ -186,12 +186,15 @@ class Sinwave_Game : EventHandler
 	// Commande Sinwave d'une touche selon l'écran affiché (vide : touche laissée au
 	// moteur). La touche choisie dans Options > Commandes > Sinwave marche toujours ;
 	// B et P marchent aussi tant qu'elles ne sont liées à rien d'autre.
+	// Manette : B pour la boutique, Start pour la pause pendant la run (ailleurs,
+	// Start garde son rôle : ouvrir le menu du moteur, pour les options ou quitter).
 	private static ui String CommandForKey(int key, int screen)
 	{
 		String binding = Bindings.GetBinding(key);
 		bool unbound = binding.Length() == 0;
-		bool shop = binding ~== "sinwave_shop" || (key == KEY_B && unbound);
-		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound);
+		bool shop = binding ~== "sinwave_shop" || ((key == KEY_B || key == InputEvent.Key_Pad_B) && unbound);
+		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound)
+			|| (key == InputEvent.Key_Pad_Start && (unbound || binding ~== "menu_main"));
 
 		switch (screen)
 		{

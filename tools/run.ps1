@@ -19,7 +19,8 @@ if (-not $NoBuild) { & (Join-Path $PSScriptRoot "build.ps1") }
 $exe = Get-EnginePath $Engine
 Assert-Iwad
 
-$engineArgs = @("-iwad", "`"$IwadPath`"", "-file", "`"$Pk3Path`"", "+logfile", "`"$(Join-Path $BuildDir "$Engine.log")`"")
+# use_joystick : la manette est désactivée par défaut dans GZDoom ; Sinwave se joue aussi avec.
+$engineArgs = @("-iwad", "`"$IwadPath`"", "-file", "`"$Pk3Path`"", "+logfile", "`"$(Join-Path $BuildDir "$Engine.log")`"", "+use_joystick", "1")
 if ($Map) { $engineArgs += @("+map", $Map, "-skill", $Skill) }
 $engineArgs += $Extra
 
