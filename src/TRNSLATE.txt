@@ -1,0 +1,2 @@
+// Teinte rouge des ennemis enragés (malédiction de la Colère, Sinwave_WrathCurse).
+SinwaveRage = "0:255=%[0.0,0.0,0.0]:[2.0,0.35,0.25]"

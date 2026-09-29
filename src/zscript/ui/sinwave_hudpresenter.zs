@@ -59,6 +59,13 @@ class Sinwave_HudPresenter : Sinwave_System
 			if (m.mScreen == Sinwave_HudModel.SCREEN_PAUSE) m.mPauseSerial++;
 			else if (m.mScreen == Sinwave_HudModel.SCREEN_SHOP) { m.mShopSerial++; m.mShopMessage = ""; }
 			else if (m.mScreen == Sinwave_HudModel.SCREEN_ARENA_SELECT) m.mArenaSelectSerial++;
+			else if (m.mScreen == Sinwave_HudModel.SCREEN_RULES) m.mRulesSerial++;
+			return;
+		}
+		let rules = Sinwave_RulesChangedEvent(e);
+		if (rules != null)
+		{
+			RefreshRules(rules.mRules);
 			return;
 		}
 		if (e is 'Sinwave_RunStartedEvent')
@@ -71,6 +78,11 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mBossActive = false;
 			m.mResultReady = false;
 			ShowBanner(m.mArenaName, "La descente commence...");
+			return;
+		}
+		if (e is 'Sinwave_ShopRequestedEvent' && m.mRunActive)
+		{
+			ShowBanner("La boutique ouvre entre les runs", "Termine ou abandonne la run (P) pour y accéder");
 			return;
 		}
 		if (e is 'Sinwave_RunSuspendedEvent') { mSuspended = true; return; }
@@ -212,6 +224,31 @@ class Sinwave_HudPresenter : Sinwave_System
 		}
 	}
 
+	private void RefreshRules(Sinwave_RunRules rules)
+	{
+		let m = mModel;
+		let preset = mData.FindDifficulty(rules.mPreset);
+		m.mRulesPresetName = preset != null ? preset.mName : "";
+		m.mRulesPresetDescription = preset != null ? preset.mDescription : "Défi personnalisé";
+		m.mRulesEnemyHealth = rules.mEnemyHealth;
+		m.mRulesEnemySpeed = rules.mEnemySpeed;
+		m.mRulesSpawnRate = rules.mSpawnRate;
+		m.mRulesDamageTaken = rules.mDamageTaken;
+		m.mRulesStartCircle = rules.mStartCircle;
+		m.mRulesReward = rules.RewardFactor();
+		m.mRulesArenaName = "";
+		m.mRulesCircleName = "";
+		m.mRulesCircleCount = 0;
+		if (rules.mArenaIndex < mData.mArenas.Size())
+		{
+			let arena = mData.mArenas[rules.mArenaIndex];
+			m.mRulesArenaName = arena.mName;
+			m.mRulesCircleCount = arena.mCircleNames.Size();
+			if (rules.mStartCircle <= arena.mCircleNames.Size()) m.mRulesCircleName = arena.mCircleNames[rules.mStartCircle - 1];
+		}
+		m.mRulesRevision++;
+	}
+
 	// Une ligne par article : nom, niveau possédé et prix du niveau suivant.
 	private void RefreshShop(Sinwave_MetaData metaData)
 	{
@@ -249,6 +286,7 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 		case 'Menu':		return Sinwave_HudModel.SCREEN_MENU;
 		case 'ArenaSelect':	return Sinwave_HudModel.SCREEN_ARENA_SELECT;
+		case 'Rules':		return Sinwave_HudModel.SCREEN_RULES;
 		case 'Shop':		return Sinwave_HudModel.SCREEN_SHOP;
 		case 'InGame':		return Sinwave_HudModel.SCREEN_RUN;
 		case 'Pause':		return Sinwave_HudModel.SCREEN_PAUSE;

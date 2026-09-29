@@ -23,20 +23,29 @@ class Sinwave_World play
 		}
 	}
 
-	// Change de carte. Avec autoStart, la run démarre dès l'arrivée (choix d'arène).
-	static void Travel(String mapName, bool autoStart)
+	// Ce que fait le menu à l'arrivée sur la carte après un voyage.
+	enum EArrival
 	{
-		let cv = CVar.FindCVar('sinwave_autostart');
-		if (cv != null) cv.SetBool(autoStart);
+		ARRIVAL_NONE,	// rester sur l'écran titre
+		ARRIVAL_RUN,	// lancer la run (arène choisie)
+		ARRIVAL_SHOP	// ouvrir la boutique (depuis l'écran de fin)
+	}
+
+	// Change de carte (ou recharge la carte courante).
+	static void Travel(String mapName, int arrival)
+	{
+		let cv = CVar.FindCVar('sinwave_onarrival');
+		if (cv != null) cv.SetInt(arrival);
 		level.ChangeLevel(mapName, 0, CHANGELEVEL_RESETINVENTORY | CHANGELEVEL_RESETHEALTH | CHANGELEVEL_NOINTERMISSION);
 	}
 
-	// Lit et efface la demande de démarrage automatique.
-	static bool ConsumeAutoStart()
+	// Lit et efface l'action demandée pour l'arrivée.
+	static int ConsumeArrival()
 	{
-		let cv = CVar.FindCVar('sinwave_autostart');
-		if (cv == null || !cv.GetBool()) return false;
-		cv.SetBool(false);
-		return true;
+		let cv = CVar.FindCVar('sinwave_onarrival');
+		if (cv == null) return ARRIVAL_NONE;
+		int arrival = cv.GetInt();
+		cv.SetInt(ARRIVAL_NONE);
+		return arrival;
 	}
 }

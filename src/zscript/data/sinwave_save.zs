@@ -73,6 +73,10 @@ class Sinwave_SaveService : Sinwave_Service abstract
 
 	abstract Sinwave_MetaData Load();
 	abstract void Save(Sinwave_MetaData metaData);
+
+	// Règles de la descente choisies par le joueur (retrouvées d'une partie à l'autre).
+	abstract void LoadRules(Sinwave_RunRules rules);
+	abstract void SaveRules(Sinwave_RunRules rules);
 }
 
 // Implémentation par CVars archivées (déclarées dans CVARINFO).
@@ -99,6 +103,19 @@ class Sinwave_CVarSaveService : Sinwave_SaveService
 		let purchases = CVar.FindCVar('sinwave_meta_purchases');
 		if (purchases != null) purchases.SetString(metaData.EncodePurchases());
 		// Écrit le fichier tout de suite : rien n'est perdu si le jeu plante ensuite.
+		CVar.SaveConfig();
+	}
+
+	override void LoadRules(Sinwave_RunRules rules)
+	{
+		let cv = CVar.FindCVar('sinwave_rules');
+		if (cv != null) rules.Decode(cv.GetString());
+	}
+
+	override void SaveRules(Sinwave_RunRules rules)
+	{
+		let cv = CVar.FindCVar('sinwave_rules');
+		if (cv != null) cv.SetString(rules.Encode());
 		CVar.SaveConfig();
 	}
 

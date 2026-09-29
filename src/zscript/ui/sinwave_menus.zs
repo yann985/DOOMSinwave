@@ -21,7 +21,10 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	protected Array<String> mValues;
 	protected Array<int> mColors;
 	protected int mSelected;
+	protected bool mCloseRequested;		// un menu qui reste ouvert peut demander sa fermeture
 	private bool mConfirmed;
+	private bool mSawKeyDown;
+	private bool mIgnoreNextAction;
 	private Sinwave_Canvas mCanvas;
 
 	override void Init(Menu parent)
@@ -39,6 +42,13 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		Rebuild();
 	}
 
+	// Les menus du moteur survivent aux changements de carte, pas le modèle :
+	// Sinwave_UiController ferme un menu resté lié au modèle d'une ancienne carte.
+	bool IsBoundTo(Sinwave_HudModel model)
+	{
+		return mModel == model;
+	}
+
 	// Remplit le titre et les options à partir du modèle.
 	virtual void Build() {}
 	// Envoie la commande correspondant à l'option choisie.
@@ -54,6 +64,8 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	// Faux : une ligne par option, et seule la description de l'option choisie
 	// est affichée en bas du cadre (listes longues comme la boutique).
 	virtual bool ShowDetailsInline() { return true; }
+	// Flèches gauche/droite sur une option réglable : vrai si l'option a été réglée.
+	virtual bool Adjust(int index, int delta) { return false; }
 
 	protected void AddOption(String label, String detail, int textColor, String value = "")
 	{
@@ -76,6 +88,13 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 
 	override bool MenuEvent(int mkey, bool fromcontroller)
 	{
+		// Action produite par le relâchement de la touche qui a ouvert ce menu
+		// (Utiliser pour les arènes...) : on l'ignore.
+		if (mIgnoreNextAction)
+		{
+			mIgnoreNextAction = false;
+			return true;
+		}
 		int count = mLabels.Size();
 		switch (mkey)
 		{
@@ -87,6 +106,10 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 			if (count > 0) mSelected = (mSelected + 1) % count;
 			MenuSound("menu/cursor");
 			return true;
+		case MKEY_Left:
+		case MKEY_Right:
+			if (Adjust(mSelected, mkey == MKEY_Right ? 1 : -1)) MenuSound("menu/change");
+			return true;
 		case MKEY_Enter:
 			Confirm(mSelected);
 			return true;
@@ -97,9 +120,35 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		return false;
 	}
 
+	// Une touche relâchée sans avoir été enfoncée dans ce menu est celle qui l'a
+	// ouvert. Le moteur peut en tirer une action (Retour, Entrée) dans la foulée :
+	// elle est ignorée, jusqu'au tic suivant seulement, pour ne jamais avaler une
+	// vraie touche du joueur (un Échap juste après avoir ouvert la boutique...).
+	private void NoteKey(bool down)
+	{
+		if (down)
+		{
+			mSawKeyDown = true;
+			mIgnoreNextAction = false;	// une vraie touche du joueur : rien à ignorer
+		}
+		else if (!mSawKeyDown)
+		{
+			mIgnoreNextAction = true;
+		}
+	}
+
+	// Touches brutes : le relâchement arrive ici quand le menu vient de s'ouvrir.
+	override bool OnInputEvent(InputEvent ev)
+	{
+		if (ev.Type == InputEvent.Type_KeyDown || ev.Type == InputEvent.Type_KeyUp) NoteKey(ev.Type == InputEvent.Type_KeyDown);
+		return Super.OnInputEvent(ev);
+	}
+
 	// Touches 1 à 9 : choix direct.
 	override bool OnUIEvent(UIEvent ev)
 	{
+		if (ev.type == UIEvent.Type_KeyDown || ev.type == UIEvent.Type_KeyUp) NoteKey(ev.type == UIEvent.Type_KeyDown);
+
 		if (ev.type == UIEvent.Type_Char)
 		{
 			int index = ev.KeyChar - 0x31;
@@ -116,6 +165,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	override void Ticker()
 	{
 		Super.Ticker();
+		mIgnoreNextAction = false;	// l'action due au relâchement arrive dans le même tic
 		if (mModel == null) return;
 		if (!IsRelevant()) Close();
 		else if (NeedsRebuild()) Rebuild();
@@ -131,7 +181,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		}
 		MenuSound("menu/choose");
 		Choose(index);
-		if (!StaysOpen()) Close();
+		if (!StaysOpen() || mCloseRequested) Close();
 	}
 
 	override void Drawer()
@@ -298,6 +348,80 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 	override bool IsRelevant()
 	{
 		return mModel.mScreen == Sinwave_HudModel.SCREEN_SHOP;
+	}
+}
+
+// Règles de la descente : difficulté prédéfinie, défi personnalisé, cercle de départ.
+// Chaque réglage envoie une commande ; Sinwave_RulesSystem l'applique côté jeu et
+// le modèle revient avec les nouvelles valeurs.
+class Sinwave_RulesMenu : Sinwave_ChoiceMenu
+{
+	const OPTION_DESCEND = 6;
+
+	private int mRevision;
+
+	override void Build()
+	{
+		mRevision = mModel.mRulesRevision;
+		mTitle = "RÈGLES DE LA DESCENTE";
+		mSubtitle = String.Format("%s   —   récompense x%.2f", mModel.mRulesArenaName, mModel.mRulesReward);
+		mHint = "Gauche / Droite : régler     Entrée : descendre     Échap : retour";
+
+		String difficulty = mModel.mRulesPresetName.Length() > 0 ? mModel.mRulesPresetName : "Défi personnalisé";
+		AddOption("Difficulté", mModel.mRulesPresetDescription, Font.CR_GRAY, "< " .. difficulty .. " >");
+		AddOption("Vie des ennemis", "Points de vie des ennemis et du boss", Font.CR_GRAY, Percent(mModel.mRulesEnemyHealth));
+		AddOption("Vitesse des ennemis", "Vitesse de déplacement des ennemis", Font.CR_GRAY, Percent(mModel.mRulesEnemySpeed));
+		AddOption("Apparitions", "Rythme d'apparition des ennemis", Font.CR_GRAY, Percent(mModel.mRulesSpawnRate));
+		AddOption("Dégâts subis", "Dégâts que tu reçois", Font.CR_GRAY, Percent(mModel.mRulesDamageTaken));
+		AddOption("Cercle de départ", "Les cercles passés ne rapportent pas d'indulgences", Font.CR_GRAY,
+			String.Format("< %d/%d : %s >", mModel.mRulesStartCircle, mModel.mRulesCircleCount, mModel.mRulesCircleName));
+		AddOption("DESCENDRE", "Lancer la run avec ces règles", Font.CR_GOLD);
+	}
+
+	override bool StaysOpen() { return true; }
+	override bool ShowDetailsInline() { return false; }
+
+	override bool NeedsRebuild()
+	{
+		return mModel.mRulesRevision != mRevision;
+	}
+
+	override bool Adjust(int index, int delta)
+	{
+		if (index >= OPTION_DESCEND) return false;
+		EventHandler.SendNetworkEvent("sinwave_rule", index, delta);
+		return true;
+	}
+
+	// Entrée sur un réglage le fait avancer ; sur DESCENDRE, lance la run et ferme
+	// le menu tout de suite (la run peut commencer sur une autre carte).
+	override void Choose(int index)
+	{
+		if (index == OPTION_DESCEND)
+		{
+			EventHandler.SendNetworkEvent("sinwave_descend");
+			mCloseRequested = true;
+		}
+		else
+		{
+			Adjust(index, 1);
+		}
+	}
+
+	override bool OnBack()
+	{
+		EventHandler.SendNetworkEvent("sinwave_back");
+		return true;
+	}
+
+	override bool IsRelevant()
+	{
+		return mModel.mScreen == Sinwave_HudModel.SCREEN_RULES;
+	}
+
+	private static String Percent(double value)
+	{
+		return String.Format("< %d %% >", int(value * 100 + 0.5));
 	}
 }
 

@@ -14,6 +14,10 @@
 
 class Sinwave_Game : EventHandler
 {
+	// Touches par défaut de la pause et de la boutique (codes clavier).
+	const KEY_P = 0x19;
+	const KEY_B = 0x30;
+
 	private Sinwave_Services mServices;
 	private Sinwave_EventBus mBus;
 	private Sinwave_StateMachine mMachine;
@@ -54,6 +58,7 @@ class Sinwave_Game : EventHandler
 		mServices.Register('GameData', data);
 
 		mServices.Register('Save', new('Sinwave_CVarSaveService'));
+		mServices.Register('Rules', Sinwave_RunRules.Create());
 
 		mHudModel = new('Sinwave_HudModel');
 		mServices.Register('HudModel', mHudModel);
@@ -77,6 +82,7 @@ class Sinwave_Game : EventHandler
 		mMachine.Init(mBus);
 		AddState('Sinwave_MenuState');
 		AddState('Sinwave_ArenaSelectState');
+		AddState('Sinwave_RulesState');
 		AddState('Sinwave_ShopState');
 		AddState('Sinwave_InGameState');
 		AddState('Sinwave_PauseState');
@@ -156,11 +162,50 @@ class Sinwave_Game : EventHandler
 		else if (e.Name ~== "sinwave_pick") mBus.Publish(Sinwave_UpgradePickedEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_buy") mBus.Publish(Sinwave_ShopBuyRequestedEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_arena") mBus.Publish(Sinwave_ArenaChosenEvent.Create(e.Args[0]));
+		else if (e.Name ~== "sinwave_rule") mBus.Publish(Sinwave_RuleAdjustedEvent.Create(e.Args[0], e.Args[1]));
+		else if (e.Name ~== "sinwave_descend") mBus.Publish(new('Sinwave_DescendRequestedEvent'));
 	}
 
 	// -------------------------------------------------------------------------
 	//  Interface (portée « ui » : lecture seule du modèle)
 	// -------------------------------------------------------------------------
+
+	// Touches lues directement, avant les raccourcis du moteur : la boutique et la
+	// pause ne dépendent pas des liaisons du joueur, qui peuvent disparaître (GZDoom
+	// n'applique les « defaultbind » de KEYCONF que s'il ne connaît pas encore la
+	// section Sinwave de sa configuration).
+	override bool InputProcess(InputEvent e)
+	{
+		if (!mReady || e.Type != InputEvent.Type_KeyDown || menuactive != Menu.Off) return false;
+		String command = CommandForKey(e.KeyScan, mHudModel.mScreen);
+		if (command.Length() == 0) return false;
+		EventHandler.SendNetworkEvent(command);
+		return true;
+	}
+
+	// Commande Sinwave d'une touche selon l'écran affiché (vide : touche laissée au
+	// moteur). La touche choisie dans Options > Commandes > Sinwave marche toujours ;
+	// B et P marchent aussi tant qu'elles ne sont liées à rien d'autre.
+	private static ui String CommandForKey(int key, int screen)
+	{
+		String binding = Bindings.GetBinding(key);
+		bool unbound = binding.Length() == 0;
+		bool shop = binding ~== "sinwave_shop" || (key == KEY_B && unbound);
+		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound);
+
+		switch (screen)
+		{
+		case Sinwave_HudModel.SCREEN_MENU:
+		case Sinwave_HudModel.SCREEN_GAMEOVER:
+			if (shop) return "sinwave_shop";
+			break;
+		case Sinwave_HudModel.SCREEN_RUN:
+			if (pause) return "sinwave_pause";
+			if (shop) return "sinwave_shop";	// refusée pendant la run : un bandeau l'explique
+			break;
+		}
+		return "";
+	}
 
 	override void UiTick()
 	{

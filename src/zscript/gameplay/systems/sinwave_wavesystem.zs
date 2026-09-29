@@ -6,17 +6,22 @@
 //  Publie : WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated
 //
 //  Lit les cercles de l'arène courante dans GameData, fait apparaître les ennemis
-//  sur les points d'apparition de la carte (Sinwave_SpawnPoint) en appliquant les
-//  règles de l'arène (vie, vitesse, rythme), et reconnaît leur mort. Un cercle
-//  sans durée se termine à la mort de son boss.
+//  autour du joueur ou sur les points d'apparition de la carte (Sinwave_SpawnPoint)
+//  selon l'arène, en appliquant les règles de l'arène et celles choisies par le
+//  joueur (service Rules : vie, vitesse, rythme, cercle de départ), et reconnaît
+//  leur mort. Toute la horde vise le joueur. Un cercle sans durée se termine à la
+//  mort de son boss.
 
 class Sinwave_WaveSystem : Sinwave_System
 {
-	const MIN_SPAWN_DISTANCE = 384.0;		// pas d'apparition collée au joueur
-	const FALLBACK_SPAWN_RADIUS = 640.0;	// carte sans points d'apparition
+	const MIN_SPAWN_DISTANCE = 384.0;		// points de la carte : pas d'apparition collée au joueur
+	const RING_MIN_DISTANCE = 550.0;		// apparition autour du joueur : juste hors de portée
+	const RING_MAX_DISTANCE = 850.0;
 	const SPAWN_ATTEMPTS = 6;
+	const RETARGET_TICS = TICRATE;			// fréquence du rappel de cible
 
 	private Sinwave_GameData mData;
+	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
 	private int mWave;
@@ -31,6 +36,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	override void Setup()
 	{
 		mData = Sinwave_GameData.From(mServices);
+		mRules = Sinwave_RunRules.From(mServices);
 		mBus.Subscribe(self, 'Sinwave_RunStartedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunSuspendedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunResumedEvent');
@@ -67,6 +73,7 @@ class Sinwave_WaveSystem : Sinwave_System
 
 		let wave = mData.mWaves[mWave];
 		mWaveTics++;
+		if (mWaveTics % RETARGET_TICS == 0) Retarget();
 		bool timeUp = wave.mDurationTics > 0 && mWaveTics >= wave.mDurationTics;
 		bool bossGone = wave.HasBoss() && mBoss == null;	// supprimé sans mourir
 		if (timeUp || bossGone)
@@ -78,7 +85,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		mSpawnTimer--;
 		if (mSpawnTimer <= 0)
 		{
-			mSpawnTimer = max(1, int(wave.mIntervalTics / mData.mArena.mSpawnRate));
+			mSpawnTimer = max(1, int(wave.mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate)));
 			PruneAlive();
 			if (mAlive.Size() < wave.mMaxAlive && wave.mTotalWeight > 0)
 			{
@@ -100,7 +107,8 @@ class Sinwave_WaveSystem : Sinwave_System
 			mBus.Publish(new('Sinwave_AllWavesClearedEvent'));
 			return;
 		}
-		StartWave(0);
+		// Cercle de départ choisi dans les règles de la descente.
+		StartWave(clamp(mRules.mStartCircle - 1, 0, mData.mWaves.Size() - 1));
 	}
 
 	private void StopRun()
@@ -155,22 +163,27 @@ class Sinwave_WaveSystem : Sinwave_System
 	{
 		if (def == null) return null;
 
-		bool found;
+		// Plusieurs essais : une position peut tomber dans un pilier ou hors de la carte.
+		Actor mo = null;
 		Vector3 pos;
-		[found, pos] = FindSpawnPosition();
-		if (!found) return null;
-
-		let mo = Actor.Spawn(def.mActor, pos, ALLOW_REPLACE);
-		if (mo == null) return null;
-		if (!mo.TestMobjLocation())
+		for (int attempt = 0; attempt < SPAWN_ATTEMPTS && mo == null; attempt++)
 		{
-			mo.Destroy();
-			return null;
+			bool found;
+			[found, pos] = FindSpawnPosition();
+			if (!found) continue;
+			mo = Actor.Spawn(def.mActor, pos, ALLOW_REPLACE);
+			if (mo != null && !mo.TestMobjLocation())
+			{
+				mo.Destroy();
+				mo = null;
+			}
 		}
+		if (mo == null) return null;
 
+		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur.
 		let arena = mData.mArena;
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth));
-		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth));
+		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
 		if (def.mScale != 1.0)
 		{
 			mo.Scale *= def.mScale;
@@ -191,28 +204,30 @@ class Sinwave_WaveSystem : Sinwave_System
 		return mo;
 	}
 
+	// Une position candidate. Selon l'arène (clé « spawn » de data/arenas.txt) :
+	//   player : autour du joueur, juste hors de portée, comme dans un survivors-like ;
+	//   points : sur les points d'apparition placés dans la carte.
 	private bool, Vector3 FindSpawnPosition()
 	{
 		let pawn = Sinwave_World.Player();
-		for (int attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++)
-		{
-			Vector3 pos;
-			if (mSpawnPoints.Size() > 0)
-			{
-				let spot = mSpawnPoints[Random[SinwaveWaves](0, mSpawnPoints.Size() - 1)];
-				if (spot == null) continue;
-				pos = spot.pos;
-			}
-			else if (pawn != null)
-			{
-				pos = pawn.Vec3Angle(FALLBACK_SPAWN_RADIUS, FRandom[SinwaveWaves](0, 360));
-			}
-			else
-			{
-				break;
-			}
+		bool aroundPlayer = mData.mArena.mSpawnAroundPlayer || mSpawnPoints.Size() == 0;
 
-			if (pawn == null || (pawn.pos.xy - pos.xy).Length() >= MIN_SPAWN_DISTANCE) return true, pos;
+		if (aroundPlayer && pawn != null)
+		{
+			double distance = FRandom[SinwaveWaves](RING_MIN_DISTANCE, RING_MAX_DISTANCE);
+			Vector2 xy = pawn.pos.xy + Actor.AngleToVector(FRandom[SinwaveWaves](0, 360), distance);
+			Vector3 pos = (xy, level.PointInSector(xy).floorplane.ZatPoint(xy));
+			if (level.IsPointInLevel(pos)) return true, pos;
+			// Hors de la carte (joueur près d'un mur) : on se rabat sur un point de la carte.
+		}
+
+		if (mSpawnPoints.Size() > 0)
+		{
+			let spot = mSpawnPoints[Random[SinwaveWaves](0, mSpawnPoints.Size() - 1)];
+			if (spot != null && (pawn == null || (pawn.pos.xy - spot.pos.xy).Length() >= MIN_SPAWN_DISTANCE))
+			{
+				return true, spot.pos;
+			}
 		}
 		return false, (0, 0, 0);
 	}
@@ -244,6 +259,23 @@ class Sinwave_WaveSystem : Sinwave_System
 				EndWave();
 			}
 			return;
+		}
+	}
+
+	// Un ennemi qui a perdu le joueur (autre cible, ou retour à l'errance) est
+	// relancé sur lui : dans un survivors-like, toute la horde vise le joueur.
+	private void Retarget()
+	{
+		let pawn = Sinwave_World.Player();
+		if (pawn == null || pawn.health <= 0) return;
+		for (int i = 0; i < mAlive.Size(); i++)
+		{
+			let mo = mAlive[i];
+			if (mo == null || mo.health <= 0) continue;
+			bool idle = mo.InStateSequence(mo.CurState, mo.SpawnState);
+			if (mo.target == pawn && !idle) continue;
+			mo.target = pawn;
+			if (idle && mo.SeeState != null) mo.SetState(mo.SeeState);
 		}
 	}
 

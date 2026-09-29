@@ -16,6 +16,7 @@ class Sinwave_GameData : Sinwave_Service
 	Array<Sinwave_UpgradeDef> mUpgrades;
 	Array<Sinwave_ShopItemDef> mShopItems;
 	Array<Sinwave_ArenaDef> mArenas;
+	Array<Sinwave_DifficultyDef> mDifficulties;
 	Sinwave_ProgressionDef mProgression;
 
 	// Arène de la carte courante et ses vagues.
@@ -70,11 +71,22 @@ class Sinwave_GameData : Sinwave_Service
 		ReadBlocks("data/progression.txt", 'progression', blocks);
 		mProgression = Sinwave_ProgressionDef.FromBlock(blocks.Size() > 0 ? blocks[0] : null);
 
+		ReadBlocks("data/difficulties.txt", 'difficulty', blocks);
+		for (int i = 0; i < blocks.Size(); i++)
+		{
+			mDifficulties.Push(Sinwave_DifficultyDef.FromBlock(blocks[i]));
+		}
+
 		ReadBlocks("data/arenas.txt", 'arena', blocks);
 		for (int i = 0; i < blocks.Size(); i++)
 		{
 			let def = Sinwave_ArenaDef.FromBlock(blocks[i]);
-			if (def != null) mArenas.Push(def);
+			if (def == null) continue;
+			// Noms des cercles de chaque arène, pour choisir le cercle de départ avant d'y aller.
+			Array<Sinwave_DataBlock> waveBlocks;
+			ReadBlocks(def.mWavesFile, 'wave', waveBlocks);
+			for (int k = 0; k < waveBlocks.Size(); k++) def.mCircleNames.Push(waveBlocks[k].GetString("name", waveBlocks[k].mId));
+			mArenas.Push(def);
 		}
 
 		SelectArena(mapName);
@@ -98,6 +110,15 @@ class Sinwave_GameData : Sinwave_Service
 		for (int i = 0; i < mCurses.Size(); i++)
 		{
 			if (mCurses[i].mId == id) return mCurses[i];
+		}
+		return null;
+	}
+
+	Sinwave_DifficultyDef FindDifficulty(Name id)
+	{
+		for (int i = 0; i < mDifficulties.Size(); i++)
+		{
+			if (mDifficulties[i].mId == id) return mDifficulties[i];
 		}
 		return null;
 	}

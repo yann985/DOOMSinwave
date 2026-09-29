@@ -9,6 +9,7 @@
 #   enemy_speed  : multiplicateur de vitesse des ennemis
 #   spawn_rate   : multiplicateur du rythme d'apparition (2 = deux fois plus souvent)
 #   reward       : multiplicateur des indulgences gagnées
+#   spawn        : player (autour du joueur, par défaut) ou points (points d'apparition de la carte)
 
 [arena purgatoire]
 name         = Le Purgatoire
@@ -19,6 +20,7 @@ enemy_health = 1.0
 enemy_speed  = 1.0
 spawn_rate   = 1.0
 reward       = 1.0
+spawn        = player
 
 [arena limbes]
 name         = Les Limbes
@@ -29,3 +31,4 @@ enemy_health = 1.3
 enemy_speed  = 1.15
 spawn_rate   = 1.5
 reward       = 1.5
+spawn        = player

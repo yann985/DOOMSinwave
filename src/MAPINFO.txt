@@ -28,6 +28,7 @@ map SW02 "Le Purgatoire"
 	sky1 = "SKY3"
 	music = "D_RUNNIN"
 	nointermission
+	noinfighting		// les ennemis visent le joueur au lieu de se battre entre eux
 }
 
 // Les Limbes : une salle carrée.
@@ -38,4 +39,5 @@ map SW01 "Les Limbes"
 	sky1 = "SKY2"
 	music = "D_STALKS"
 	nointermission
+	noinfighting
 }
