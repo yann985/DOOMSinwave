@@ -382,6 +382,21 @@ class Sinwave_UnitTests : StaticEventHandler
 		virtue.mCorruption = -3;							// 21 -> 18 : palier perdu
 		bus.Publish(Sinwave_UpgradeChosenEvent.Create(virtue));
 		Check(listener.Count('Sinwave_SoulTierChangedEvent') == 2 && listener.Count('Sinwave_EffectGrantedEvent') == 2, "âme : un palier perdu retire ses effets");
+
+		// Le présentateur de l'interface, abonné après ce système comme dans le jeu :
+		// CorruptionChanged, publié pendant RunStarted, lui arrive avant RunStarted.
+		let uiServices = new('Sinwave_Services');
+		let uiBus = new('Sinwave_EventBus');
+		uiServices.Register('EventBus', uiBus);
+		uiServices.Register('GameData', data);
+		let model = new('Sinwave_HudModel');
+		uiServices.Register('HudModel', model);
+		let soulSystem = new('Sinwave_CorruptionSystem');
+		soulSystem.Init('corruption', uiServices);
+		let presenter = new('Sinwave_HudPresenter');
+		presenter.Init('hud', uiServices);
+		uiBus.Publish(new('Sinwave_RunStartedEvent'));
+		Check(model.mCorruption == 15 && model.mSoulTierName == "équilibre", "interface : la run s'affiche à l'équilibre, quel que soit l'ordre de diffusion");
 	}
 
 	private void TestShopPrices()

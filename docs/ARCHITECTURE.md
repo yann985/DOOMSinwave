@@ -497,6 +497,7 @@ Le script vérifie dans le journal que chaque événement attendu apparaît, dan
 - vertus et péchés, prix de la boutique, enregistrement des achats ;
 - la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
 - le Jugement : paliers, rayons ouverts ou verrouillés, article acheté qui reste débloqué, déplacement en fin de run ;
+- l'interface : l'âme affichée au début d'une run, quel que soit l'ordre de diffusion ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 
 Les tests et la vérification construisent leur propre archive (`build/sinwave-test.pk3`, `build/sinwave-check.pk3`) : ils fonctionnent même quand le jeu est ouvert.
@@ -507,7 +508,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 
 ## 11. Limites connues
 
-- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée.
+- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée. Même piège avec `CorruptionChanged`, publié pendant `RunStarted` : le présentateur remettait la corruption à 0 en recevant `RunStarted`, après elle, et la run s'affichait à « 0/30 : équilibre ». Un test unitaire rejoue cet ordre.
 - **Événements alloués à chaque publication :** simple et lisible, mais cela crée des objets à collecter. C'est sans effet mesurable à cette échelle.
 - **Malédictions et monstres :** certaines malédictions parcourent tous les monstres de la carte toutes les 4 à 5 tics. C'est sans problème pour quelques dizaines d'ennemis, mais à surveiller pour de très grosses vagues.
 - **Pause en double :** GZDoom a sa propre pause (touche Pause, menu principal). L'état Pause du projet utilise un menu dédié ; les deux coexistent sans se connaître.
