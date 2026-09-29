@@ -18,6 +18,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 {
 	const BACK_WIDTH = 110.0;
 	const BACK_HEIGHT = 20.0;
+	const MAX_PANEL_HEIGHT = 306.0;	// cadre + message + aide tiennent au-dessus de la barre d'état
 	const TAB_HEIGHT = 18.0;
 
 	protected Sinwave_HudModel mModel;
@@ -330,6 +331,19 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		if (!StaysOpen() || mCloseRequested) Close();
 	}
 
+	// Lignes de la plus longue description : le cadre garde la même taille d'une option à l'autre.
+	private int DetailLines()
+	{
+		int most = 1;
+		for (int i = 0; i < mDetails.Size(); i++)
+		{
+			int lines = 1;
+			for (int at = mDetails[i].IndexOf("\n"); at >= 0; at = mDetails[i].IndexOf("\n", at + 1)) lines++;
+			most = max(most, lines);
+		}
+		return most;
+	}
+
 	override void Drawer()
 	{
 		// Le modèle peut avoir changé depuis le dernier tic : on affiche toujours l'état à jour.
@@ -350,10 +364,16 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		double rowHeight = detailsInline ? clamp((260 - header) / max(1, count), 30.0, 50.0) : 20;
 		double labelSize = detailsInline ? (rowHeight >= 40 ? 1.5 : 1.25) : 1.15;
 		double detailSize = detailsInline ? 1.1 : 1.0;
-		double footer = detailsInline ? 8 : 34;	// zone de description de l'option choisie
+		double footer = detailsInline ? 8 : 18 + 11 * DetailLines();	// zone de description de l'option choisie
 		if (HasBackButton()) footer += BACK_HEIGHT + 10;
 		double panelWidth = min(540.0, c.mWidth - 20);
 		double panelHeight = header + count * rowHeight + footer;
+		if (!detailsInline && panelHeight > MAX_PANEL_HEIGHT && count > 0)
+		{
+			// Longue liste : lignes resserrées, pour rester au-dessus de la barre d'état.
+			rowHeight = max(16.0, rowHeight - (panelHeight - MAX_PANEL_HEIGHT) / count);
+			panelHeight = header + count * rowHeight + footer;
+		}
 		double left = center - panelWidth / 2;
 		double top = max(4.0, (330 - panelHeight - 24) / 2);	// au-dessus de la barre d'état
 
@@ -379,9 +399,11 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 			}
 		}
 
+		// Le cadre d'une ligne entoure son texte, même quand les lignes sont resserrées.
+		double rowPad = clamp((rowHeight - 14) / 2, 1.0, 3.0);
 		mRowLeft = left + 8;
 		mRowWidth = panelWidth - 16;
-		mRowTop = top + header - 3;
+		mRowTop = top + header - rowPad;
 		mRowHeight = rowHeight;
 		mValueLeft.Resize(count);
 		mValueWidth.Resize(count);
@@ -389,7 +411,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		{
 			double y = top + header + i * rowHeight;
 			bool selected = i == mSelected;
-			if (selected) c.Box(mRowLeft, y - 3, mRowWidth, rowHeight - 2, Color(170, 30, 30), 0.55);
+			if (selected) c.Box(mRowLeft, y - rowPad, mRowWidth, rowHeight - 1, Color(170, 30, 30), 0.55);
 			int labelColor = selected ? Font.CR_WHITE : mColors[i];
 			String number = i < 9 ? String.Format("%d.  ", i + 1) : "     ";
 			c.Text(NewSmallFont, labelColor, left + 20, y, number .. mLabels[i], labelSize);

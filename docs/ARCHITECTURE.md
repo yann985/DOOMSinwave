@@ -381,7 +381,7 @@ Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'aut
 
 - Plus le palier est haut, meilleurs sont les objets. Un objet se verrouille si le Jugement repasse le seuil, mais **un objet acheté une fois reste débloqué** : on peut continuer à le monter en niveau.
 - **Une seule règle, un seul endroit :** `Sinwave_JudgementDef` (`Tier`, `IsUnlocked`, `CanBuy`, `AfterRun`) sert à la méta-progression, qui refuse un achat verrouillé et déplace le Jugement, comme au présentateur, qui grise les articles verrouillés et affiche la condition (« Grâce III : Jugement 10 ou moins »).
-- **Interface :** la boutique s'ouvre sur le rayon du Jugement. Gauche/Droite, ou un clic sur un onglet, change de rayon (`TabCount`, `SelectTab` de `Sinwave_ChoiceMenu`).
+- **Interface :** la boutique s'ouvre sur le rayon du Jugement. Gauche/Droite, ou un clic sur un onglet, change de rayon (`TabCount`, `SelectTab` de `Sinwave_ChoiceMenu`). Une longue liste resserre ses lignes pour rester au-dessus de la barre d'état.
 - **La jauge du Jugement**, sous le titre de la boutique, est dessinée comme la balance de l'âme pendant la run :
   - la Grâce en or à gauche, la Corruption en violet à droite, remplies depuis le neutre ;
   - une zone par palier, de plus en plus marquée vers les extrêmes, avec son nom en dessous (I, II, III, Équilibre), allumé quand le Jugement l'atteint ;
