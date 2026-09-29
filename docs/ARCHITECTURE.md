@@ -161,6 +161,12 @@ flowchart LR
 - **Difficulté croissante :** les réglages d'un cercle (`interval`, `max`) sont ceux de sa première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage (`Sinwave_CircleDef.IntervalTicsForWave`, `MaxAliveForWave`). La vie des ennemis grandit avec le rang de la vague dans l'arène (`Sinwave_GameData.WaveRank`), donc aussi d'un cercle à l'autre, quel que soit le cercle de départ. Les trois taux sont dans `data/progression.txt` ; le boss, réglé à part, n'est pas concerné.
 - **Boss :** avec `boss = ...`, la dernière vague du cercle est celle du boss et dure jusqu'à sa mort.
 
+### Alerte d'attaque dans l'angle mort
+
+Comme dans *Doom: The Dark Ages*, une marque rouge autour du viseur signale une attaque qui vient d'où le joueur ne regarde pas, **avant** l'impact. Deux côtés, qui ne se connaissent pas :
+- **Jeu :** `Sinwave_ThreatSystem` repère, tous les 2 tics, les ennemis qui visent le joueur et prennent leur élan. Ce sont les premières images de leurs états `Missile` et `Melee` : 0,3 à 0,5 s où l'ennemi se tourne vers sa cible avant de tirer ou de frapper. Il repère aussi les projectiles ennemis qui foncent sur le joueur et l'atteindront dans moins d'une seconde (`threat_warning_seconds` dans `data/progression.txt`). Il publie `ThreatStarted`, puis `ThreatEnded` quand l'attaque est partie ou le projectile arrivé.
+- **Interface :** le présentateur tient la liste des menaces dans le modèle. À chaque image, `Sinwave_Hud.DrawThreats` calcule l'angle de chaque source par rapport à la caméra (position et angle interpolés, fournis par le rendu). Il ne dessine que les sources hors du champ de vision, calculé depuis le FOV du joueur et le format de l'écran. La marque est placée sur un anneau autour du centre de la vue 3D : en haut devant, en bas derrière. Elle suit la source quand le joueur tourne, s'efface quand elle entre à l'écran, et disparaît à l'impact d'un projectile.
+
 ### La horde vise toujours le joueur
 
 Dans un survivors-like, les ennemis foncent sur le joueur ; l'IA de Doom, elle, attend de le voir et se laisse distraire. `Sinwave_WaveSystem` corrige cela sans toucher aux monstres du moteur :
@@ -270,7 +276,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
-| `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement, montée de la difficulté d'une vague à l'autre | plusieurs systèmes |
+| `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
 
 Exemple, un péché (`upgrades.txt`) :
 
@@ -385,6 +391,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `score` : `Sinwave_ScoreSystem` | EventBus | RunStarted, RunEnded, EnemyKilled | ScoreChanged |
 | `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
 | `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
+| `threats` : `Sinwave_ThreatSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed | ThreatStarted, ThreatEnded |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
@@ -402,6 +409,7 @@ Ce que la désactivation change pour chaque système :
 - **score** : les indulgences ne viennent plus que des cercles ;
 - **xp** : plus de montée de niveau ;
 - **meta** : rien n'est sauvegardé et la boutique ne vend plus rien ;
+- **threats** : plus d'alerte d'attaque dans l'angle mort ;
 - **waves** : aucun ennemi.
 
 ---
@@ -432,10 +440,11 @@ Ce que la désactivation change pour chaque système :
    - les achats s'appliquent au début de la run ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **42 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **47 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids du tirage des ennemis et les effets ;
 - les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
+- les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
 - vertus et péchés, verdict, prix de la boutique, enregistrement des achats ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 

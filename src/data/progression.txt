@@ -20,3 +20,7 @@ supply_items           = Clip:10, Shell:3
 wave_spawn_growth      = 0.15           # apparitions 15 % plus rapides à chaque vague du cercle
 wave_max_growth        = 2              # 2 ennemis vivants de plus à chaque vague du cercle
 wave_health_growth     = 0.03           # vie des ennemis +3 % par vague depuis le début de l'arène (hors boss)
+
+# Alertes d'attaque venues de l'angle mort (indicateur autour du viseur).
+# Un ennemi est toujours signalé pendant qu'il prend son élan (0,3 à 0,5 s).
+threat_warning_seconds = 1.0            # un projectile ennemi est signalé s'il arrive dans moins de 1 s

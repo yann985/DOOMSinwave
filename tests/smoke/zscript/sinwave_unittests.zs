@@ -91,6 +91,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestShopPrices();
 		TestPurchasesEncoding();
 		TestRules();
+		TestThreats();
 
 		Console.Printf("[test] %d réussis, %d échoués", mPassed, mFailed);
 	}
@@ -243,6 +244,34 @@ class Sinwave_UnitTests : StaticEventHandler
 		data.mCircles.Push(first);
 		data.mCircles.Push(second);
 		Check(data.WaveRank(0, 0) == 0 && data.WaveRank(1, 1) == 4, "vagues : rang compté depuis le début de l'arène");
+	}
+
+	// Menaces : un ennemi qui prend son élan contre le joueur, un projectile qui arrive.
+	private void TestThreats()
+	{
+		let pawn = players[consoleplayer].mo;
+		if (pawn == null)
+		{
+			Check(false, "menaces : pas de joueur");
+			return;
+		}
+		let imp = Actor.Spawn('DoomImp', pawn.pos + (300, 0, 0));
+		imp.target = pawn;
+		Check(!Sinwave_ThreatSystem.IsPreparingAttack(imp, pawn), "menaces : un ennemi qui marche n'en est pas une");
+		imp.SetState(imp.MissileState);
+		Check(Sinwave_ThreatSystem.IsPreparingAttack(imp, pawn), "menaces : un ennemi qui prend son élan en est une");
+
+		let ball = Actor.Spawn('DoomImpBall', pawn.pos + (200, 0, pawn.height / 2));
+		ball.target = imp;
+		ball.vel = (-10, 0, 0);
+		Check(Sinwave_ThreatSystem.IsIncomingProjectile(ball, pawn, TICRATE), "menaces : un projectile qui arrive en est une");
+		ball.vel = (10, 0, 0);
+		Check(!Sinwave_ThreatSystem.IsIncomingProjectile(ball, pawn, TICRATE), "menaces : un projectile qui s'éloigne n'en est pas une");
+		ball.vel = (-1, 0, 0);
+		Check(!Sinwave_ThreatSystem.IsIncomingProjectile(ball, pawn, TICRATE), "menaces : un projectile encore loin n'en est pas une");
+
+		ball.Destroy();
+		imp.Destroy();
 	}
 
 	private void TestEffects()

@@ -12,6 +12,7 @@
 class Sinwave_HudPresenter : Sinwave_System
 {
 	const BANNER_TICS = 3 * TICRATE;
+	const THREAT_FADE_TICS = 8;		// fondu de l'indicateur une fois l'attaque partie
 
 	private Sinwave_HudModel mModel;
 	private Sinwave_GameData mData;
@@ -41,6 +42,7 @@ class Sinwave_HudPresenter : Sinwave_System
 	override void Tick()
 	{
 		if (mModel.mBannerTics > 0) mModel.mBannerTics--;
+		TickThreats();
 		if (mModel.mRunActive && !mSuspended)
 		{
 			mModel.mRunTics++;
@@ -95,6 +97,30 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mBossActive = false;
 			m.mEndReason = ended.mReason;
 			m.mBannerTics = 0;
+			m.mThreatSources.Clear();
+			m.mThreatAge.Clear();
+			m.mThreatFade.Clear();
+			return;
+		}
+		let threat = Sinwave_ThreatStartedEvent(e);
+		if (threat != null && threat.mSource != null)
+		{
+			int index = m.mThreatSources.Find(threat.mSource);
+			if (index < m.mThreatSources.Size())
+			{
+				m.mThreatFade[index] = -1;	// la même source menace de nouveau
+				return;
+			}
+			m.mThreatSources.Push(threat.mSource);
+			m.mThreatAge.Push(0);
+			m.mThreatFade.Push(-1);
+			return;
+		}
+		let threatEnded = Sinwave_ThreatEndedEvent(e);
+		if (threatEnded != null)
+		{
+			int index = m.mThreatSources.Find(threatEnded.mSource);
+			if (index < m.mThreatSources.Size()) m.mThreatFade[index] = THREAT_FADE_TICS;
 			return;
 		}
 		let circle = Sinwave_CircleStartedEvent(e);
@@ -293,6 +319,27 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mShopIsWeapon.Push(item.mIsWeapon);
 		}
 		m.mShopRevision++;
+	}
+
+	// Menaces : apparition, fondu de fin, et retrait des sources disparues (un
+	// projectile arrivé n'est plus une menace : l'indicateur s'éteint à l'impact).
+	private void TickThreats()
+	{
+		let m = mModel;
+		for (int i = m.mThreatSources.Size() - 1; i >= 0; i--)
+		{
+			m.mThreatAge[i]++;
+			if (m.mThreatFade[i] > 0) m.mThreatFade[i]--;
+			// Disparue : ennemi mort, ou projectile qui a touché (il n'est plus un projectile).
+			let source = m.mThreatSources[i];
+			bool gone = source == null || (source.bIsMonster ? source.health <= 0 : !source.bMissile);
+			if (gone || m.mThreatFade[i] == 0)
+			{
+				m.mThreatSources.Delete(i);
+				m.mThreatAge.Delete(i);
+				m.mThreatFade.Delete(i);
+			}
+		}
 	}
 
 	private void ShowBanner(String text, String detail)

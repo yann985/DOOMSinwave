@@ -9,9 +9,20 @@ class Sinwave_Hud ui
 {
 	const CORNER_WIDTH = 95.0;	// place prise par les colonnes des coins (temps, victimes)
 
-	private Sinwave_Canvas mCanvas;
+	// Indicateur des attaques venues de l'angle mort (unités du canvas, degrés).
+	const THREAT_RADIUS = 44.0;			// rayon de l'anneau autour du viseur
+	const THREAT_THICKNESS = 5.0;
+	const THREAT_SPREAD = 16.0;			// demi-largeur de l'arc
+	const THREAT_VISIBLE_RATIO = 0.9;	// au-delà de 90 % du demi-champ de vision : hors de vue
+	const THREAT_FADE_TICS = 8.0;		// comme Sinwave_HudPresenter.THREAT_FADE_TICS
 
-	void Draw(Sinwave_HudModel m)
+	private Sinwave_Canvas mCanvas;
+	// Une forme par marque : le moteur ne dessine qu'en fin d'image, une forme
+	// réutilisée dans la même image mélangerait les marques.
+	private Array<Shape2D> mShapes;
+
+	// viewPos, viewAngle : la caméra à cette image (interpolée, fluide même entre deux tics).
+	void Draw(Sinwave_HudModel m, Vector3 viewPos, double viewAngle)
 	{
 		if (mCanvas == null) mCanvas = new('Sinwave_Canvas');
 		mCanvas.Begin();
@@ -23,6 +34,7 @@ class Sinwave_Hud ui
 			break;
 		case Sinwave_HudModel.SCREEN_RUN:
 			DrawRun(m);
+			DrawThreats(m, viewPos, viewAngle);
 			DrawBanner(m);
 			break;
 		case Sinwave_HudModel.SCREEN_PAUSE:
@@ -126,6 +138,84 @@ class Sinwave_Hud ui
 		c.Box(left - 2, top - 2, width + 4, 14, Color(0, 0, 0), 0.8);
 		c.Box(left, top, width * m.mBossHealth, 10, m.mBossEnraged ? Color(255, 60, 0) : Color(170, 0, 0), 0.95);
 		c.Text(NewSmallFont, Font.CR_WHITE, c.mWidth / 2, top + 14, m.mBossName, 1.1, Sinwave_Canvas.ALIGN_CENTER);
+	}
+
+	// Attaques venues de l'angle mort, comme dans Doom: The Dark Ages : une marque
+	// rouge sur un anneau autour du viseur, du côté de l'attaque (en haut : devant,
+	// en bas : derrière). Elle suit la source quand le joueur tourne, et disparaît
+	// dès que la source entre dans le champ de vision.
+	private void DrawThreats(Sinwave_HudModel m, Vector3 viewPos, double viewAngle)
+	{
+		if (m.mThreatSources.Size() == 0) return;
+
+		// Moitié du champ de vision horizontal. Le FOV de GZDoom vaut pour du 4:3 ;
+		// un écran plus large montre davantage sur les côtés.
+		double fov = players[consoleplayer].FOV > 0 ? players[consoleplayer].FOV : 90.0;
+		double halfFov = atan(tan(fov / 2) * Screen.GetAspectRatio() / (4.0 / 3.0));
+
+		// Centre de la vue 3D (au-dessus de la barre d'état), en pixels.
+		int vx, vy, vw, vh;
+		[vx, vy, vw, vh] = Screen.GetViewWindow();
+		Vector2 center = (vx + vw / 2.0, vy + vh / 2.0);
+		double unit = Screen.GetHeight() / Sinwave_Canvas.HEIGHT;
+		double pulse = 0.75 + 0.25 * sin(Menu.MenuTime() * 30.0);
+
+		int drawn = 0;
+		for (int i = 0; i < m.mThreatSources.Size(); i++)
+		{
+			let source = m.mThreatSources[i];
+			if (source == null) continue;
+			Vector2 toSource = source.pos.xy - viewPos.xy;
+			double relative = Actor.Normalize180(atan2(toSource.y, toSource.x) - viewAngle);
+			if (abs(relative) < halfFov * THREAT_VISIBLE_RATIO) continue;	// déjà à l'écran
+
+			double alpha = pulse * min(1.0, (m.mThreatAge[i] + 1) / 4.0);
+			if (m.mThreatFade[i] >= 0) alpha *= m.mThreatFade[i] / THREAT_FADE_TICS;
+			if (drawn == mShapes.Size()) mShapes.Push(new('Shape2D'));
+			DrawThreatMark(mShapes[drawn++], center, unit, relative, alpha);
+		}
+	}
+
+	// Un arc rouge et une pointe tournée vers l'extérieur. `relative` : angle de la
+	// menace par rapport au regard, en degrés, positif vers la gauche (comme Doom).
+	private void DrawThreatMark(Shape2D shape, Vector2 center, double unit, double relative, double alpha)
+	{
+		shape.Clear();
+
+		// Sur l'écran : 0° en haut, puis dans le sens des aiguilles d'une montre.
+		double inner = THREAT_RADIUS * unit;
+		double outer = (THREAT_RADIUS + THREAT_THICKNESS) * unit;
+		int segments = 6;
+		for (int k = 0; k <= segments; k++)
+		{
+			double a = -relative - THREAT_SPREAD + 2 * THREAT_SPREAD * k / segments;
+			Vector2 edge = (sin(a), -cos(a));
+			AddVertex(shape, center + edge * inner);
+			AddVertex(shape, center + edge * outer);
+			if (k > 0)
+			{
+				int v = 2 * k;
+				shape.PushTriangle(v - 2, v - 1, v);
+				shape.PushTriangle(v - 1, v + 1, v);
+			}
+		}
+
+		Vector2 dir = (sin(-relative), -cos(-relative));
+		Vector2 side = (-dir.y, dir.x);
+		int tip = 2 * (segments + 1);
+		AddVertex(shape, center + dir * (outer + 7 * unit));
+		AddVertex(shape, center + dir * outer + side * (6 * unit));
+		AddVertex(shape, center + dir * outer - side * (6 * unit));
+		shape.PushTriangle(tip, tip + 1, tip + 2);
+
+		// DrawShapeFill lit la couleur en bleu, vert, rouge : ceci donne un rouge vif.
+		Screen.DrawShapeFill(Color(20, 40, 255), alpha, shape);
+	}
+
+	private static void AddVertex(Shape2D shape, Vector2 v)
+	{
+		shape.PushVertex(v);
+		shape.PushCoord((0, 0));
 	}
 
 	private void DrawBanner(Sinwave_HudModel m)

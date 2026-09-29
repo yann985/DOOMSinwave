@@ -456,6 +456,7 @@ class Sinwave_ProgressionDef play
 	double mWaveSpawnGrowth;
 	int mWaveMaxGrowth;
 	double mWaveHealthGrowth;	// vie des ennemis, par vague depuis le début de l'arène
+	int mThreatWarningTics;		// un projectile ennemi est signalé s'il arrive dans ce délai
 
 	// `block` peut être null : on garde alors les valeurs par défaut.
 	static Sinwave_ProgressionDef FromBlock(Sinwave_DataBlock block)
@@ -476,6 +477,7 @@ class Sinwave_ProgressionDef play
 		def.mWaveSpawnGrowth = max(0.0, block.GetDouble("wave_spawn_growth", 0.15));
 		def.mWaveMaxGrowth = max(0, block.GetInt("wave_max_growth", 2));
 		def.mWaveHealthGrowth = max(0.0, block.GetDouble("wave_health_growth", 0.03));
+		def.mThreatWarningTics = max(1, block.GetTics("threat_warning_seconds", 1.0));
 		Sinwave_ItemStack.ParseList(block, "start_items", def.mStartItems);
 		Sinwave_ItemStack.ParseList(block, "supply_items", def.mSupplyItems);
 		return def;

@@ -49,6 +49,12 @@ class Sinwave_HudModel : Sinwave_Service
 	int mCorruption;
 	int mCorruptionThreshold;
 
+	// Attaques qui se préparent contre le joueur (Sinwave_ThreatSystem). Le HUD ne
+	// montre que celles venues de l'angle mort, en suivant leur source.
+	Array<Actor> mThreatSources;	// ennemi ou projectile
+	Array<int> mThreatAge;			// tics depuis l'annonce (apparition en fondu)
+	Array<int> mThreatFade;			// -1 : en cours ; sinon tics restants du fondu de fin
+
 	// Boss
 	bool mBossActive;
 	String mBossName;

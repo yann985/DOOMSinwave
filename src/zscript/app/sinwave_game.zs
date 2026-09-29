@@ -221,6 +221,6 @@ class Sinwave_Game : EventHandler
 	{
 		if (!mReady) return;
 		if (mHud == null) mHud = new('Sinwave_Hud');
-		mHud.Draw(mHudModel);
+		mHud.Draw(mHudModel, e.ViewPos, e.ViewAngle);
 	}
 }
