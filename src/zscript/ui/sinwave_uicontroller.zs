@@ -1,20 +1,29 @@
 // Ouvre le bon menu quand le modèle le demande (portée « ui »).
-// Chaque proposition d'amélioration et chaque pause portent un numéro : un menu
-// n'est ouvert qu'une fois par numéro, même si le jeu met un tic à réagir au choix.
+// Chaque ouverture d'écran porte un numéro dans le modèle : un menu n'est ouvert
+// qu'une fois par numéro, même si le jeu met un tic à réagir au choix.
 class Sinwave_UiController ui
 {
 	private int mOpenedOffer;
 	private int mOpenedPause;
+	private int mOpenedShop;
+	private int mOpenedArenaSelect;
 
 	void Update(Sinwave_HudModel model)
 	{
-		if (model.mScreen == Sinwave_HudModel.SCREEN_UPGRADE && model.mOfferSerial != mOpenedOffer)
+		switch (model.mScreen)
 		{
-			if (Open('Sinwave_UpgradeMenu', model)) mOpenedOffer = model.mOfferSerial;
-		}
-		else if (model.mScreen == Sinwave_HudModel.SCREEN_PAUSE && model.mPauseSerial != mOpenedPause)
-		{
-			if (Open('Sinwave_PauseMenu', model)) mOpenedPause = model.mPauseSerial;
+		case Sinwave_HudModel.SCREEN_UPGRADE:
+			if (model.mOfferSerial != mOpenedOffer && Open('Sinwave_UpgradeMenu', model)) mOpenedOffer = model.mOfferSerial;
+			break;
+		case Sinwave_HudModel.SCREEN_PAUSE:
+			if (model.mPauseSerial != mOpenedPause && Open('Sinwave_PauseMenu', model)) mOpenedPause = model.mPauseSerial;
+			break;
+		case Sinwave_HudModel.SCREEN_SHOP:
+			if (model.mShopSerial != mOpenedShop && Open('Sinwave_ShopMenu', model)) mOpenedShop = model.mShopSerial;
+			break;
+		case Sinwave_HudModel.SCREEN_ARENA_SELECT:
+			if (model.mArenaSelectSerial != mOpenedArenaSelect && Open('Sinwave_ArenaMenu', model)) mOpenedArenaSelect = model.mArenaSelectSerial;
+			break;
 		}
 	}
 
