@@ -8,11 +8,20 @@ class   = Sinwave_EventLogger
 [system waves]
 class   = Sinwave_WaveSystem
 
+[system curses]
+class   = Sinwave_CurseSystem
+
+[system boss]
+class   = Sinwave_BossSystem
+
 [system xp]
 class   = Sinwave_XpSystem
 
 [system upgrades]
 class   = Sinwave_UpgradeSystem
+
+[system corruption]
+class   = Sinwave_CorruptionSystem
 
 [system score]
 class   = Sinwave_ScoreSystem

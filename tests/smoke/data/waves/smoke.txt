@@ -1,0 +1,20 @@
+# Un cercle très court avec malédiction, puis un cercle de boss.
+
+[wave 1]
+name     = Test Paresse
+duration = 6
+interval = 0.5
+max      = 6
+break    = 1
+curse    = sloth
+enemies  = sloth:1, gluttony:1
+
+[wave 2]
+name     = Test Boss
+duration = 0
+interval = 1
+max      = 3
+break    = 0
+curse    = pride
+boss     = lucifer
+enemies  = sloth:1

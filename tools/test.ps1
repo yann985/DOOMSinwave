@@ -81,29 +81,34 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	return $failures
 }
 
-"Une fenêtre GZDoom va s'ouvrir plusieurs fois (environ 40 secondes au total)."
+"Une fenêtre GZDoom va s'ouvrir plusieurs fois (environ 1 minute au total)."
 "Ne touche pas au clavier pendant ce temps (Espace ou E comptent comme « Utiliser »)."
 
 $allFailures = @()
 
-# 1. Run complète gagnée : vagues, XP, amélioration, pause, victoire, sauvegarde, rechargement.
+# 1. Run complète gagnée : cercle maudit, XP, choix, pause, boss, victoire, sauvegarde, rechargement.
 $allFailures += Invoke-Scenario "victoire" @(
 	"wait 35", "god",
-	"wait 35", "netevent sinwave_confirm",		# t=70   Menu -> run, vague 1 (6 s)
-	"wait 105", "kill monsters",				# t=175  XP -> niveau -> amélioration (choix auto, 2 s)
-	"wait 105", "netevent sinwave_pause",		# t=280  pause pendant la vague 1...
-	"wait 35", "netevent sinwave_resume",		# t=315  ...et reprise
-	"wait 525", "netevent sinwave_confirm",		# t=840  victoire vers t=630 -> recommencer
+	"wait 35", "netevent sinwave_confirm",		# t=70   Menu -> choix d'arène
+	"wait 5", "netevent sinwave_arena 0",		# t=75   arène de la carte courante : la run démarre
+	"wait 105", "kill monsters",				# t=180  XP -> niveau -> choix (automatique, 2 s)
+	"wait 105", "netevent sinwave_pause",		# t=285  pause pendant le cercle 1...
+	"wait 35", "netevent sinwave_resume",		# t=320  ...et reprise
+	"wait 240", "kill monsters",				# t=560  cercle 2 (depuis t=425) : le boss meurt
+	"wait 280", "netevent sinwave_confirm",		# t=840  fin de run -> recommencer
 	"wait 105"
 ) @(
-	'Sinwave_MetaLoadedEvent : 0 âmes',
+	'Sinwave_MetaLoadedEvent : 0 indulgences',
 	'Sinwave_StateChangedEvent : None -> Menu',
-	'Sinwave_StateChangedEvent : Menu -> InGame',
+	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
+	'Sinwave_StateChangedEvent : ArenaSelect -> InGame',
 	'Sinwave_RunStartedEvent',
 	'Sinwave_WaveStartedEvent : 1/2',
+	'Sinwave_CurseStartedEvent : sloth',
 	'Sinwave_EnemyKilledEvent',
 	'Sinwave_XpCollectedEvent',
 	'Sinwave_LevelUpEvent',
+	'Sinwave_UpgradeOfferedEvent',
 	'Sinwave_StateChangedEvent : InGame -> Upgrade',
 	'Sinwave_UpgradePickedEvent',
 	'Sinwave_UpgradeChosenEvent',
@@ -111,19 +116,25 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_EffectGrantedEvent',
 	'Sinwave_StateChangedEvent : InGame -> Pause',
 	'Sinwave_StateChangedEvent : Pause -> InGame',
+	'Sinwave_WaveEndedEvent : 1',
+	'Sinwave_CurseEndedEvent',
 	'Sinwave_WaveStartedEvent : 2/2',
+	'Sinwave_CurseStartedEvent : pride',
+	'Sinwave_BossSpawnedEvent : lucifer',
+	'Sinwave_BossDefeatedEvent',
 	'Sinwave_AllWavesClearedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : victoire',
-	'Sinwave_MetaSavedEvent',
-	'Sinwave_MetaLoadedEvent : [1-9]\d* âmes',		# après la sauvegarde
-	'Sinwave_MetaLoadedEvent : [1-9]\d* âmes',		# après le rechargement de la carte : relu depuis les CVars
+	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*absolution',
+	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après la sauvegarde
+	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après le rechargement : relu depuis les CVars
 	'Sinwave_StateChangedEvent : None -> Menu'
 )
 
 # 2. Mort du joueur pendant la run.
 $allFailures += Invoke-Scenario "mort" @(
 	"wait 35", "netevent sinwave_confirm",
+	"wait 5", "netevent sinwave_arena 0",
 	"wait 70", "kill",							# suicide du joueur
 	"wait 70"
 ) @(
@@ -132,6 +143,35 @@ $allFailures += Invoke-Scenario "mort" @(
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : mort',
 	'Sinwave_MetaSavedEvent'
+)
+
+# 3. Boutique puis voyage vers l'autre arène : les achats s'appliquent au début de la run.
+$allFailures += Invoke-Scenario "boutique" @(
+	"sinwave_meta_indulgences 500",
+	"wait 35", "netevent sinwave_shop",			# Menu -> boutique
+	"wait 5", "netevent sinwave_buy 0",			# fusil à pompe (15)
+	"wait 5", "netevent sinwave_buy 4",			# Vigueur niveau 1 (10)
+	"wait 5", "netevent sinwave_buy 0",			# déjà acheté : refusé
+	"wait 5", "netevent sinwave_back",			# retour au menu
+	"wait 5", "netevent sinwave_confirm",		# choix d'arène...
+	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : voyage puis démarrage automatique
+	"wait 105"
+) @(
+	'Sinwave_MetaLoadedEvent : 500 indulgences',
+	'Sinwave_StateChangedEvent : Menu -> Shop',
+	'Sinwave_PurchaseEvent : shotgun ok',
+	'Sinwave_MetaLoadedEvent : 485 indulgences',
+	'Sinwave_PurchaseEvent : vigor ok',
+	'Sinwave_MetaLoadedEvent : 475 indulgences',
+	'Sinwave_PurchaseEvent : shotgun refusé',
+	'Sinwave_StateChangedEvent : Shop -> Menu',
+	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
+	'Sinwave_MetaLoadedEvent : 475 indulgences',			# nouvelle carte : méta relue
+	'Sinwave_StateChangedEvent : None -> Menu',
+	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
+	'Sinwave_RunStartedEvent',
+	'Sinwave_EffectGrantedEvent : give Shotgun',
+	'Sinwave_EffectGrantedEvent : maxhealth'
 )
 
 ""
