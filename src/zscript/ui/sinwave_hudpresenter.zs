@@ -40,6 +40,13 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mCorruption = soul.mBalance;
 		m.mSoulTierName = "équilibre";
 		for (int i = 0; i < soul.mTiers.Size(); i++) m.mSoulMarks.Push(soul.mTiers[i].mAt);
+		let judgement = mData.mJudgement;
+		m.mJudgementMin = judgement.mMin;
+		m.mJudgementMax = judgement.mMax;
+		m.mJudgementNeutral = judgement.mNeutral;
+		m.mJudgementNeutralZone = judgement.mNeutralZone;
+		m.mJudgementGraceTiers.Copy(judgement.mGraceTiers);
+		m.mJudgementCorruptionTiers.Copy(judgement.mCorruptionTiers);
 		for (int i = 0; i < mData.mArenas.Size(); i++)
 		{
 			m.mArenaNames.Push(mData.mArenas[i].mName);
@@ -284,6 +291,8 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mJudgement = loaded.mMeta.mJudgement;
 			m.mJudgementTier = mData.mJudgement.Tier(m.mJudgement);
 			m.mJudgementTierName = Sinwave_JudgementDef.TierName(m.mJudgementTier);
+			int last = loaded.mMeta.mJudgementLast;
+			m.mJudgementBefore = last >= 0 ? last : m.mJudgement;
 			RefreshShop(loaded.mMeta);
 			return;
 		}
@@ -343,6 +352,8 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mShopSides.Clear();
 		m.mShopLocked.Clear();
 		m.mShopRequirements.Clear();
+		m.mShopRangeMin.Clear();
+		m.mShopRangeMax.Clear();
 		let judgement = mData.mJudgement;
 		for (int i = 0; i < mData.mShopItems.Size(); i++)
 		{
@@ -356,7 +367,14 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mShopIsWeapon.Push(item.mIsWeapon);
 			m.mShopSides.Push(item.mSide);
 			m.mShopLocked.Push(!judgement.CanBuy(item, metaData.mJudgement, level));
-			m.mShopRequirements.Push(judgement.Requirement(item));
+			String requirement = judgement.Requirement(item);
+			int distance = judgement.Distance(item, metaData.mJudgement);
+			if (distance > 0) requirement = requirement .. String.Format(" (encore %d)", distance);
+			m.mShopRequirements.Push(requirement);
+			int low, high;
+			[low, high] = judgement.Range(item);
+			m.mShopRangeMin.Push(low);
+			m.mShopRangeMax.Push(high);
 		}
 		m.mShopRevision++;
 	}

@@ -105,6 +105,9 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	virtual int TabColor(int index) { return Font.CR_GRAY; }
 	virtual int CurrentTab() { return 0; }
 	virtual void SelectTab(int index) {}
+	// Bloc propre au menu sous le titre (jauge du Jugement de la boutique) : hauteur, dessin.
+	virtual double HeaderExtraHeight() { return 0; }
+	virtual void DrawHeaderExtra(Sinwave_Canvas c, double left, double top, double width) {}
 
 	protected void AddOption(String label, String detail, int textColor, String value = "")
 	{
@@ -338,6 +341,10 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		bool detailsInline = ShowDetailsInline();
 		double center = c.mWidth / 2;
 		double header = mSubtitle.Length() > 0 ? 72 : 56;
+		// Bloc propre au menu, sous le titre (ou le sous-titre).
+		double extraHeight = HeaderExtraHeight();
+		double extraTop = header - 14;
+		if (extraHeight > 0) header = extraTop + extraHeight + 6;
 		int tabs = TabCount();
 		if (tabs > 0) header += TAB_HEIGHT + 6;
 		double rowHeight = detailsInline ? clamp((260 - header) / max(1, count), 30.0, 50.0) : 20;
@@ -354,6 +361,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		c.Box(left, top, panelWidth, panelHeight, Color(45, 5, 5), 0.9);
 		c.Text(BigFont, Font.CR_GOLD, center, top + 10, mTitle, 1.5, Sinwave_Canvas.ALIGN_CENTER);
 		if (mSubtitle.Length() > 0) c.Text(NewSmallFont, Font.CR_ORANGE, center, top + 44, mSubtitle, 1.2, Sinwave_Canvas.ALIGN_CENTER);
+		if (extraHeight > 0) DrawHeaderExtra(c, left, top + extraTop, panelWidth);
 
 		// Onglets, sur toute la largeur du cadre, juste au-dessus des options.
 		mTabLeft.Clear();
@@ -499,9 +507,13 @@ class Sinwave_PauseMenu : Sinwave_ChoiceMenu
 
 // Boutique des indulgences : armes et améliorations permanentes.
 // Quatre rayons en onglets : l'armurerie, toujours ouverte, et trois rayons que
-// le Jugement de l'âme ouvre ou ferme (Grâce, Équilibre, Corruption).
+// le Jugement de l'âme ouvre ou ferme (Grâce, Équilibre, Corruption). Sous le
+// titre, la jauge du Jugement montre ses paliers et le chemin de la dernière run.
 class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 {
+	const JUDGEMENT_BLOCK_HEIGHT = 37.0;	// ligne des indulgences, jauge, noms des paliers
+	const GAUGE_HEIGHT = 8.0;
+
 	private int mRevision;
 	private int mTab;				// rayon affiché : Sinwave_ShopItemDef.SIDE_...
 	private bool mTabChosen;
@@ -518,7 +530,6 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 			mTab = tier == 0 ? Sinwave_ShopItemDef.SIDE_NEUTRAL : (tier < 0 ? Sinwave_ShopItemDef.SIDE_GRACE : Sinwave_ShopItemDef.SIDE_CORRUPTION);
 		}
 		mTitle = "BOUTIQUE DES INDULGENCES";
-		mSubtitle = String.Format("Indulgences : %d     Jugement : %d (%s)", mModel.mIndulgences, mModel.mJudgement, mModel.mJudgementTierName);
 		mHint = "Gauche / Droite : rayon     Entrée, A ou clic : acheter     Échap, B : retour";
 		mMessage = mModel.mShopMessage;
 		mMessageColor = mModel.mShopMessageOk ? Font.CR_GREEN : Font.CR_RED;
@@ -562,6 +573,114 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 
 	override int CurrentTab() { return mTab; }
 	override void SelectTab(int index) { mTab = index; }
+
+	override double HeaderExtraHeight() { return JUDGEMENT_BLOCK_HEIGHT; }
+
+	// Les indulgences à gauche, le Jugement à droite (« 30 -> 20 » : la dernière run
+	// l'a fait bouger), puis sa jauge.
+	override void DrawHeaderExtra(Sinwave_Canvas c, double left, double top, double width)
+	{
+		let m = mModel;
+		double x = left + 14;
+		double w = width - 28;
+		c.Text(NewSmallFont, Font.CR_ORANGE, x, top, String.Format("Indulgences : %d", m.mIndulgences), 1.1);
+		String value = String.Format("%d", m.mJudgement);
+		if (m.mJudgementBefore != m.mJudgement) value = String.Format("%d -> %d", m.mJudgementBefore, m.mJudgement);
+		String judgement = String.Format("Jugement : %s (%s)", value, m.mJudgementTierName);
+		c.Text(NewSmallFont, SideColor(m.mJudgementTier), x + w, top, judgement, 1.1, Sinwave_Canvas.ALIGN_RIGHT);
+		DrawJudgementGauge(c, x, top + 16, w);
+	}
+
+	// Comme la balance de l'âme pendant la run : la Grâce en or à gauche, la
+	// Corruption en violet à droite, remplie depuis le neutre. Chaque palier a sa
+	// zone, de plus en plus marquée vers les extrêmes, et son nom en dessous.
+	private void DrawJudgementGauge(Sinwave_Canvas c, double x, double y, double w)
+	{
+		static const String NUMERALS[] = { "I", "II", "III" };
+		let m = mModel;
+		double h = GAUGE_HEIGHT;
+		Color gold = Color(255, 205, 70);
+		Color purple = Color(200, 40, 200);
+		Color white = Color(255, 255, 255);
+		int graces = m.mJudgementGraceTiers.Size();
+		int corruptions = m.mJudgementCorruptionTiers.Size();
+		double xNeutral = GaugeX(x, w, m.mJudgementNeutral);
+		double xNow = GaugeX(x, w, m.mJudgement);
+		double labelY = y + h + 4;
+
+		c.Box(x, y, w, h, Color(25, 10, 25), 0.85);
+		for (int i = 0; i < graces; i++)
+		{
+			int high = m.mJudgementGraceTiers[i];
+			int low = i + 1 < graces ? m.mJudgementGraceTiers[i + 1] : m.mJudgementMin;
+			ZoneBox(c, x, y, w, low, high, gold, 0.08 + 0.07 * i);
+			int labelColor = m.mJudgement <= high ? Font.CR_GOLD : Font.CR_DARKGRAY;
+			c.Text(NewSmallFont, labelColor, GaugeX(x, w, (low + high) / 2.0), labelY, NUMERALS[min(i, 2)], 0.8, Sinwave_Canvas.ALIGN_CENTER);
+		}
+		for (int i = 0; i < corruptions; i++)
+		{
+			int low = m.mJudgementCorruptionTiers[i];
+			int high = i + 1 < corruptions ? m.mJudgementCorruptionTiers[i + 1] : m.mJudgementMax;
+			ZoneBox(c, x, y, w, low, high, purple, 0.08 + 0.07 * i);
+			int labelColor = m.mJudgement >= low ? Font.CR_PURPLE : Font.CR_DARKGRAY;
+			c.Text(NewSmallFont, labelColor, GaugeX(x, w, (low + high) / 2.0), labelY, NUMERALS[min(i, 2)], 0.8, Sinwave_Canvas.ALIGN_CENTER);
+		}
+		int zone = m.mJudgementNeutralZone;
+		ZoneBox(c, x, y, w, m.mJudgementNeutral - zone, m.mJudgementNeutral + zone, white, 0.1);
+		bool neutral = abs(m.mJudgement - m.mJudgementNeutral) <= zone;
+		c.Text(NewSmallFont, neutral ? Font.CR_WHITE : Font.CR_DARKGRAY, xNeutral, labelY, "Équilibre", 0.8, Sinwave_Canvas.ALIGN_CENTER);
+
+		if (xNow > xNeutral) c.Box(xNeutral, y, xNow - xNeutral, h, purple, 0.9);
+		else if (xNow < xNeutral) c.Box(xNow, y, xNeutral - xNow, h, gold, 0.9);
+		for (int i = 0; i < graces; i++) c.Box(GaugeX(x, w, m.mJudgementGraceTiers[i]) - 0.5, y, 1, h, white, 0.5);
+		for (int i = 0; i < corruptions; i++) c.Box(GaugeX(x, w, m.mJudgementCorruptionTiers[i]) - 0.5, y, 1, h, white, 0.5);
+		c.Box(xNeutral - 1, y - 1, 2, h + 2, white, 0.9);
+
+		// La dernière run : d'où le Jugement est parti, et le chemin parcouru, sous la barre.
+		if (m.mJudgementBefore != m.mJudgement)
+		{
+			double xBefore = GaugeX(x, w, m.mJudgementBefore);
+			c.Box(xBefore - 1, y, 2, h, Color(150, 150, 150), 0.9);
+			c.Box(min(xBefore, xNow), y + h + 1, abs(xNow - xBefore), 2, white, 0.7);
+		}
+		c.Box(xNow - 1.5, y - 3, 3, h + 6, white, 1.0);
+
+		// Article verrouillé choisi : la zone du Jugement qui l'ouvrirait clignote.
+		int item = SelectedItem();
+		if (item >= 0 && m.mShopLocked[item] && m.mShopRangeMin[item] <= m.mShopRangeMax[item])
+		{
+			double x0 = GaugeX(x, w, m.mShopRangeMin[item]);
+			double x1 = GaugeX(x, w, m.mShopRangeMax[item]);
+			double alpha = 0.55 + 0.35 * sin(Menu.MenuTime() * 12.0);
+			c.Box(x0, y - 2, x1 - x0, 1, white, alpha);
+			c.Box(x0, y + h + 1, x1 - x0, 1, white, alpha);
+			c.Box(x0, y - 2, 1, h + 4, white, alpha);
+			c.Box(x1 - 1, y - 2, 1, h + 4, white, alpha);
+		}
+	}
+
+	private double GaugeX(double x, double w, double judgement)
+	{
+		double span = max(1, mModel.mJudgementMax - mModel.mJudgementMin);
+		return x + w * clamp((judgement - mModel.mJudgementMin) / span, 0.0, 1.0);
+	}
+
+	private void ZoneBox(Sinwave_Canvas c, double x, double y, double w, double low, double high, Color fill, double alpha)
+	{
+		double x0 = GaugeX(x, w, low);
+		c.Box(x0, y, GaugeX(x, w, high) - x0, GAUGE_HEIGHT, fill, alpha);
+	}
+
+	// Article de la ligne choisie (index dans la boutique), ou -1.
+	private int SelectedItem()
+	{
+		return mSelected >= 0 && mSelected < mRowItems.Size() ? mRowItems[mSelected] : -1;
+	}
+
+	private static int SideColor(int tier)
+	{
+		return tier < 0 ? Font.CR_GOLD : (tier > 0 ? Font.CR_PURPLE : Font.CR_WHITE);
+	}
 
 	// Gauche / Droite changent de rayon.
 	override bool Adjust(int index, int delta)

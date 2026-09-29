@@ -175,6 +175,7 @@ class Sinwave_MetaSystem : Sinwave_System
 		bool newBest = mScore > mMeta.mBestScore;
 		if (newBest) mMeta.mBestScore = mScore;
 		int judgementBefore = mMeta.mJudgement;
+		mMeta.mJudgementLast = judgementBefore;
 		mMeta.mJudgement = mData.mJudgement.AfterRun(judgementBefore, mSoulSide, mSoulLevel);
 		mSave.Save(mMeta);
 

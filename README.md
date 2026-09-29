@@ -26,6 +26,8 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 
    Le Jugement est la réputation de ton âme, gardée d'une run à l'autre (de 0 à 100, neutre à 50). Il bouge à chaque fin de run, d'autant plus que l'âme a penché. Plus il s'éloigne du neutre, meilleurs sont les objets ouverts de son côté. Un rayon se referme si le Jugement revient en arrière, mais un objet déjà acheté reste à toi.
 
+   En haut de la boutique, une jauge montre ton Jugement comme la balance de l'âme en run : ses paliers, le chemin de ta dernière run, et la zone à atteindre pour l'objet verrouillé que tu regardes.
+
 Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activée automatiquement par les lanceurs).
 
 | Action | Clavier | Souris | Manette |
