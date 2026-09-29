@@ -123,7 +123,7 @@ stateDiagram-v2
     Pause --> InGame : Reprendre
     Pause --> GameOver : Abandonner
     InGame --> GameOver : mort, ou dernier cercle franchi
-    GameOver --> [*] : Utiliser, ou autre touche (la carte se recharge, sur la boutique sauf avec Utiliser)
+    GameOver --> [*] : Utiliser, ou B (la carte se recharge, sur la boutique avec B)
 ```
 
 | État | Classe | Rôle |
@@ -135,7 +135,7 @@ stateDiagram-v2
 | InGame | `Sinwave_InGameState` | Les cercles s'enchaînent. Surveille la mort, la victoire, la pause et les montées de niveau. |
 | Pause | `Sinwave_PauseState` | Run suspendue, menu Reprendre / Abandonner. |
 | Upgrade | `Sinwave_UpgradeState` | Run suspendue, choix d'une vertu ou d'un péché. |
-| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B, ou n'importe quelle autre touche libre, la recharge et ouvre la boutique. |
+| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B la recharge et ouvre la boutique. |
 
 Pour qu'une action survive au changement de carte (lancer la run dans l'arène choisie, ouvrir la boutique), l'état la note dans une CVar non sauvegardée (`sinwave_onarrival`) juste avant le voyage. L'état Menu la lit à l'arrivée (`Sinwave_World.Travel` et `ConsumeArrival`).
 
@@ -343,8 +343,7 @@ flowchart LR
 - Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur peut le traduire en action (Entrée...). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu, **pendant ce tic seulement** : une vraie touche du joueur juste après (Échap pour ressortir de la boutique) n'est jamais avalée.
 - `Sinwave_Game.InputProcess` lit les touches de la boutique et de la pause directement, avant le moteur, selon l'écran affiché :
   - la touche liée dans *Options → Commandes → Sinwave* marche toujours ;
-  - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre ;
-  - sur l'écran de fin, **toute touche libre** ouvre la boutique. Restent exclues : Utiliser (recommencer), Échap et la console, les touches de mouvement ou de tir (`+...`), la pause et la souris.
+  - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre.
 - Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
