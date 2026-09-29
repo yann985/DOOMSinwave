@@ -4,8 +4,12 @@ user int sinwave_meta_best = 0;
 user int sinwave_meta_runs = 0;
 user string sinwave_meta_purchases = "";
 
-// Lancer la run dès l'arrivée sur la carte (après un choix d'arène). Jamais sauvegardée.
-user noarchive bool sinwave_autostart = false;
+// Règles de la descente (difficulté, défi personnalisé, cercle de départ).
+user string sinwave_rules = "";
+
+// Action à l'arrivée sur une carte : 0 rien, 1 lancer la run, 2 ouvrir la boutique.
+// Posée juste avant un changement de carte (Sinwave_World.Travel). Jamais sauvegardée.
+user noarchive int sinwave_onarrival = 0;
 
 // 1 : affiche chaque événement du bus dans la console (Sinwave_EventLogger).
 user bool sinwave_debug = false;

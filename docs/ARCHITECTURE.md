@@ -10,6 +10,7 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
 
 - **Hors run :**
   - le joueur choisit une **arène** : Le Purgatoire, Les Limbes, ou une arène personnalisée ;
+  - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes.
 - **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles, et le dernier cercle du Purgatoire oppose le joueur au boss **Lucifer**.
 - **À chaque niveau :** choix entre deux **vertus** (sûres) et un **péché** (puissant, avec un défaut). Les péchés remplissent une jauge de **corruption** qui décide du verdict final : **Absolution** ou **Damnation**.
@@ -111,27 +112,32 @@ stateDiagram-v2
     Shop --> Menu : Retour
     Menu --> ArenaSelect : Utiliser (plusieurs arènes)
     ArenaSelect --> Menu : Retour
-    ArenaSelect --> InGame : arène de la carte courante
-    ArenaSelect --> [*] : autre arène (voyage, puis démarrage automatique)
-    Menu --> InGame : Utiliser (une seule arène)
+    ArenaSelect --> Rules : arène choisie
+    Menu --> Rules : Utiliser (une seule arène)
+    Rules --> ArenaSelect : Retour
+    Rules --> InGame : Descendre (arène de la carte courante)
+    Rules --> [*] : Descendre (autre arène : voyage, puis démarrage automatique)
     InGame --> Upgrade : montée de niveau
     Upgrade --> InGame : vertu ou péché choisi
     InGame --> Pause : touche P
     Pause --> InGame : Reprendre
     Pause --> GameOver : Abandonner
     InGame --> GameOver : mort, ou dernier cercle franchi
-    GameOver --> [*] : Utiliser (la carte se recharge)
+    GameOver --> [*] : Utiliser, ou B (la carte se recharge, sur la boutique avec B)
 ```
 
 | État | Classe | Rôle |
 |---|---|---|
 | Menu | `Sinwave_MenuState` | Écran titre avec la méta-progression. Utiliser mène au choix d'arène, B à la boutique. |
-| ArenaSelect | `Sinwave_ArenaSelectState` | Choix de l'arène. Une arène sur une autre carte : voyage, puis la run démarre à l'arrivée. |
+| ArenaSelect | `Sinwave_ArenaSelectState` | Choix de l'arène. |
+| Rules | `Sinwave_RulesState` | Règles de la descente (difficulté, défi personnalisé, cercle de départ), traitées par `Sinwave_RulesSystem`. Descendre lance la run ; une arène sur une autre carte : voyage, puis la run démarre à l'arrivée. |
 | Shop | `Sinwave_ShopState` | Boutique ouverte. Les achats sont traités par `Sinwave_MetaSystem`. |
 | InGame | `Sinwave_InGameState` | Les cercles s'enchaînent. Surveille la mort, la victoire, la pause et les montées de niveau. |
 | Pause | `Sinwave_PauseState` | Run suspendue, menu Reprendre / Abandonner. |
 | Upgrade | `Sinwave_UpgradeState` | Run suspendue, choix d'une vertu ou d'un péché. |
-| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte. |
+| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B la recharge et ouvre la boutique. |
+
+Pour qu'une action survive au changement de carte (lancer la run dans l'arène choisie, ouvrir la boutique), l'état la note dans une CVar non sauvegardée (`sinwave_onarrival`) juste avant le voyage. L'état Menu la lit à l'arrivée (`Sinwave_World.Travel` et `ConsumeArrival`).
 
 **Pas de code dupliqué entre états :**
 - Toutes les transitions passent par `Sinwave_StateMachine.ChangeState()`, qui appelle toujours `Exit()`, publie `StateChangedEvent`, puis appelle `Enter()`.
@@ -204,7 +210,8 @@ Fichier : `core/sinwave_services.zs`. Services enregistrés par `Sinwave_Game` :
 |---|---|---|
 | `EventBus` | `Sinwave_EventBus` | Communication entre systèmes |
 | `GameData` | `Sinwave_GameData` | Données du jeu et arène courante (lecture seule) |
-| `Save` | `Sinwave_CVarSaveService` (derrière le contrat abstrait `Sinwave_SaveService`) | Sauvegarde de la méta-progression |
+| `Save` | `Sinwave_CVarSaveService` (derrière le contrat abstrait `Sinwave_SaveService`) | Sauvegarde de la méta-progression et des règles |
+| `Rules` | `Sinwave_RunRules` | Règles choisies pour la run : écrites par `Sinwave_RulesSystem`, lues par les vagues, le joueur et la méta |
 | `HudModel` | `Sinwave_HudModel` | Données affichées par l'interface |
 
 **Pourquoi ce choix :** le sujet interdit un singleton statique accessible de partout. Le Service Locator est **créé par la racine de composition puis transmis** à chaque état, système et malédiction lors de sa création (`Init(services)`) : aucun code ne peut le retrouver par un accès global. Chaque service fournit un raccourci typé (`Sinwave_GameData.From(services)`).
@@ -239,6 +246,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
+| `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
 | `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement | plusieurs systèmes |
 
 Exemple, un péché (`upgrades.txt`) :
@@ -321,7 +329,9 @@ flowchart LR
 
 - Le **présentateur** est un système comme les autres : il traduit les événements en données d'affichage.
 - Le **HUD** et les **menus** ne font que lire le modèle. Pour agir (choisir, acheter, reprendre), un menu envoie une **commande réseau**, que `Sinwave_Game` traduit en événement côté jeu. C'est le seul chemin de l'interface vers le jeu.
-- Les quatre menus héritent de `Sinwave_ChoiceMenu` : navigation, dessin et fermeture automatique sont écrits une fois.
+- Les cinq menus (pause, vertu ou péché, boutique, arènes, règles) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, dessin et fermeture automatique sont écrits une fois.
+- Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur le traduit en action (Retour, Entrée). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu.
+- Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
 ---
@@ -333,21 +343,22 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | Système (`data/systems.txt`) | Services | Écoute | Publie |
 |---|---|---|---|
 | `debug` : `Sinwave_EventLogger` | EventBus | tout | rien |
-| `waves` : `Sinwave_WaveSystem` | EventBus, GameData | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested | WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated |
+| `rules` : `Sinwave_RulesSystem` | EventBus, GameData, Save, Rules | RuleAdjusted, ArenaChosen | RulesChanged |
+| `waves` : `Sinwave_WaveSystem` | EventBus, GameData, Rules | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested | WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated |
 | `curses` : `Sinwave_CurseSystem` | EventBus, GameData | tout (transmis à la malédiction active) | CurseStarted, CurseEnded, EffectGranted |
 | `boss` : `Sinwave_BossSystem` | EventBus | BossSpawned, BossDefeated, RunEnded | BossHealthChanged, BossEnraged, SpawnRequested |
 | `xp` : `Sinwave_XpSystem` | EventBus, GameData | RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted | XpOrbDropped, XpChanged, LevelUp |
 | `upgrades` : `Sinwave_UpgradeSystem` | EventBus, GameData | RunStarted, RunEnded, LevelUp, UpgradePicked | UpgradeOffered, UpgradeChosen, EffectGranted |
 | `corruption` : `Sinwave_CorruptionSystem` | EventBus, GameData | RunStarted, UpgradeChosen | CorruptionChanged |
 | `score` : `Sinwave_ScoreSystem` | EventBus | RunStarted, RunEnded, EnemyKilled | ScoreChanged |
-| `player` : `Sinwave_PlayerSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
-| `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save | RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
+| `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
+| `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
 - du moteur : `ActorDied`, `PlayerDied`, `ActorDamaged` (dégâts infligés par le joueur), `GameLoaded` ;
 - de la touche Utiliser : `Confirm` ;
-- de l'interface : `PauseRequested`, `ResumeRequested`, `AbandonRequested`, `ShopRequested`, `BackRequested`, `UpgradePicked`, `ShopBuyRequested`, `ArenaChosen`.
+- de l'interface : `PauseRequested`, `ResumeRequested`, `AbandonRequested`, `ShopRequested`, `BackRequested`, `UpgradePicked`, `ShopBuyRequested`, `ArenaChosen`, `RuleAdjusted`, `DescendRequested`.
 
 **Désactiver ou remplacer un système :** `enabled = false` ou une autre `class =` dans `data/systems.txt`. Le test automatique le prouve : il joue des runs complètes avec le système `hud` désactivé. Sans interface pour choisir, `Sinwave_UpgradeState` prend automatiquement la première proposition au bout de 2 secondes.
 
@@ -374,22 +385,27 @@ Ce que la désactivation change pour chaque système :
 | `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`. |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |
 
-**`test.ps1`** lance GZDoom avec l'archive `tests/smoke` par-dessus le jeu : deux arènes de test, avec des cercles courts. Il joue trois scénarios par la console du moteur :
+**`test.ps1`** lance GZDoom avec l'archive `tests/smoke` par-dessus le jeu : deux arènes de test, avec des cercles courts. Il joue quatre scénarios par la console du moteur :
 1. **victoire** :
    - choix d'arène, puis un cercle maudit (Paresse) ;
    - XP, montée de niveau, choix, pause ;
    - cercle de boss (Orgueil + Lucifer), victoire, verdict ;
    - sauvegarde, rechargement de la carte et relecture de la méta ;
-2. **mort** : run, puis mort du joueur, puis sauvegarde ;
+2. **mort** : boutique refusée pendant la run, mort du joueur, sauvegarde, puis boutique ouverte depuis l'écran de fin ;
 3. **boutique** :
    - deux achats réussis et un achat refusé (déjà acquis), retour au menu ;
-   - choix de l'autre arène, voyage vers l'autre carte, démarrage automatique ;
-   - les achats s'appliquent au début de la run.
+   - choix de l'autre arène, défi personnalisé (vie des ennemis +25 %) et départ au cercle 2 ;
+   - voyage vers l'autre carte, démarrage automatique au cercle 2 ;
+   - les achats s'appliquent au début de la run ;
+4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **33 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **37 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids des vagues et les effets ;
-- vertus et péchés, verdict, prix de la boutique, enregistrement des achats.
+- vertus et péchés, verdict, prix de la boutique, enregistrement des achats ;
+- règles de la descente : récompense, sauvegarde, valeurs hors bornes.
+
+Les tests et la vérification construisent leur propre archive (`build/sinwave-test.pk3`, `build/sinwave-check.pk3`) : ils fonctionnent même quand le jeu est ouvert.
 
 **Journal en jeu :** `sinwave_debug 1` dans la console affiche chaque événement publié, avec son instant en tics.
 
@@ -411,7 +427,7 @@ Le script vérifie dans le journal que chaque événement attendu apparaît, dan
 
 - Abonnements avec priorité explicite, pour ne plus dépendre de l'ordre de `systems.txt`.
 - Cumul des arènes entre archives, pour que les mods ajoutent des arènes sans rien remplacer.
-- Un réglage des règles d'arène directement dans le jeu (vie et vitesse des ennemis, rythme d'apparition), en plus des fichiers de données.
+- Des défis à modificateurs spéciaux (pas de soin, ennemis explosifs...) en plus des réglages chiffrés.
 - Un outil de validation des fichiers de données hors du jeu, lancé avant chaque commit.
 - Des sprites, des sons et des musiques propres à chaque péché ; d'autres boss.
 - Traduction des textes (fichier `LANGUAGE` du moteur) au lieu de chaînes en français dans le code.

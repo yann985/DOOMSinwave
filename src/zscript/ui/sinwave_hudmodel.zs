@@ -14,6 +14,7 @@ class Sinwave_HudModel : Sinwave_Service
 		SCREEN_NONE,
 		SCREEN_MENU,
 		SCREEN_ARENA_SELECT,
+		SCREEN_RULES,
 		SCREEN_SHOP,
 		SCREEN_RUN,
 		SCREEN_PAUSE,
@@ -71,6 +72,21 @@ class Sinwave_HudModel : Sinwave_Service
 	int mCurrentArena;
 	Array<String> mArenaNames;
 	Array<String> mArenaDescriptions;
+
+	// Règles de la descente. mRulesRevision change à chaque réglage.
+	int mRulesSerial;
+	int mRulesRevision;
+	String mRulesArenaName;
+	String mRulesPresetName;		// vide : défi personnalisé
+	String mRulesPresetDescription;
+	double mRulesEnemyHealth;
+	double mRulesEnemySpeed;
+	double mRulesSpawnRate;
+	double mRulesDamageTaken;
+	int mRulesStartCircle;
+	int mRulesCircleCount;
+	String mRulesCircleName;
+	double mRulesReward;
 
 	// Boutique : une ligne par article. mShopRevision change à chaque achat.
 	int mShopSerial;

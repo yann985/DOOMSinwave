@@ -10,7 +10,9 @@ $Engine = "gzdoom"
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "config.ps1")
 
-& (Join-Path $PSScriptRoot "build.ps1")
+# Archive séparée : la vérification marche même si le jeu est ouvert (il verrouille sinwave.pk3).
+$Pk3Path = Join-Path $BuildDir "$PackageName-check.pk3"
+& (Join-Path $PSScriptRoot "build.ps1") -Output $Pk3Path
 
 $exe = Get-EnginePath $Engine
 Assert-Iwad

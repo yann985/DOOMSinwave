@@ -8,7 +8,7 @@
 //
 //  Gagner : à la fin de la run, les indulgences viennent du score, des cercles
 //  franchis et du verdict (Absolution ou Damnation), multipliées par la
-//  récompense de l'arène.
+//  récompense de l'arène et celle des règles de la descente (difficulté).
 //  Dépenser : à la boutique, entre les runs, contre des armes et des améliorations
 //  permanentes, accordées au début de chaque run.
 //
@@ -139,7 +139,8 @@ class Sinwave_MetaSystem : Sinwave_System
 		{
 			earned += mDamned ? progression.mIndulgencesDamnation : progression.mIndulgencesAbsolution;
 		}
-		earned = int(earned * mData.mArena.mRewardFactor + 0.5);
+		// Arènes et règles plus dures rapportent davantage.
+		earned = int(earned * mData.mArena.mRewardFactor * Sinwave_RunRules.From(mServices).RewardFactor() + 0.5);
 
 		mMeta.mIndulgences += earned;
 		mMeta.mRuns++;

@@ -73,6 +73,39 @@ class Sinwave_ArenaChosenEvent : Sinwave_IndexEvent
 	}
 }
 
+// Règles de la descente : un réglage change (mField) d'un cran (mDelta = -1 ou +1).
+class Sinwave_RuleAdjustedEvent : Sinwave_Event
+{
+	enum EField
+	{
+		FIELD_PRESET,
+		FIELD_HEALTH,
+		FIELD_SPEED,
+		FIELD_SPAWN,
+		FIELD_DAMAGE,
+		FIELD_CIRCLE
+	}
+
+	int mField;
+	int mDelta;
+
+	static Sinwave_RuleAdjustedEvent Create(int field, int delta)
+	{
+		let e = new('Sinwave_RuleAdjustedEvent');
+		e.mField = field;
+		e.mDelta = delta >= 0 ? 1 : -1;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("réglage %d, %+d", mField, mDelta);
+	}
+}
+
+// Le joueur valide les règles : la descente commence.
+class Sinwave_DescendRequestedEvent : Sinwave_Event {}
+
 // Une partie a été rechargée depuis une sauvegarde du moteur.
 class Sinwave_GameLoadedEvent : Sinwave_Event {}
 
@@ -438,6 +471,25 @@ class Sinwave_CorruptionChangedEvent : Sinwave_Event
 	override String Describe()
 	{
 		return String.Format("%d/%d", mCorruption, mThreshold);
+	}
+}
+
+// --- Règles de la descente (Sinwave_RulesSystem) -----------------------------
+
+class Sinwave_RulesChangedEvent : Sinwave_Event
+{
+	Sinwave_RunRules mRules;
+
+	static Sinwave_RulesChangedEvent Create(Sinwave_RunRules rules)
+	{
+		let e = new('Sinwave_RulesChangedEvent');
+		e.mRules = rules;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s, récompense x%.2f", mRules.Encode(), mRules.RewardFactor());
 	}
 }
 

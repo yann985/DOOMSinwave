@@ -45,6 +45,7 @@ class Sinwave_Hud ui
 		c.Text(NewSmallFont, Font.CR_ORANGE, center, 160, String.Format("Indulgences : %d", m.mIndulgences), 1.4, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_GRAY, center, 184, String.Format("Meilleur score : %d     Runs : %d", m.mBestScore, m.mRuns), 1.1, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_WHITE, center, 212, "Arène : " .. m.mArenaName, 1.2, Sinwave_Canvas.ALIGN_CENTER);
+		c.Text(NewSmallFont, Font.CR_GRAY, center, 234, "Difficulté : " .. DifficultyLabel(m), 1.1, Sinwave_Canvas.ALIGN_CENTER);
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)
 		{
@@ -78,6 +79,7 @@ class Sinwave_Hud ui
 		c.Text(NewSmallFont, Font.CR_GRAY, 8, 34, Sinwave_Canvas.FormatTime(m.mRunTics), 1.1);
 		int corruptionColor = m.mCorruption >= m.mCorruptionThreshold ? Font.CR_RED : Font.CR_PURPLE;
 		c.Text(NewSmallFont, corruptionColor, 8, 50, String.Format("Corruption %d/%d", m.mCorruption, m.mCorruptionThreshold), 1.1);
+		c.Text(NewSmallFont, Font.CR_DARKGRAY, 8, 66, DifficultyLabel(m), 1.0);
 
 		c.Text(NewSmallFont, Font.CR_GOLD, c.mWidth - 8, 14, String.Format("Score %d", m.mScore), 1.4, Sinwave_Canvas.ALIGN_RIGHT);
 		c.Text(NewSmallFont, Font.CR_GRAY, c.mWidth - 8, 34, String.Format("Victimes %d", m.mKills), 1.1, Sinwave_Canvas.ALIGN_RIGHT);
@@ -97,6 +99,12 @@ class Sinwave_Hud ui
 		}
 
 		if (m.mBossActive) DrawBossBar(m);
+	}
+
+	private static String DifficultyLabel(Sinwave_HudModel m)
+	{
+		String name = m.mRulesPresetName.Length() > 0 ? m.mRulesPresetName : "Défi personnalisé";
+		return String.Format("%s (récompense x%.2f)", name, m.mRulesReward);
 	}
 
 	private void DrawBossBar(Sinwave_HudModel m)
@@ -156,7 +164,7 @@ class Sinwave_Hud ui
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)
 		{
-			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER : revenir au Purgatoire (boutique avec B)", 1.3, Sinwave_Canvas.ALIGN_CENTER);
+			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER : recommencer          B : boutique", 1.3, Sinwave_Canvas.ALIGN_CENTER);
 		}
 	}
 }

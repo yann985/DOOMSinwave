@@ -54,6 +54,7 @@ class Sinwave_Game : EventHandler
 		mServices.Register('GameData', data);
 
 		mServices.Register('Save', new('Sinwave_CVarSaveService'));
+		mServices.Register('Rules', Sinwave_RunRules.Create());
 
 		mHudModel = new('Sinwave_HudModel');
 		mServices.Register('HudModel', mHudModel);
@@ -77,6 +78,7 @@ class Sinwave_Game : EventHandler
 		mMachine.Init(mBus);
 		AddState('Sinwave_MenuState');
 		AddState('Sinwave_ArenaSelectState');
+		AddState('Sinwave_RulesState');
 		AddState('Sinwave_ShopState');
 		AddState('Sinwave_InGameState');
 		AddState('Sinwave_PauseState');
@@ -156,6 +158,8 @@ class Sinwave_Game : EventHandler
 		else if (e.Name ~== "sinwave_pick") mBus.Publish(Sinwave_UpgradePickedEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_buy") mBus.Publish(Sinwave_ShopBuyRequestedEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_arena") mBus.Publish(Sinwave_ArenaChosenEvent.Create(e.Args[0]));
+		else if (e.Name ~== "sinwave_rule") mBus.Publish(Sinwave_RuleAdjustedEvent.Create(e.Args[0], e.Args[1]));
+		else if (e.Name ~== "sinwave_descend") mBus.Publish(new('Sinwave_DescendRequestedEvent'));
 	}
 
 	// -------------------------------------------------------------------------

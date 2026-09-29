@@ -12,6 +12,7 @@
 class Sinwave_PlayerSystem : Sinwave_System
 {
 	private Sinwave_ProgressionDef mProgression;
+	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
 	private int mTics;
@@ -24,6 +25,7 @@ class Sinwave_PlayerSystem : Sinwave_System
 	override void Setup()
 	{
 		mProgression = Sinwave_GameData.From(mServices).mProgression;
+		mRules = Sinwave_RunRules.From(mServices);
 		mBus.Subscribe(self, 'Sinwave_RunStartedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunSuspendedEvent');
@@ -123,7 +125,7 @@ class Sinwave_PlayerSystem : Sinwave_System
 	private void ApplyStats(Actor pawn)
 	{
 		pawn.DamageMultiply = max(0.1, 1 + mDamageBonus);
-		pawn.DamageFactor = max(0.1, 1 + mVulnerability);
+		pawn.DamageFactor = max(0.1, (1 + mVulnerability) * mRules.mDamageTaken);	// règles de la descente
 		pawn.Speed = max(0.3, 1 + mSpeedBonus);
 	}
 

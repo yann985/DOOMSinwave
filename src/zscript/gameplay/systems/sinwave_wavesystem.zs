@@ -7,8 +7,9 @@
 //
 //  Lit les cercles de l'arène courante dans GameData, fait apparaître les ennemis
 //  sur les points d'apparition de la carte (Sinwave_SpawnPoint) en appliquant les
-//  règles de l'arène (vie, vitesse, rythme), et reconnaît leur mort. Un cercle
-//  sans durée se termine à la mort de son boss.
+//  règles de l'arène et celles choisies par le joueur (service Rules : vie,
+//  vitesse, rythme, cercle de départ), et reconnaît leur mort. Un cercle sans
+//  durée se termine à la mort de son boss.
 
 class Sinwave_WaveSystem : Sinwave_System
 {
@@ -17,6 +18,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	const SPAWN_ATTEMPTS = 6;
 
 	private Sinwave_GameData mData;
+	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
 	private int mWave;
@@ -31,6 +33,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	override void Setup()
 	{
 		mData = Sinwave_GameData.From(mServices);
+		mRules = Sinwave_RunRules.From(mServices);
 		mBus.Subscribe(self, 'Sinwave_RunStartedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunSuspendedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunResumedEvent');
@@ -78,7 +81,7 @@ class Sinwave_WaveSystem : Sinwave_System
 		mSpawnTimer--;
 		if (mSpawnTimer <= 0)
 		{
-			mSpawnTimer = max(1, int(wave.mIntervalTics / mData.mArena.mSpawnRate));
+			mSpawnTimer = max(1, int(wave.mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate)));
 			PruneAlive();
 			if (mAlive.Size() < wave.mMaxAlive && wave.mTotalWeight > 0)
 			{
@@ -100,7 +103,8 @@ class Sinwave_WaveSystem : Sinwave_System
 			mBus.Publish(new('Sinwave_AllWavesClearedEvent'));
 			return;
 		}
-		StartWave(0);
+		// Cercle de départ choisi dans les règles de la descente.
+		StartWave(clamp(mRules.mStartCircle - 1, 0, mData.mWaves.Size() - 1));
 	}
 
 	private void StopRun()
@@ -168,9 +172,10 @@ class Sinwave_WaveSystem : Sinwave_System
 			return null;
 		}
 
+		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur.
 		let arena = mData.mArena;
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth));
-		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth));
+		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
 		if (def.mScale != 1.0)
 		{
 			mo.Scale *= def.mScale;
