@@ -11,7 +11,8 @@
 #
 # En fin de run, le verdict dépend du côté où penche l'âme :
 #   un palier du péché atteint : Damnation ; un palier de la vertu : Absolution ;
-#   sinon : Purgatoire. Le bonus de victoire en dépend (data/progression.txt).
+#   sinon : Purgatoire. Le bonus de victoire en dépend (data/progression.txt), et
+#   le Jugement de la boutique aussi (data/judgement.txt).
 
 [soul default]
 min         = 0
@@ -95,10 +96,10 @@ temptation  = 1
 boss_health = 0.15
 boss_escort = -0.15
 
-[tier grace]
+[tier benediction]
 side        = virtue
 at          = 5
-name        = Grâce
+name        = Bénédiction
 description = Régénération 1 PV/s, +15 PV max ; tu ralentis (-5 %)
 effects     = regen:1, maxhealth:15, speed:-0.05
 health_drop = 5

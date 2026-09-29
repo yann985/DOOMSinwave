@@ -72,6 +72,11 @@ class Sinwave_HudModel : Sinwave_Service
 	int mIndulgences;
 	int mBestScore;
 	int mRuns;
+	// Jugement de l'âme, gardé d'une run à l'autre (data/judgement.txt)
+	int mJudgement;
+	int mJudgementTier;			// -3 à -1 : Grâce ; 0 : neutralité ; 1 à 3 : Corruption
+	String mJudgementTierName;
+	int mJudgementBefore;		// Jugement avant la run qui vient de finir
 
 	// Choix d'une vertu ou d'un péché. Le numéro change à chaque proposition.
 	int mOfferSerial;
@@ -113,6 +118,9 @@ class Sinwave_HudModel : Sinwave_Service
 	Array<int> mShopLevels;
 	Array<int> mShopMaxLevels;
 	Array<bool> mShopIsWeapon;
+	Array<int> mShopSides;			// rayon : Sinwave_ShopItemDef.SIDE_...
+	Array<bool> mShopLocked;		// rayon fermé par le Jugement, et jamais acheté
+	Array<String> mShopRequirements;
 	String mShopMessage;
 	bool mShopMessageOk;
 

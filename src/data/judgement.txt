@@ -1,0 +1,26 @@
+# Le Jugement : la réputation de ton âme, gardée d'une run à l'autre. Il décide de
+# ce que la boutique t'ouvre (data/shop.txt).
+#
+# Comme la corruption d'une run, c'est une balance : de 0 (Grâce) à 100
+# (Corruption), neutre au milieu. À la fin de chaque run, il bouge selon le palier
+# de l'âme atteint (data/soul.txt) : plus l'âme a penché, plus il bouge. Une run
+# restée à l'équilibre le ramène vers la neutralité.
+#
+# La boutique a quatre rayons :
+#   - Armurerie  (pas de clé side)      : toujours ouverte ;
+#   - Grâce      (side = grace)         : vie, défense, soins ; ouvert sous les seuils de grâce ;
+#   - Équilibre  (side = neutral)       : objets compensés ; ouvert près de la neutralité ;
+#   - Corruption (side = corruption)    : dégâts, vitesse ; ouvert au-dessus des seuils.
+# Plus le palier du Jugement est haut, meilleurs sont les objets (clé tier).
+# Un objet se verrouille si le Jugement repasse le seuil, mais un objet déjà
+# acheté reste débloqué pour toujours (on peut continuer à le monter en niveau).
+
+[judgement default]
+min              = 0
+max              = 100
+neutral          = 50            # départ, et neutralité
+neutral_zone     = 15            # rayon Équilibre ouvert entre 35 et 65
+grace_tiers      = 40, 25, 10    # Grâce I, II, III : Jugement au plus
+corruption_tiers = 60, 75, 90    # Corruption I, II, III : Jugement au moins
+run_shift        = 6, 10, 15     # déplacement en fin de run, selon le palier de l'âme atteint (1er, 2e, 3e)
+balance_pull     = 4             # run sans palier : retour vers la neutralité

@@ -713,7 +713,7 @@ class Sinwave_MetaLoadedEvent : Sinwave_Event
 
 	override String Describe()
 	{
-		return String.Format("%d indulgences, record %d, %d runs", mMeta.mIndulgences, mMeta.mBestScore, mMeta.mRuns);
+		return String.Format("%d indulgences, record %d, %d runs, jugement %d", mMeta.mIndulgences, mMeta.mBestScore, mMeta.mRuns, mMeta.mJudgement);
 	}
 }
 
@@ -745,20 +745,23 @@ class Sinwave_MetaSavedEvent : Sinwave_Event
 	Sinwave_MetaData mMeta;
 	int mEarned;
 	bool mNewBest;
-	int mVerdict;		// Sinwave_CorruptionChangedEvent.VERDICT_...
+	int mVerdict;			// Sinwave_CorruptionChangedEvent.VERDICT_...
+	int mJudgementBefore;	// Jugement avant la run (le nouveau est dans mMeta)
 
-	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, int verdict)
+	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, int verdict, int judgementBefore)
 	{
 		let e = new('Sinwave_MetaSavedEvent');
 		e.mMeta = metaData;
 		e.mEarned = earned;
 		e.mNewBest = newBest;
 		e.mVerdict = verdict;
+		e.mJudgementBefore = judgementBefore;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("+%d indulgences (total %d), %s", mEarned, mMeta.mIndulgences, Sinwave_CorruptionChangedEvent.VerdictName(mVerdict));
+		return String.Format("+%d indulgences (total %d), %s, jugement %d -> %d", mEarned, mMeta.mIndulgences,
+			Sinwave_CorruptionChangedEvent.VerdictName(mVerdict), mJudgementBefore, mMeta.mJudgement);
 	}
 }

@@ -140,7 +140,7 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_AllCirclesClearedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : victoire',
-	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*(absolution|purgatoire)',	# vertu choisie : l'âme purifiée
+	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*(absolution|purgatoire|damnation), jugement \d+ -> \d+',
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après la sauvegarde
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après le rechargement : relu depuis les CVars
 	'Sinwave_StateChangedEvent : None -> Menu'
@@ -167,12 +167,14 @@ $allFailures += Invoke-Scenario "mort" @(
 )
 
 # 3. Boutique puis voyage vers l'autre arène : les achats s'appliquent au début de la run.
+#    Jugement neutre : l'armurerie et l'Équilibre sont ouverts, la Grâce est fermée.
 $allFailures += Invoke-Scenario "boutique" @(
 	"sinwave_meta_indulgences 500",
 	"wait 35", "netevent sinwave_shop",			# Menu -> boutique
 	"wait 5", "netevent sinwave_buy 0",			# fusil à pompe (15)
-	"wait 5", "netevent sinwave_buy 4",			# Vigueur niveau 1 (10)
+	"wait 5", "netevent sinwave_buy 10",		# Balance d'Astrée, Équilibre (25)
 	"wait 5", "netevent sinwave_buy 0",			# déjà acheté : refusé
+	"wait 5", "netevent sinwave_buy 2",			# Vigueur, Grâce I : verrouillée
 	"wait 5", "netevent sinwave_back",			# retour au menu
 	"wait 5", "netevent sinwave_confirm",		# choix d'arène...
 	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : écran des règles
@@ -185,15 +187,16 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_StateChangedEvent : Menu -> Shop',
 	'Sinwave_PurchaseEvent : shotgun ok',
 	'Sinwave_MetaLoadedEvent : 485 indulgences',
-	'Sinwave_PurchaseEvent : vigor ok',
-	'Sinwave_MetaLoadedEvent : 475 indulgences',
+	'Sinwave_PurchaseEvent : astraea ok',
+	'Sinwave_MetaLoadedEvent : 460 indulgences',
 	'Sinwave_PurchaseEvent : shotgun refusé',
+	'Sinwave_PurchaseEvent : vigor refusé',					# rayon fermé par le Jugement
 	'Sinwave_StateChangedEvent : Shop -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
 	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
 	'Sinwave_RulesChangedEvent : health=1\.25',
 	'Sinwave_RulesChangedEvent : .*circle=2',
-	'Sinwave_MetaLoadedEvent : 475 indulgences',			# nouvelle carte : méta relue
+	'Sinwave_MetaLoadedEvent : 460 indulgences',			# nouvelle carte : méta relue
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',

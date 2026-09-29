@@ -367,10 +367,22 @@ class Sinwave_UpgradeDef play
 // amélioration permanente, achetée entre les runs et appliquée au début de chacune.
 class Sinwave_ShopItemDef play
 {
+	// Rayons de la boutique (dans l'ordre des onglets).
+	enum ESide
+	{
+		SIDE_ARMORY,		// toujours ouvert
+		SIDE_GRACE,			// ouvert quand le Jugement penche vers la grâce
+		SIDE_NEUTRAL,		// ouvert près de la neutralité
+		SIDE_CORRUPTION,	// ouvert quand il penche vers la corruption
+		NUM_SIDES
+	}
+
 	Name mId;
 	String mName;
 	String mDescription;
 	bool mIsWeapon;
+	int mSide;
+	int mTier;				// palier du Jugement demandé (Grâce ou Corruption 1 à 3)
 	int mPrice;
 	double mPriceGrowth;
 	int mMaxLevel;
@@ -383,6 +395,16 @@ class Sinwave_ShopItemDef play
 		def.mName = block.GetString("name", block.mId);
 		def.mDescription = block.GetString("description");
 		def.mIsWeapon = block.GetString("category").MakeLower() == "weapon";
+		String side = block.GetString("side", "armory").MakeLower();
+		if (side == "grace") def.mSide = SIDE_GRACE;
+		else if (side == "neutral") def.mSide = SIDE_NEUTRAL;
+		else if (side == "corruption") def.mSide = SIDE_CORRUPTION;
+		else
+		{
+			if (side != "armory") block.Warn("side doit valoir armory, grace, neutral ou corruption.");
+			def.mSide = SIDE_ARMORY;
+		}
+		def.mTier = clamp(block.GetInt("tier", 1), 1, 3);
 		def.mPrice = max(0, block.GetInt("price", 10));
 		def.mPriceGrowth = max(1.0, block.GetDouble("price_growth", 1.0));
 		def.mMaxLevel = max(1, block.GetInt("max", 1));
@@ -394,6 +416,127 @@ class Sinwave_ShopItemDef play
 	int PriceForLevel(int level)
 	{
 		return int(mPrice * (mPriceGrowth ** level) + 0.5);
+	}
+}
+
+// Le Jugement (data/judgement.txt) : la réputation de l'âme, gardée d'une run à
+// l'autre. Une balance de mMin (Grâce) à mMax (Corruption), neutre au milieu. Il
+// décide des rayons ouverts de la boutique et bouge à la fin de chaque run.
+class Sinwave_JudgementDef play
+{
+	int mMin;
+	int mMax;
+	int mNeutral;
+	int mNeutralZone;
+	Array<int> mGraceTiers;			// seuils de Grâce I, II, III (au plus)
+	Array<int> mCorruptionTiers;	// seuils de Corruption I, II, III (au moins)
+	Array<int> mRunShift;			// déplacement selon le palier de l'âme atteint
+	int mBalancePull;
+
+	// `block` peut être null : valeurs par défaut.
+	static Sinwave_JudgementDef FromBlock(Sinwave_DataBlock block)
+	{
+		let def = new('Sinwave_JudgementDef');
+		if (block == null) block = new('Sinwave_DataBlock');
+		def.mMin = block.GetInt("min", 0);
+		def.mMax = max(def.mMin + 2, block.GetInt("max", 100));
+		def.mNeutral = clamp(block.GetInt("neutral", 50), def.mMin + 1, def.mMax - 1);
+		def.mNeutralZone = max(0, block.GetInt("neutral_zone", 15));
+		ReadInts(block, "grace_tiers", "40, 25, 10", def.mGraceTiers);
+		ReadInts(block, "corruption_tiers", "60, 75, 90", def.mCorruptionTiers);
+		ReadInts(block, "run_shift", "6, 10, 15", def.mRunShift);
+		def.mBalancePull = max(0, block.GetInt("balance_pull", 4));
+		return def;
+	}
+
+	private static void ReadInts(Sinwave_DataBlock block, String key, String fallback, out Array<int> result)
+	{
+		result.Clear();
+		Array<String> parts;
+		String text = block.GetString(key, fallback);
+		text.Split(parts, ",");
+		for (int i = 0; i < parts.Size(); i++)
+		{
+			parts[i].StripLeftRight();
+			if (parts[i].Length() > 0) result.Push(parts[i].ToInt(10));
+		}
+	}
+
+	// Palier du Jugement : +1 à +3 côté Corruption, -1 à -3 côté Grâce, 0 sinon.
+	int Tier(int judgement)
+	{
+		for (int i = mCorruptionTiers.Size() - 1; i >= 0; i--)
+		{
+			if (judgement >= mCorruptionTiers[i]) return i + 1;
+		}
+		for (int i = mGraceTiers.Size() - 1; i >= 0; i--)
+		{
+			if (judgement <= mGraceTiers[i]) return -(i + 1);
+		}
+		return 0;
+	}
+
+	static String TierName(int tier)
+	{
+		static const String NUMBERS[] = { "I", "II", "III" };
+		if (tier == 0) return "Neutralité";
+		return String.Format("%s %s", tier > 0 ? "Corruption" : "Grâce", NUMBERS[clamp(abs(tier), 1, 3) - 1]);
+	}
+
+	bool IsNeutral(int judgement)
+	{
+		return abs(judgement - mNeutral) <= mNeutralZone;
+	}
+
+	// L'article est-il en vente pour ce Jugement ?
+	bool IsUnlocked(Sinwave_ShopItemDef item, int judgement)
+	{
+		switch (item.mSide)
+		{
+		case Sinwave_ShopItemDef.SIDE_GRACE:
+			return item.mTier <= mGraceTiers.Size() && judgement <= mGraceTiers[item.mTier - 1];
+		case Sinwave_ShopItemDef.SIDE_CORRUPTION:
+			return item.mTier <= mCorruptionTiers.Size() && judgement >= mCorruptionTiers[item.mTier - 1];
+		case Sinwave_ShopItemDef.SIDE_NEUTRAL:
+			return IsNeutral(judgement);
+		}
+		return true;
+	}
+
+	// Achetable : en vente, ou déjà acheté une fois (débloqué pour toujours).
+	bool CanBuy(Sinwave_ShopItemDef item, int judgement, int level)
+	{
+		return level > 0 || IsUnlocked(item, judgement);
+	}
+
+	// Ce qu'il faut pour débloquer l'article.
+	String Requirement(Sinwave_ShopItemDef item)
+	{
+		switch (item.mSide)
+		{
+		case Sinwave_ShopItemDef.SIDE_GRACE:
+			if (item.mTier > mGraceTiers.Size()) return "";
+			return String.Format("%s : Jugement %d ou moins", TierName(-item.mTier), mGraceTiers[item.mTier - 1]);
+		case Sinwave_ShopItemDef.SIDE_CORRUPTION:
+			if (item.mTier > mCorruptionTiers.Size()) return "";
+			return String.Format("%s : Jugement %d ou plus", TierName(item.mTier), mCorruptionTiers[item.mTier - 1]);
+		case Sinwave_ShopItemDef.SIDE_NEUTRAL:
+			return String.Format("Neutralité : Jugement entre %d et %d", mNeutral - mNeutralZone, mNeutral + mNeutralZone);
+		}
+		return "";
+	}
+
+	// Jugement après une run, selon le côté et le palier de l'âme à la fin :
+	// plus l'âme a penché, plus il bouge ; sans palier, il revient vers le neutre.
+	int AfterRun(int judgement, int soulSide, int soulLevel)
+	{
+		if (soulSide == 0 || soulLevel <= 0)
+		{
+			if (judgement > mNeutral) return max(mNeutral, judgement - mBalancePull);
+			return min(mNeutral, judgement + mBalancePull);
+		}
+		int shift = mRunShift.Size() > 0 ? mRunShift[clamp(soulLevel, 1, mRunShift.Size()) - 1] : 0;
+		return clamp(judgement + soulSide * shift, mMin, mMax);
 	}
 }
 
