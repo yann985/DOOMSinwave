@@ -14,6 +14,10 @@
 
 class Sinwave_Game : EventHandler
 {
+	// Touches par défaut de la pause et de la boutique (codes clavier).
+	const KEY_P = 0x19;
+	const KEY_B = 0x30;
+
 	private Sinwave_Services mServices;
 	private Sinwave_EventBus mBus;
 	private Sinwave_StateMachine mMachine;
@@ -165,6 +169,57 @@ class Sinwave_Game : EventHandler
 	// -------------------------------------------------------------------------
 	//  Interface (portée « ui » : lecture seule du modèle)
 	// -------------------------------------------------------------------------
+
+	// Touches lues directement, avant les raccourcis du moteur : la boutique et la
+	// pause ne dépendent pas des liaisons du joueur, qui peuvent disparaître (GZDoom
+	// n'applique les « defaultbind » de KEYCONF que s'il ne connaît pas encore la
+	// section Sinwave de sa configuration).
+	override bool InputProcess(InputEvent e)
+	{
+		if (!mReady || e.Type != InputEvent.Type_KeyDown || menuactive != Menu.Off) return false;
+		String command = CommandForKey(e.KeyScan, mHudModel.mScreen);
+		if (command.Length() == 0) return false;
+		EventHandler.SendNetworkEvent(command);
+		return true;
+	}
+
+	// Commande Sinwave d'une touche selon l'écran affiché (vide : touche laissée au
+	// moteur). La touche choisie dans Options > Commandes > Sinwave marche toujours ;
+	// B et P marchent aussi tant qu'elles ne sont liées à rien d'autre.
+	private static ui String CommandForKey(int key, int screen)
+	{
+		String binding = Bindings.GetBinding(key);
+		bool unbound = binding.Length() == 0;
+		bool shop = binding ~== "sinwave_shop" || (key == KEY_B && unbound);
+		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound);
+
+		switch (screen)
+		{
+		case Sinwave_HudModel.SCREEN_MENU:
+			if (shop) return "sinwave_shop";
+			break;
+		case Sinwave_HudModel.SCREEN_RUN:
+			if (pause) return "sinwave_pause";
+			if (shop) return "sinwave_shop";	// refusée pendant la run : un bandeau l'explique
+			break;
+		case Sinwave_HudModel.SCREEN_GAMEOVER:
+			// Toute touche libre du clavier ouvre la boutique (Utiliser recommence).
+			if (shop || IsFreeKey(key, binding)) return "sinwave_shop";
+			break;
+		}
+		return "";
+	}
+
+	// Touche du clavier qui n'a pas de rôle dans le jeu ou les menus.
+	private static clearscope bool IsFreeKey(int key, String binding)
+	{
+		if (key >= InputEvent.Key_Mouse1) return false;	// souris et manette
+		if (key == InputEvent.Key_Escape || key == InputEvent.Key_Grave) return false;
+		if (binding.Left(1) == "+") return false;			// +use, +forward, +attack...
+		if (binding ~== "toggleconsole" || binding ~== "screenshot" || binding ~== "pause" || binding ~== "sinwave_pause") return false;
+		if (binding.Left(5) ~== "menu_") return false;
+		return true;
+	}
 
 	override void UiTick()
 	{

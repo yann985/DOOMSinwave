@@ -89,7 +89,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	override bool MenuEvent(int mkey, bool fromcontroller)
 	{
 		// Action produite par le relâchement de la touche qui a ouvert ce menu
-		// (B pour la boutique, Utiliser pour les arènes) : on l'ignore.
+		// (Utiliser pour les arènes...) : on l'ignore.
 		if (mIgnoreNextAction)
 		{
 			mIgnoreNextAction = false;
@@ -120,19 +120,34 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		return false;
 	}
 
-	// Touches 1 à 9 : choix direct.
-	override bool OnUIEvent(UIEvent ev)
+	// Une touche relâchée sans avoir été enfoncée dans ce menu est celle qui l'a
+	// ouvert. Le moteur peut en tirer une action (Retour, Entrée) dans la foulée :
+	// elle est ignorée, jusqu'au tic suivant seulement, pour ne jamais avaler une
+	// vraie touche du joueur (un Échap juste après avoir ouvert la boutique...).
+	private void NoteKey(bool down)
 	{
-		// Une touche relâchée sans avoir été enfoncée dans ce menu est celle qui l'a ouvert.
-		if (ev.type == UIEvent.Type_KeyDown)
+		if (down)
 		{
 			mSawKeyDown = true;
 			mIgnoreNextAction = false;	// une vraie touche du joueur : rien à ignorer
 		}
-		else if (ev.type == UIEvent.Type_KeyUp && !mSawKeyDown)
+		else if (!mSawKeyDown)
 		{
 			mIgnoreNextAction = true;
 		}
+	}
+
+	// Touches brutes : le relâchement arrive ici quand le menu vient de s'ouvrir.
+	override bool OnInputEvent(InputEvent ev)
+	{
+		if (ev.Type == InputEvent.Type_KeyDown || ev.Type == InputEvent.Type_KeyUp) NoteKey(ev.Type == InputEvent.Type_KeyDown);
+		return Super.OnInputEvent(ev);
+	}
+
+	// Touches 1 à 9 : choix direct.
+	override bool OnUIEvent(UIEvent ev)
+	{
+		if (ev.type == UIEvent.Type_KeyDown || ev.type == UIEvent.Type_KeyUp) NoteKey(ev.type == UIEvent.Type_KeyDown);
 
 		if (ev.type == UIEvent.Type_Char)
 		{
@@ -150,6 +165,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	override void Ticker()
 	{
 		Super.Ticker();
+		mIgnoreNextAction = false;	// l'action due au relâchement arrive dans le même tic
 		if (mModel == null) return;
 		if (!IsRelevant()) Close();
 		else if (NeedsRebuild()) Rebuild();
