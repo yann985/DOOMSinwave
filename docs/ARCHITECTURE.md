@@ -277,7 +277,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
-| `progression.txt` | Courbe d'XP, composition des choix, gains d'indulgences (dont le bonus de chaque verdict), équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
+| `progression.txt` | Courbe d'XP, composition des choix (vertus, péchés, choix libres), gains d'indulgences (dont le bonus de chaque verdict), équipement, montée de la difficulté d'une vague à l'autre, alerte des projectiles | plusieurs systèmes |
 
 Exemple, un péché (`upgrades.txt`) :
 
@@ -406,7 +406,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `curses` : `Sinwave_CurseSystem` | EventBus, GameData | tout (transmis à la malédiction active) | CurseStarted, CurseEnded, EffectGranted |
 | `boss` : `Sinwave_BossSystem` | EventBus | BossSpawned, BossDefeated, RunEnded | BossHealthChanged, BossEnraged, SpawnRequested |
 | `xp` : `Sinwave_XpSystem` | EventBus, GameData | RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted | XpOrbDropped, XpChanged, LevelUp |
-| `upgrades` : `Sinwave_UpgradeSystem` | EventBus, GameData | RunStarted, RunEnded, LevelUp, UpgradePicked | UpgradeOffered, UpgradeChosen, EffectGranted |
+| `upgrades` : `Sinwave_UpgradeSystem` | EventBus, GameData | RunStarted, RunEnded, LevelUp, UpgradePicked, CorruptionChanged | UpgradeOffered, UpgradeChosen, EffectGranted |
 | `corruption` : `Sinwave_CorruptionSystem` | EventBus, GameData | RunStarted, RunEnded, UpgradeChosen, SoulShift | CorruptionChanged, SoulTierChanged, EffectGranted |
 | `score` : `Sinwave_ScoreSystem` | EventBus | RunStarted, RunEnded, EnemyKilled | ScoreChanged |
 | `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
