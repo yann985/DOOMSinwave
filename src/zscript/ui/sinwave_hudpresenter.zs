@@ -84,7 +84,8 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mRunTics = 0;
 			m.mScore = 0;
 			m.mKills = 0;
-			m.mCorruption = 0;
+			// La corruption n'est pas remise ici : CorruptionChanged, publié pendant
+			// RunStarted, arrive avant lui et donne déjà l'équilibre de départ.
 			m.mBossActive = false;
 			m.mResultReady = false;
 			// Pas de bandeau ici : le premier cercle, annoncé pendant RunStarted, a le sien.
