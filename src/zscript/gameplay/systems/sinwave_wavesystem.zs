@@ -2,7 +2,8 @@
 //  Cercles, vagues d'ennemis et apparition du boss.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested
+//  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested,
+//           CorruptionChanged
 //  Publie : CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared,
 //           EnemyKilled, BossSpawned, BossDefeated
 //
@@ -16,6 +17,10 @@
 //  carte (Sinwave_SpawnPoint) selon l'arène, avec les règles de l'arène et celles
 //  choisies par le joueur (service Rules : vie, vitesse, rythme, cercle de
 //  départ). Toute la horde vise le joueur.
+//
+//  Le boss suit la balance de l'âme (data/soul.txt) : plus elle est pure, plus
+//  il est fort mais seul ; plus elle est corrompue, plus il est faible mais
+//  entouré (ennemis de sa vague et renforts).
 
 class Sinwave_WaveSystem : Sinwave_System
 {
@@ -39,6 +44,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	private int mIntervalTics;
 	private int mMaxAlive;
 	private double mHealthFactor;
+	private int mSoul;				// balance de l'âme, pour le boss
 	private Actor mBoss;
 	private Array<Actor> mAlive;
 	private Array<Sinwave_EnemyDef> mAliveDefs;
@@ -54,6 +60,8 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_ActorDiedEvent');
 		mBus.Subscribe(self, 'Sinwave_SpawnRequestedEvent');
+		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
+		mSoul = mData.mSoul.mBalance;
 	}
 
 	override void OnEvent(Sinwave_Event e)
@@ -63,11 +71,14 @@ class Sinwave_WaveSystem : Sinwave_System
 		else if (e is 'Sinwave_RunResumedEvent') mSuspended = false;
 		else if (e is 'Sinwave_RunEndedEvent') StopRun();
 		else if (e is 'Sinwave_ActorDiedEvent') OnActorDied(Sinwave_ActorDiedEvent(e).mThing);
+		else if (e is 'Sinwave_CorruptionChangedEvent') mSoul = Sinwave_CorruptionChangedEvent(e).mCorruption;
 		else if (e is 'Sinwave_SpawnRequestedEvent' && mRunning)
 		{
 			let request = Sinwave_SpawnRequestedEvent(e);
 			let def = mData.FindEnemy(request.mEnemyId);
-			for (int i = 0; def != null && i < request.mCount; i++) SpawnEnemy(def);
+			int count = request.mCount;
+			if (request.mEscort) count = int(count * mData.mSoul.BossEscortFactor(mSoul) + 0.5);
+			for (int i = 0; def != null && i < count; i++) SpawnEnemy(def);
 		}
 	}
 
@@ -99,12 +110,14 @@ class Sinwave_WaveSystem : Sinwave_System
 			return;
 		}
 
+		// Autour du boss, le nombre d'ennemis suit la balance de l'âme.
+		double escort = circle.IsBossWave(mWave) ? mData.mSoul.BossEscortFactor(mSoul) : 1.0;
 		mSpawnTimer--;
 		if (mSpawnTimer <= 0)
 		{
-			mSpawnTimer = max(1, int(mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate)));
+			mSpawnTimer = max(1, int(mIntervalTics / (mData.mArena.mSpawnRate * mRules.mSpawnRate * escort)));
 			PruneAlive();
-			if (mAlive.Size() < mMaxAlive && circle.mTotalWeight > 0)
+			if (mAlive.Size() < int(mMaxAlive * escort + 0.5) && circle.mTotalWeight > 0)
 			{
 				SpawnEnemy(mData.FindEnemy(circle.PickEnemy(Random[SinwaveWaves](0, circle.mTotalWeight - 1))));
 			}
@@ -221,9 +234,9 @@ class Sinwave_WaveSystem : Sinwave_System
 		if (mo == null) return null;
 
 		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur,
-		// et x montée en difficulté de la vague (sauf pour un boss, déjà réglé à part).
+		// x montée en difficulté de la vague ; un boss suit plutôt la balance de l'âme.
 		let arena = mData.mArena;
-		double waveHealth = def.mIsBoss ? 1.0 : mHealthFactor;
+		double waveHealth = def.mIsBoss ? mData.mSoul.BossHealthFactor(mSoul) : mHealthFactor;
 		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth));
 		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
 		if (def.mScale != 1.0)

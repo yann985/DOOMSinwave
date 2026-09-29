@@ -327,16 +327,19 @@ class Sinwave_EnemyKilledEvent : Sinwave_Event
 }
 
 // Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss...).
+// Les renforts d'un boss (escort) suivent la balance de l'âme.
 class Sinwave_SpawnRequestedEvent : Sinwave_Event
 {
 	Name mEnemyId;
 	int mCount;
+	bool mEscort;
 
-	static Sinwave_SpawnRequestedEvent Create(Name enemyId, int count)
+	static Sinwave_SpawnRequestedEvent Create(Name enemyId, int count, bool escort = false)
 	{
 		let e = new('Sinwave_SpawnRequestedEvent');
 		e.mEnemyId = enemyId;
 		e.mCount = count;
+		e.mEscort = escort;
 		return e;
 	}
 

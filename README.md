@@ -16,6 +16,7 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
    - vers le péché : plus de munitions et moins de soins, jusqu'aux **munitions infinies** ;
    - vers la vertu : l'inverse, jusqu'à l'**aura sainte** ;
    - la pente est glissante : une âme qui penche se voit proposer plus de choix de son côté ;
+   - Lucifer suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
 
    En fin de run : **Absolution**, **Purgatoire** ou **Damnation**.
 6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique** : des armes de départ et des améliorations permanentes.
