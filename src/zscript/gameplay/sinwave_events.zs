@@ -269,6 +269,44 @@ class Sinwave_WaveEndedEvent : Sinwave_Event
 // Tous les cercles sont franchis : la run est gagnée.
 class Sinwave_AllCirclesClearedEvent : Sinwave_Event {}
 
+// --- Menaces (Sinwave_ThreatSystem) ------------------------------------------
+
+// Une attaque se prépare contre le joueur : un ennemi prend son élan, ou un de
+// ses projectiles arrive. Annoncée avant l'impact.
+class Sinwave_ThreatStartedEvent : Sinwave_Event
+{
+	Actor mSource;	// l'ennemi ou le projectile
+
+	static Sinwave_ThreatStartedEvent Create(Actor source)
+	{
+		let e = new('Sinwave_ThreatStartedEvent');
+		e.mSource = source;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSource != null ? String.Format("%s", mSource.GetClassName()) : "?";
+	}
+}
+
+class Sinwave_ThreatEndedEvent : Sinwave_Event
+{
+	Actor mSource;
+
+	static Sinwave_ThreatEndedEvent Create(Actor source)
+	{
+		let e = new('Sinwave_ThreatEndedEvent');
+		e.mSource = source;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSource != null ? String.Format("%s", mSource.GetClassName()) : "?";
+	}
+}
+
 class Sinwave_EnemyKilledEvent : Sinwave_Event
 {
 	Sinwave_EnemyDef mDef;

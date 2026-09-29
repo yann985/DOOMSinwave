@@ -35,6 +35,9 @@ class   = Sinwave_PlayerSystem
 [system meta]
 class   = Sinwave_MetaSystem
 
+[system threats]
+class   = Sinwave_ThreatSystem
+
 [system hud]
 class   = Sinwave_HudPresenter
 enabled = false
