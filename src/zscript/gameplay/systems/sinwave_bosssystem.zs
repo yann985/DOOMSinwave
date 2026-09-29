@@ -59,7 +59,7 @@ class Sinwave_BossSystem : Sinwave_System
 			mBus.Publish(new('Sinwave_BossEnragedEvent'));
 			if (mDef.mRageSummonCount > 0)
 			{
-				mBus.Publish(Sinwave_SpawnRequestedEvent.Create(mDef.mRageSummonId, mDef.mRageSummonCount));
+				mBus.Publish(Sinwave_SpawnRequestedEvent.Create(mDef.mRageSummonId, mDef.mRageSummonCount, true));
 			}
 		}
 	}

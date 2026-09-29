@@ -460,6 +460,8 @@ class Sinwave_SoulTierDef play
 	double mHealthDrop;			// chance de butin ajoutée, en %
 	double mAmmoDrop;
 	int mTemptation;			// choix de niveau tirés vers ce camp
+	double mBossHealth;			// vie du boss : +0.15 = +15 %
+	double mBossEscort;			// ennemis autour du boss : +0.2 = +20 %
 
 	static Sinwave_SoulTierDef FromBlock(Sinwave_DataBlock block)
 	{
@@ -479,6 +481,8 @@ class Sinwave_SoulTierDef play
 		def.mHealthDrop = block.GetDouble("health_drop", 0);
 		def.mAmmoDrop = block.GetDouble("ammo_drop", 0);
 		def.mTemptation = max(0, block.GetInt("temptation", 0));
+		def.mBossHealth = block.GetDouble("boss_health", 0);
+		def.mBossEscort = block.GetDouble("boss_escort", 0);
 		return def;
 	}
 
@@ -617,6 +621,25 @@ class Sinwave_SoulDef play
 		int total = 0;
 		for (int i = 0; i < reached.Size(); i++) total += reached[i].mTemptation;
 		return total;
+	}
+
+	// Multiplicateurs pour le boss : sa vie, et le nombre d'ennemis autour de lui.
+	double BossHealthFactor(int soul)
+	{
+		Array<Sinwave_SoulTierDef> reached;
+		ReachedTiers(soul, reached);
+		double factor = 1;
+		for (int i = 0; i < reached.Size(); i++) factor += reached[i].mBossHealth;
+		return max(0.2, factor);
+	}
+
+	double BossEscortFactor(int soul)
+	{
+		Array<Sinwave_SoulTierDef> reached;
+		ReachedTiers(soul, reached);
+		double factor = 1;
+		for (int i = 0; i < reached.Size(); i++) factor += reached[i].mBossEscort;
+		return max(0.2, factor);
 	}
 }
 

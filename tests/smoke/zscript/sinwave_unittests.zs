@@ -311,8 +311,8 @@ class Sinwave_UnitTests : StaticEventHandler
 			"[soul s]\nmin = 0\nmax = 30\nbalance = 15\nhealth_drop = 10\nammo_drop = 10\n"
 			.. "sin_ammo_drop = 2\nsin_health_drop = -1\nvirtue_health_drop = 2\nvirtue_ammo_drop = -1\n"
 			.. "[tier b]\nside = sin\nat = 30\nhealth_drop = -100\n"
-			.. "[tier a]\nside = sin\nat = 20\nammo_drop = 5\neffects = damage:0.1\ntemptation = 1\n"
-			.. "[tier c]\nside = virtue\nat = 10\n", blocks);
+			.. "[tier a]\nside = sin\nat = 20\nammo_drop = 5\neffects = damage:0.1\ntemptation = 1\nboss_health = -0.1\nboss_escort = 0.2\n"
+			.. "[tier c]\nside = virtue\nat = 10\nboss_health = 0.15\nboss_escort = -0.15\n", blocks);
 		let soul = Sinwave_SoulDef.FromBlocks(blocks);
 
 		Check(soul.mTiers.Size() == 3 && soul.mTiers[2].mAt == 30, "âme : paliers rangés du plus proche au plus extrême");
@@ -327,6 +327,8 @@ class Sinwave_UnitTests : StaticEventHandler
 		Check(reached.Size() == 2, "âme : les paliers d'un même côté s'additionnent");
 		Check(soul.DropChance(5, true) == 30 && soul.DropChance(5, false) == 0, "âme : l'inverse côté vertu");
 		Check(soul.Temptation(15) == 0 && soul.Temptation(25) == 1, "âme : la pente glissante tire les choix vers le camp atteint");
+		Check(soul.BossHealthFactor(25) ~== 0.9 && soul.BossEscortFactor(25) ~== 1.2, "âme : corrompue, boss plus faible mais mieux entouré");
+		Check(soul.BossHealthFactor(5) ~== 1.15 && soul.BossEscortFactor(5) ~== 0.85, "âme : pure, boss plus fort mais seul");
 
 		Check(Sinwave_CorruptionChangedEvent.Create(19, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_PURGATORY, "verdict : Purgatoire sans palier");
 		Check(Sinwave_CorruptionChangedEvent.Create(20, soul).Verdict() == Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION, "verdict : Damnation dès un palier du péché");
