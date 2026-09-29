@@ -32,10 +32,11 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	Write-Host ""
 	Write-Host "=== Scénario : $Name"
 	# Configuration isolée : les réglages et la méta-progression du développeur ne sont pas touchés.
+	# Le jeu continue même si sa fenêtre passe à l'arrière-plan (sinon il se met en pause).
 	$config = Join-Path $BuildDir "smoke.ini"
 	$log = Join-Path $BuildDir "smoke-$Name.log"
 	Remove-Item $config, $log -ErrorAction SilentlyContinue
-	Set-Content $config -Encoding ASCII -Value "[GlobalSettings]`r`nvid_fullscreen=false`r`n"
+	Set-Content $config -Encoding ASCII -Value "[GlobalSettings]`r`nvid_fullscreen=false`r`ni_pauseinbackground=false`r`n"
 
 	# Une seule commande : « wait » ne retarde que la suite de la même ligne de commandes.
 	$scenario = (@("sinwave_debug 1", "disableautosave 1") + $Commands + @("quit")) -join "; "
@@ -53,8 +54,10 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	$remaining = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe -and $_.StartTime -ge $started }
 	if ($remaining)
 	{
+		# Le titre dit où il attendait : la partie, ou une fenêtre du moteur (choix du jeu, erreur).
+		$title = ($remaining | Select-Object -First 1).MainWindowTitle
 		$remaining | Stop-Process -Force
-		$failures += "Le jeu ne s'est pas fermé tout seul (délai de $TimeoutSeconds s dépassé)."
+		$failures += "Le jeu ne s'est pas fermé tout seul (délai de $TimeoutSeconds s dépassé, fenêtre « $title »)."
 	}
 	if (-not (Test-Path $log)) { return @("Aucun journal produit.") }
 	$lines = Get-Content $log -Encoding UTF8 | ForEach-Object { $_ -replace "\x1c(\[[^\]]*\]|.)", "" }
