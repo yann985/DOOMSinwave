@@ -35,10 +35,12 @@ version "4.14"
 #include "zscript/gameplay/systems/sinwave_corruptionsystem.zs"
 #include "zscript/gameplay/systems/sinwave_rulessystem.zs"
 #include "zscript/gameplay/systems/sinwave_threatsystem.zs"
+#include "zscript/gameplay/systems/sinwave_lootsystem.zs"
 #include "zscript/gameplay/systems/sinwave_eventlogger.zs"
 #include "zscript/gameplay/curses/sinwave_curses.zs"
 #include "zscript/gameplay/actors/sinwave_xporb.zs"
 #include "zscript/gameplay/actors/sinwave_spawnpoint.zs"
+#include "zscript/gameplay/actors/sinwave_eternalammo.zs"
 
 // ui : modèle, présentateur, HUD et menus
 #include "zscript/ui/sinwave_hudmodel.zs"

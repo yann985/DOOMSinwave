@@ -18,6 +18,7 @@ class Sinwave_GameData : Sinwave_Service
 	Array<Sinwave_ArenaDef> mArenas;
 	Array<Sinwave_DifficultyDef> mDifficulties;
 	Sinwave_ProgressionDef mProgression;
+	Sinwave_SoulDef mSoul;
 
 	// Arène de la carte courante et ses cercles.
 	Sinwave_ArenaDef mArena;
@@ -70,6 +71,11 @@ class Sinwave_GameData : Sinwave_Service
 
 		ReadBlocks("data/progression.txt", 'progression', blocks);
 		mProgression = Sinwave_ProgressionDef.FromBlock(blocks.Size() > 0 ? blocks[0] : null);
+
+		// Balance de l'âme : un bloc [soul] et des blocs [tier] dans le même fichier.
+		Array<Sinwave_DataBlock> soulBlocks;
+		Sinwave_DataParser.ParseLump("data/soul.txt", soulBlocks);
+		mSoul = Sinwave_SoulDef.FromBlocks(soulBlocks);
 
 		ReadBlocks("data/difficulties.txt", 'difficulty', blocks);
 		for (int i = 0; i < blocks.Size(); i++)

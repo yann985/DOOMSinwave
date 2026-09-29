@@ -133,6 +133,13 @@ class Sinwave_Game : EventHandler
 		mPreviousButtons = buttons;
 	}
 
+	// Seuls les objets ramassables sont publiés (butin, objets lâchés par les monstres).
+	override void WorldThingSpawned(WorldEvent e)
+	{
+		if (!mReady || e.Thing == null || !(e.Thing is 'Inventory')) return;
+		mBus.Publish(Sinwave_ItemSpawnedEvent.Create(Inventory(e.Thing)));
+	}
+
 	override void WorldThingDied(WorldEvent e)
 	{
 		if (!mReady || e.Thing == null) return;
@@ -164,6 +171,14 @@ class Sinwave_Game : EventHandler
 		else if (e.Name ~== "sinwave_arena") mBus.Publish(Sinwave_ArenaChosenEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_rule") mBus.Publish(Sinwave_RuleAdjustedEvent.Create(e.Args[0], e.Args[1]));
 		else if (e.Name ~== "sinwave_descend") mBus.Publish(new('Sinwave_DescendRequestedEvent'));
+		else if (e.Name ~== "sinwave_soul" && IsDebugOn()) mBus.Publish(Sinwave_SoulShiftEvent.Create(e.Args[0]));
+	}
+
+	// Les commandes de débogage ne marchent qu'avec « sinwave_debug 1 ».
+	private static bool IsDebugOn()
+	{
+		let cv = CVar.FindCVar('sinwave_debug');
+		return cv != null && cv.GetBool();
 	}
 
 	// -------------------------------------------------------------------------

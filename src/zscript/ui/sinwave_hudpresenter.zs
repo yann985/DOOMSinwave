@@ -16,12 +16,14 @@ class Sinwave_HudPresenter : Sinwave_System
 
 	private Sinwave_HudModel mModel;
 	private Sinwave_GameData mData;
+	private int mTierBannerTime;	// instant du dernier bandeau de palier
 	private bool mSuspended;
 
 	override void Setup()
 	{
 		mModel = Sinwave_HudModel.From(mServices);
 		mData = Sinwave_GameData.From(mServices);
+		mTierBannerTime = -1;
 		mBus.Subscribe(self);
 	}
 
@@ -31,7 +33,13 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mArenaName = mData.mArena.mName;
 		m.mArenaDescription = mData.mArena.mDescription;
 		m.mCurrentArena = mData.mArenaIndex;
-		m.mCorruptionThreshold = mData.mProgression.mDamnationThreshold;
+		let soul = mData.mSoul;
+		m.mSoulMin = soul.mMin;
+		m.mSoulMax = soul.mMax;
+		m.mSoulBalance = soul.mBalance;
+		m.mCorruption = soul.mBalance;
+		m.mSoulTierName = "équilibre";
+		for (int i = 0; i < soul.mTiers.Size(); i++) m.mSoulMarks.Push(soul.mTiers[i].mAt);
 		for (int i = 0; i < mData.mArenas.Size(); i++)
 		{
 			m.mArenaNames.Push(mData.mArenas[i].mName);
@@ -216,7 +224,18 @@ class Sinwave_HudPresenter : Sinwave_System
 		if (corruption != null)
 		{
 			m.mCorruption = corruption.mCorruption;
-			m.mCorruptionThreshold = corruption.mThreshold;
+			m.mSoulSide = corruption.mSide;
+			m.mSoulLevel = corruption.mLevel;
+			m.mSoulTierName = corruption.mTier != null ? corruption.mTier.mName : "équilibre";
+			m.mVerdict = corruption.Verdict();
+			return;
+		}
+		let tier = Sinwave_SoulTierChangedEvent(e);
+		if (tier != null)
+		{
+			if (tier.mReached) ShowBanner("Palier : " .. tier.mTier.mName, tier.mTier.mDescription);
+			else ShowBanner(tier.mTier.mName .. " s'efface", "Ton âme revient vers l'équilibre");
+			mTierBannerTime = level.maptime;
 			return;
 		}
 		let offer = Sinwave_UpgradeOfferedEvent(e);
@@ -240,6 +259,9 @@ class Sinwave_HudPresenter : Sinwave_System
 		let chosen = Sinwave_UpgradeChosenEvent(e);
 		if (chosen != null)
 		{
+			// Un palier franchi par ce choix a déjà son bandeau, plus important (il a pu
+			// arriver avant ce choix : il est publié pendant sa diffusion).
+			if (mTierBannerTime == level.maptime) return;
 			let upgrade = chosen.mUpgrade;
 			if (upgrade.mIsSin) ShowBanner(upgrade.mName .. " te corrompt", upgrade.mDescription);
 			else ShowBanner(upgrade.mName .. " t'accompagne", upgrade.mDescription);
@@ -267,7 +289,6 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 			m.mEarned = saved.mEarned;
 			m.mNewBest = saved.mNewBest;
-			m.mDamned = saved.mDamned;
 			m.mResultReady = true;
 		}
 	}

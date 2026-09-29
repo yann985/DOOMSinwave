@@ -362,7 +362,7 @@ class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 	override void Build()
 	{
 		mTitle = "VERTU OU PÉCHÉ ?";
-		mSubtitle = String.Format("Corruption : %d/%d  (au seuil : Damnation)", mModel.mCorruption, mModel.mCorruptionThreshold);
+		mSubtitle = String.Format("Corruption : %d/%d  (%s)   équilibre : %d", mModel.mCorruption, mModel.mSoulMax, mModel.mSoulTierName, mModel.mSoulBalance);
 		mHint = "Clic, Entrée, A ou touches 1, 2, 3 : choisir";
 		for (int i = 0; i < mModel.mOfferNames.Size(); i++)
 		{

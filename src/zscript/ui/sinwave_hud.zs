@@ -74,25 +74,22 @@ class Sinwave_Hud ui
 	{
 		let c = mCanvas;
 
-		// La corruption teinte l'écran de rouge à mesure qu'elle approche du seuil.
-		if (m.mCorruption > 0 && m.mCorruptionThreshold > 0)
-		{
-			double ratio = min(1.0, double(m.mCorruption) / m.mCorruptionThreshold);
-			c.Box(0, 0, c.mWidth, Sinwave_Canvas.HEIGHT, Color(120, 0, 0), 0.12 * ratio);
-		}
+		// L'âme teinte l'écran : de rouge vers le péché, d'une lueur dorée vers la vertu.
+		double sinRatio = m.mSoulMax > m.mSoulBalance ? double(m.mCorruption - m.mSoulBalance) / (m.mSoulMax - m.mSoulBalance) : 0.0;
+		double virtueRatio = m.mSoulBalance > m.mSoulMin ? double(m.mSoulBalance - m.mCorruption) / (m.mSoulBalance - m.mSoulMin) : 0.0;
+		if (sinRatio > 0) c.Box(0, 0, c.mWidth, Sinwave_Canvas.HEIGHT, Color(120, 0, 0), 0.14 * sinRatio);
+		else if (virtueRatio > 0) c.Box(0, 0, c.mWidth, Sinwave_Canvas.HEIGHT, Color(255, 215, 120), 0.06 * virtueRatio);
 
-		// Barres d'expérience (bleue) et de corruption (violette) en haut de l'écran.
+		// Barre d'expérience (bleue), puis balance de l'âme en haut de l'écran.
 		double xpRatio = m.mXpNeeded > 0 ? clamp(double(m.mXp) / m.mXpNeeded, 0.0, 1.0) : 0.0;
 		c.Box(0, 0, c.mWidth, 6, Color(20, 20, 40), 0.8);
 		c.Box(0, 0, c.mWidth * xpRatio, 6, Color(80, 170, 255), 0.9);
-		double corruptionRatio = m.mCorruptionThreshold > 0 ? clamp(double(m.mCorruption) / m.mCorruptionThreshold, 0.0, 1.0) : 0.0;
-		c.Box(0, 6, c.mWidth, 3, Color(30, 0, 30), 0.8);
-		c.Box(0, 6, c.mWidth * corruptionRatio, 3, Color(200, 40, 200), 0.9);
+		DrawSoulGauge(m, 6, 4);
 
 		c.Text(NewSmallFont, Font.CR_LIGHTBLUE, 8, 14, String.Format("Niveau %d", m.mLevel), 1.4);
 		c.Text(NewSmallFont, Font.CR_GRAY, 8, 34, Sinwave_Canvas.FormatTime(m.mRunTics), 1.1);
-		int corruptionColor = m.mCorruption >= m.mCorruptionThreshold ? Font.CR_RED : Font.CR_PURPLE;
-		c.Text(NewSmallFont, corruptionColor, 8, 50, String.Format("Corruption %d/%d", m.mCorruption, m.mCorruptionThreshold), 1.1);
+		int soulColor = m.mSoulSide > 0 ? (m.mSoulLevel >= 3 ? Font.CR_RED : Font.CR_PURPLE) : (m.mSoulSide < 0 ? Font.CR_GOLD : Font.CR_GRAY);
+		c.Text(NewSmallFont, soulColor, 8, 50, String.Format("Corruption %d/%d : %s", m.mCorruption, m.mSoulMax, m.mSoulTierName), 1.1);
 		c.Text(NewSmallFont, Font.CR_DARKGRAY, 8, 66, DifficultyLabel(m), 1.0);
 
 		c.Text(NewSmallFont, Font.CR_GOLD, c.mWidth - 8, 14, String.Format("Score %d", m.mScore), 1.4, Sinwave_Canvas.ALIGN_RIGHT);
@@ -121,6 +118,25 @@ class Sinwave_Hud ui
 		}
 
 		if (m.mBossActive) DrawBossBar(m);
+	}
+
+	// Balance de l'âme sur toute la largeur : l'équilibre au milieu, la vertu vers
+	// la gauche (or), le péché vers la droite (violet) ; un trait par palier.
+	private void DrawSoulGauge(Sinwave_HudModel m, double y, double height)
+	{
+		let c = mCanvas;
+		double span = max(1, m.mSoulMax - m.mSoulMin);
+		double xBalance = c.mWidth * (m.mSoulBalance - m.mSoulMin) / span;
+		double xSoul = c.mWidth * (m.mCorruption - m.mSoulMin) / span;
+		c.Box(0, y, c.mWidth, height, Color(25, 10, 25), 0.8);
+		if (xSoul > xBalance) c.Box(xBalance, y, xSoul - xBalance, height, Color(200, 40, 200), 0.95);
+		else if (xSoul < xBalance) c.Box(xSoul, y, xBalance - xSoul, height, Color(255, 205, 70), 0.95);
+		for (int i = 0; i < m.mSoulMarks.Size(); i++)
+		{
+			double x = c.mWidth * (m.mSoulMarks[i] - m.mSoulMin) / span;
+			c.Box(clamp(x - 0.5, 0, c.mWidth - 1), y, 1, height, Color(255, 255, 255), 0.45);
+		}
+		c.Box(xBalance - 1, y - 1, 2, height + 2, Color(255, 255, 255), 0.9);
 	}
 
 	private static String DifficultyLabel(Sinwave_HudModel m)
@@ -246,9 +262,20 @@ class Sinwave_Hud ui
 		}
 		c.Text(BigFont, titleColor, center, 50, title, 2.2, Sinwave_Canvas.ALIGN_CENTER);
 
-		// Verdict : décidé par la corruption accumulée pendant la run.
-		if (m.mDamned) c.Text(NewSmallFont, Font.CR_RED, center, 108, String.Format("Verdict : DAMNATION  (corruption %d/%d)", m.mCorruption, m.mCorruptionThreshold), 1.4, Sinwave_Canvas.ALIGN_CENTER);
-		else c.Text(NewSmallFont, Font.CR_GOLD, center, 108, String.Format("Verdict : ABSOLUTION  (corruption %d/%d)", m.mCorruption, m.mCorruptionThreshold), 1.4, Sinwave_Canvas.ALIGN_CENTER);
+		// Verdict : décidé par le côté où penche l'âme à la fin de la run.
+		String soul = String.Format("corruption %d/%d : %s", m.mCorruption, m.mSoulMax, m.mSoulTierName);
+		switch (m.mVerdict)
+		{
+		case Sinwave_CorruptionChangedEvent.VERDICT_ABSOLUTION:
+			c.Text(NewSmallFont, Font.CR_GOLD, center, 108, "Verdict : ABSOLUTION  (" .. soul .. ")", 1.4, Sinwave_Canvas.ALIGN_CENTER);
+			break;
+		case Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION:
+			c.Text(NewSmallFont, Font.CR_RED, center, 108, "Verdict : DAMNATION  (" .. soul .. ")", 1.4, Sinwave_Canvas.ALIGN_CENTER);
+			break;
+		default:
+			c.Text(NewSmallFont, Font.CR_WHITE, center, 108, "Verdict : PURGATOIRE  (" .. soul .. ")", 1.4, Sinwave_Canvas.ALIGN_CENTER);
+			break;
+		}
 
 		c.Text(NewSmallFont, Font.CR_WHITE, center, 145, String.Format("Score : %d", m.mScore), 1.6, Sinwave_Canvas.ALIGN_CENTER);
 		c.Text(NewSmallFont, Font.CR_GRAY, center, 175,

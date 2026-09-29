@@ -137,7 +137,7 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_AllCirclesClearedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : victoire',
-	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*absolution',
+	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*(absolution|purgatoire)',	# vertu choisie : l'âme purifiée
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après la sauvegarde
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après le rechargement : relu depuis les CVars
 	'Sinwave_StateChangedEvent : None -> Menu'
