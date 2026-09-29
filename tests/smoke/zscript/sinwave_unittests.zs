@@ -85,6 +85,10 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestStateMachine();
 		TestDataParser();
 		TestWaveWeights();
+		TestEffects();
+		TestUpgradeKinds();
+		TestShopPrices();
+		TestPurchasesEncoding();
 
 		Console.Printf("[test] %d réussis, %d échoués", mPassed, mFailed);
 	}
@@ -215,5 +219,57 @@ class Sinwave_UnitTests : StaticEventHandler
 		Check(wave.mTotalWeight == 5, "vagues : somme des poids");
 		Check(wave.PickEnemy(0) == 'a' && wave.PickEnemy(1) == 'a', "vagues : tirage selon le poids (a)");
 		Check(wave.PickEnemy(2) == 'b' && wave.PickEnemy(4) == 'b', "vagues : tirage selon le poids (b)");
+	}
+
+	private void TestEffects()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test", "[upgrade x]\neffects = damage:0.4, give:Shell:20, give:Shotgun\n", blocks);
+		Array<Sinwave_Effect> effects;
+		Sinwave_Effect.ParseList(blocks[0], "effects", effects);
+
+		Check(effects.Size() == 3, "effets : trois effets lus");
+		if (effects.Size() < 3) return;
+		Check(effects[0].mType == 'damage' && effects[0].mValue == 0.4, "effets : type et valeur");
+		Check(effects[1].mType == 'give' && effects[1].mItem == 'Shell' && effects[1].mAmount == 20, "effets : objet et quantité");
+		Check(effects[2].mAmount == 1, "effets : quantité 1 par défaut");
+	}
+
+	private void TestUpgradeKinds()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[upgrade v]\nkind = virtue\neffects = speed:0.1\n[upgrade s]\nkind = sin\ncorruption = 2\neffects = damage:0.4, vulnerability:0.25\n",
+			blocks);
+		let virtue = Sinwave_UpgradeDef.FromBlock(blocks[0]);
+		let sin = Sinwave_UpgradeDef.FromBlock(blocks[1]);
+
+		Check(!virtue.mIsSin && virtue.mCorruption == 0, "améliorations : une vertu ne corrompt pas");
+		Check(sin.mIsSin && sin.mCorruption == 2 && sin.mEffects.Size() == 2, "améliorations : un péché a un défaut et de la corruption");
+		let damned = Sinwave_CorruptionChangedEvent.Create(5, 5);
+		let saved = Sinwave_CorruptionChangedEvent.Create(4, 5);
+		Check(damned.IsDamned() && !saved.IsDamned(), "corruption : Damnation à partir du seuil");
+	}
+
+	private void TestShopPrices()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test", "[item vigor]\nprice = 10\nprice_growth = 1.5\nmax = 3\neffects = maxhealth:15\n", blocks);
+		let item = Sinwave_ShopItemDef.FromBlock(blocks[0]);
+
+		Check(item.PriceForLevel(0) == 10, "boutique : prix du premier niveau");
+		Check(item.PriceForLevel(1) == 15 && item.PriceForLevel(2) == 23, "boutique : prix croissant par niveau");
+	}
+
+	private void TestPurchasesEncoding()
+	{
+		let original = new('Sinwave_MetaData');
+		original.SetLevel('shotgun', 1);
+		original.SetLevel('vigor', 3);
+		let copy = new('Sinwave_MetaData');
+		copy.DecodePurchases(original.EncodePurchases());
+
+		Check(copy.GetLevel('shotgun') == 1 && copy.GetLevel('vigor') == 3, "sauvegarde : achats relus à l'identique");
+		Check(copy.GetLevel('absent') == 0, "sauvegarde : article jamais acheté au niveau 0");
 	}
 }

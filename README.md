@@ -1,19 +1,27 @@
 # Sinwave
 
-Survivors-like à vagues sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom**.
+Survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom**.
 Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture (machine à états, bus d'événements, services, données externes, méta-progression).
 
-**Architecture expliquée : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+- **Architecture expliquée : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+- **Créer une arène : [docs/CREER-UNE-ARENE.md](docs/CREER-UNE-ARENE.md)**
 
 ## Jouer
 
-Nouvelle partie → l'arène « Le Purgatoire ». Survis à trois vagues de péchés (environ 2 min 40), ramasse les orbes bleues d'expérience et choisis une vertu à chaque niveau. Les âmes gagnées à la fin débloquent des bénédictions pour les runs suivantes.
+1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 3 minutes) ou **Les Limbes** (3 cercles, plus dur et mieux payé).
+2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés.
+3. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis entre deux **vertus** et un **péché**, plus puissant mais avec un défaut.
+4. Les péchés remplissent ta **corruption** ; au seuil, la run finit en **Damnation** plutôt qu'en **Absolution**.
+5. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique** : des armes de départ et des améliorations permanentes.
 
 | Touche | Action |
 |---|---|
-| Utiliser (E / Espace) | Lancer la run, recommencer après le bilan |
-| P | Pause de la run (modifiable dans Options → Commandes → Sinwave) |
-| 1, 2, 3 ou flèches + Entrée | Choisir une vertu |
+| Utiliser (E / Espace) | Choisir l'arène et lancer la run, recommencer après le bilan |
+| B | Boutique des indulgences (hors run) |
+| P | Pause de la run |
+| 1 à 9 ou flèches + Entrée | Choisir dans les menus |
+
+Les touches B et P se changent dans *Options → Commandes → Sinwave*.
 
 ## Démarrage rapide (développement)
 
@@ -49,10 +57,10 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/app/           racine de composition (seul point d'entrée du moteur)
   zscript/core/          bus d'événements, Service Locator, machine à états, lecteur de données
   zscript/data/          définitions chargées depuis data/, sauvegarde
-  zscript/gameplay/      événements, états, systèmes, acteurs
+  zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
-  data/                  contenu du jeu : ennemis, vagues, améliorations, déblocages
-  maps/                  arène SW01 (générée par tools/generate-arena.ps1)
+  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, boutique
+  maps/                  SW01 Les Limbes, SW02 Le Purgatoire (tools/generate-arena.ps1)
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging
 docs/                    documentation (architecture)
@@ -69,9 +77,13 @@ Tous se lancent avec `powershell -ExecutionPolicy Bypass -File tools\<script>.ps
 | `build.ps1` | Construit `build\sinwave.pk3` à partir de `src\` |
 | `check.ps1` | Construit puis vérifie que le ZScript compile dans GZDoom |
 | `test.ps1` | Tests automatiques : joue des runs complètes et vérifie chaque étape (ne pas toucher au clavier) |
-| `run.ps1` | Construit puis lance le jeu (`-Map SW01` pour sauter le menu, `-Engine uzdoom`) |
+| `run.ps1` | Construit puis lance le jeu (`-Map SW02` pour aller directement au Purgatoire, `-Engine uzdoom`) |
 | `package.ps1` | Crée le build Windows à rendre : `dist\Sinwave-win64.zip` |
-| `generate-arena.ps1` | Régénère l'arène `src\maps\SW01.wad` (écrase les retouches faites dans Doom Builder) |
+| `new-arena.ps1` | Crée une arène personnalisée : carte, cercles et réglages (voir docs/CREER-UNE-ARENE.md) |
+| `generate-arena.ps1` | Génère une carte (`-Shape Circles` ou `Square`) ; écrase les retouches faites dans Doom Builder |
+| `create-shortcuts.ps1` | Crée sur le bureau les raccourcis « Sinwave - Travailler » et « Sinwave - Jouer » |
+| `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder (sur l'arène), SLADE et Claude |
+| `play.ps1` | Construit le code et lance le jeu |
 
 Dans le jeu, `sinwave_debug 1` (console, touche `²`) affiche chaque événement du bus.
 

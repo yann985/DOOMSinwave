@@ -1,0 +1,12 @@
+# Deux arènes de test sur les deux cartes du jeu, avec des cercles très courts,
+# pour tester le choix d'arène et le voyage d'une carte à l'autre.
+
+[arena test_a]
+name  = Test A
+map   = SW01
+waves = data/waves/smoke.txt
+
+[arena test_b]
+name  = Test B
+map   = SW02
+waves = data/waves/smoke.txt
