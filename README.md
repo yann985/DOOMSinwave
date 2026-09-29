@@ -17,12 +17,12 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 | Touche | Action |
 |---|---|
 | Utiliser (E / Espace) | Choisir l'arène et lancer la run, recommencer après le bilan |
-| B | Boutique des indulgences (écran titre ou écran de fin) |
+| B | Boutique des indulgences (écran titre ; sur l'écran de fin, n'importe quelle touche sauf Utiliser) |
 | P | Pause de la run |
 | 1 à 9 ou flèches + Entrée | Choisir dans les menus |
 | Gauche / Droite | Régler une valeur (règles de la descente) |
 
-Les touches B et P se changent dans *Options → Commandes → Sinwave*.
+Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom.
 
 ## Démarrage rapide (développement)
 

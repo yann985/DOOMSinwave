@@ -123,7 +123,7 @@ stateDiagram-v2
     Pause --> InGame : Reprendre
     Pause --> GameOver : Abandonner
     InGame --> GameOver : mort, ou dernier cercle franchi
-    GameOver --> [*] : Utiliser, ou B (la carte se recharge, sur la boutique avec B)
+    GameOver --> [*] : Utiliser, ou autre touche (la carte se recharge, sur la boutique sauf avec Utiliser)
 ```
 
 | État | Classe | Rôle |
@@ -135,7 +135,7 @@ stateDiagram-v2
 | InGame | `Sinwave_InGameState` | Les cercles s'enchaînent. Surveille la mort, la victoire, la pause et les montées de niveau. |
 | Pause | `Sinwave_PauseState` | Run suspendue, menu Reprendre / Abandonner. |
 | Upgrade | `Sinwave_UpgradeState` | Run suspendue, choix d'une vertu ou d'un péché. |
-| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B la recharge et ouvre la boutique. |
+| GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B, ou n'importe quelle autre touche libre, la recharge et ouvre la boutique. |
 
 Pour qu'une action survive au changement de carte (lancer la run dans l'arène choisie, ouvrir la boutique), l'état la note dans une CVar non sauvegardée (`sinwave_onarrival`) juste avant le voyage. L'état Menu la lit à l'arrivée (`Sinwave_World.Travel` et `ConsumeArrival`).
 
@@ -338,7 +338,11 @@ flowchart LR
 - Le **présentateur** est un système comme les autres : il traduit les événements en données d'affichage.
 - Le **HUD** et les **menus** ne font que lire le modèle. Pour agir (choisir, acheter, reprendre), un menu envoie une **commande réseau**, que `Sinwave_Game` traduit en événement côté jeu. C'est le seul chemin de l'interface vers le jeu.
 - Les cinq menus (pause, vertu ou péché, boutique, arènes, règles) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, dessin et fermeture automatique sont écrits une fois.
-- Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur le traduit en action (Retour, Entrée). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu.
+- Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur peut le traduire en action (Entrée...). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu, **pendant ce tic seulement** : une vraie touche du joueur juste après (Échap pour ressortir de la boutique) n'est jamais avalée.
+- `Sinwave_Game.InputProcess` lit les touches de la boutique et de la pause directement, avant le moteur, selon l'écran affiché :
+  - la touche liée dans *Options → Commandes → Sinwave* marche toujours ;
+  - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre ;
+  - sur l'écran de fin, **toute touche libre** ouvre la boutique. Restent exclues : Utiliser (recommencer), Échap et la console, les touches de mouvement ou de tir (`+...`), la pause et la souris.
 - Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
@@ -366,6 +370,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
 - du moteur : `ActorDied`, `PlayerDied`, `ActorDamaged` (dégâts infligés par le joueur), `GameLoaded` ;
 - de la touche Utiliser : `Confirm` ;
+- des touches de la boutique et de la pause (`InputProcess`) : les commandes `sinwave_shop` et `sinwave_pause`, qui deviennent `ShopRequested` et `PauseRequested` ;
 - de l'interface : `PauseRequested`, `ResumeRequested`, `AbandonRequested`, `ShopRequested`, `BackRequested`, `UpgradePicked`, `ShopBuyRequested`, `ArenaChosen`, `RuleAdjusted`, `DescendRequested`.
 
 **Désactiver ou remplacer un système :** `enabled = false` ou une autre `class =` dans `data/systems.txt`. Le test automatique le prouve : il joue des runs complètes avec le système `hud` désactivé. Sans interface pour choisir, `Sinwave_UpgradeState` prend automatiquement la première proposition au bout de 2 secondes.
