@@ -196,29 +196,15 @@ class Sinwave_Game : EventHandler
 		switch (screen)
 		{
 		case Sinwave_HudModel.SCREEN_MENU:
+		case Sinwave_HudModel.SCREEN_GAMEOVER:
 			if (shop) return "sinwave_shop";
 			break;
 		case Sinwave_HudModel.SCREEN_RUN:
 			if (pause) return "sinwave_pause";
 			if (shop) return "sinwave_shop";	// refusée pendant la run : un bandeau l'explique
 			break;
-		case Sinwave_HudModel.SCREEN_GAMEOVER:
-			// Toute touche libre du clavier ouvre la boutique (Utiliser recommence).
-			if (shop || IsFreeKey(key, binding)) return "sinwave_shop";
-			break;
 		}
 		return "";
-	}
-
-	// Touche du clavier qui n'a pas de rôle dans le jeu ou les menus.
-	private static clearscope bool IsFreeKey(int key, String binding)
-	{
-		if (key >= InputEvent.Key_Mouse1) return false;	// souris et manette
-		if (key == InputEvent.Key_Escape || key == InputEvent.Key_Grave) return false;
-		if (binding.Left(1) == "+") return false;			// +use, +forward, +attack...
-		if (binding ~== "toggleconsole" || binding ~== "screenshot" || binding ~== "pause" || binding ~== "sinwave_pause") return false;
-		if (binding.Left(5) ~== "menu_") return false;
-		return true;
 	}
 
 	override void UiTick()

@@ -164,7 +164,7 @@ class Sinwave_Hud ui
 
 		if ((Menu.MenuTime() / 20) % 2 == 0)
 		{
-			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER : recommencer          autre touche : boutique", 1.3, Sinwave_Canvas.ALIGN_CENTER);
+			c.Text(NewSmallFont, Font.CR_WHITE, center, 300, "UTILISER : recommencer          B : boutique", 1.3, Sinwave_Canvas.ALIGN_CENTER);
 		}
 	}
 }

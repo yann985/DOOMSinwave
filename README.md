@@ -17,7 +17,7 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 | Touche | Action |
 |---|---|
 | Utiliser (E / Espace) | Choisir l'arène et lancer la run, recommencer après le bilan |
-| B | Boutique des indulgences (écran titre ; sur l'écran de fin, n'importe quelle touche sauf Utiliser) |
+| B | Boutique des indulgences (écran titre ou écran de fin) |
 | P | Pause de la run |
 | 1 à 9 ou flèches + Entrée | Choisir dans les menus |
 | Gauche / Droite | Régler une valeur (règles de la descente) |
