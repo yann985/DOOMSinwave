@@ -159,13 +159,15 @@ class Sinwave_GreedCurse : Sinwave_Curse
 }
 
 // Colère : un ennemi blessé entre en rage quelques secondes. Il devient rouge et
-// accélère, puis retrouve sa couleur et sa vitesse. Le toucher relance sa rage.
+// accélère, puis retrouve sa couleur et sa vitesse pour de bon : chaque ennemi
+// n'enrage qu'une fois (sinon, sous un tir continu, il resterait rouge jusqu'à sa mort).
 class Sinwave_WrathCurse : Sinwave_Curse
 {
 	private Array<Actor> mEnraged;
 	private Array<int> mTicsLeft;
 	private Array<double> mOriginalSpeed;
 	private Array<TranslationID> mOriginalTranslation;
+	private Array<Actor> mCalmed;
 
 	override void OnEvent(Sinwave_Event e)
 	{
@@ -173,16 +175,10 @@ class Sinwave_WrathCurse : Sinwave_Curse
 		if (damaged == null) return;
 		let mo = damaged.mThing;
 		if (mo == null || !mo.bIsMonster || mo.health <= 0) return;
+		if (mEnraged.Find(mo) < mEnraged.Size() || mCalmed.Find(mo) < mCalmed.Size()) return;
 
-		int duration = int(Param("duration", 5) * TICRATE);
-		int index = mEnraged.Find(mo);
-		if (index < mEnraged.Size())
-		{
-			mTicsLeft[index] = duration;	// déjà enragé : la rage repart pour un tour
-			return;
-		}
 		mEnraged.Push(mo);
-		mTicsLeft.Push(duration);
+		mTicsLeft.Push(int(Param("duration", 3) * TICRATE));
 		mOriginalSpeed.Push(mo.Speed);
 		mOriginalTranslation.Push(mo.Translation);
 		mo.Speed *= Param("speed", 1.5);
@@ -211,6 +207,7 @@ class Sinwave_WrathCurse : Sinwave_Curse
 		{
 			mo.Speed = mOriginalSpeed[index];
 			mo.Translation = mOriginalTranslation[index];
+			mCalmed.Push(mo);
 		}
 		mEnraged.Delete(index);
 		mTicsLeft.Delete(index);
