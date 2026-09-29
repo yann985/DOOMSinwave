@@ -14,3 +14,9 @@ indulgences_damnation  = 5              # bonus de victoire en Damnation
 start_items            = Clip:50        # le pistolet est donné par le moteur ; les armes s'achètent à la boutique
 supply_seconds         = 6              # ravitaillement toutes les N secondes
 supply_items           = Clip:10, Shell:3
+
+# Difficulté croissante. Dans un cercle, chaque vague est plus serrée que la
+# précédente ; d'un cercle au suivant, les réglages de data/waves/ montent aussi.
+wave_spawn_growth      = 0.15           # apparitions 15 % plus rapides à chaque vague du cercle
+wave_max_growth        = 2              # 2 ennemis vivants de plus à chaque vague du cercle
+wave_health_growth     = 0.03           # vie des ennemis +3 % par vague depuis le début de l'arène (hors boss)

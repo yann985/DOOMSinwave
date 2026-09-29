@@ -77,7 +77,7 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mCorruption = 0;
 			m.mBossActive = false;
 			m.mResultReady = false;
-			ShowBanner(m.mArenaName, "La descente commence...");
+			// Pas de bandeau ici : le premier cercle, annoncé pendant RunStarted, a le sien.
 			return;
 		}
 		if (e is 'Sinwave_ShopRequestedEvent' && m.mRunActive)
@@ -97,23 +97,45 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mBannerTics = 0;
 			return;
 		}
+		let circle = Sinwave_CircleStartedEvent(e);
+		if (circle != null)
+		{
+			m.mCircle = circle.mIndex;
+			m.mCircleCount = circle.mCount;
+			m.mCircleName = circle.mName;
+			m.mBetweenCircles = false;
+			// La malédiction du cercle peut être annoncée avant ou après lui (le bus ne
+			// garantit pas l'ordre) : on ne l'efface pas ici, CurseEnded s'en charge à la
+			// fin du cercle précédent, et le bandeau reprend celle déjà connue.
+			ShowBanner(String.Format("Cercle %d : %s", circle.mIndex + 1, circle.mName), m.mCurseDescription);
+			return;
+		}
 		let wave = Sinwave_WaveStartedEvent(e);
 		if (wave != null)
 		{
 			m.mWave = wave.mIndex;
 			m.mWaveCount = wave.mCount;
-			m.mWaveName = wave.mName;
 			m.mWaveTicsLeft = wave.mDurationTics;
 			m.mBetweenWaves = false;
-			m.mCurseName = "";
-			m.mCurseDescription = "";
-			ShowBanner(String.Format("Cercle %d : %s", wave.mIndex + 1, wave.mName), "");
+			// La première vague partage le bandeau du cercle.
+			if (wave.mIndex > 0)
+			{
+				String detail = wave.mDurationTics == 0 ? "Le boss arrive !" : "Les damnés se pressent...";
+				ShowBanner(String.Format("Vague %d/%d", wave.mIndex + 1, wave.mCount), detail);
+			}
 			return;
 		}
-		if (e is 'Sinwave_WaveEndedEvent')
+		let waveEnded = Sinwave_WaveEndedEvent(e);
+		if (waveEnded != null)
 		{
-			m.mBetweenWaves = true;
+			m.mBetweenWaves = waveEnded.mIndex + 1 < m.mWaveCount;
 			m.mWaveTicsLeft = 0;
+			return;
+		}
+		if (e is 'Sinwave_CircleEndedEvent')
+		{
+			m.mBetweenWaves = false;
+			m.mBetweenCircles = true;
 			return;
 		}
 		let curse = Sinwave_CurseStartedEvent(e);

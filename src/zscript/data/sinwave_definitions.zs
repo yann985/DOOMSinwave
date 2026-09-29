@@ -221,27 +221,34 @@ class Sinwave_CurseDef play
 	}
 }
 
-// Une vague : un cercle du Purgatoire (data/waves/*.txt).
-class Sinwave_WaveDef play
+// Un cercle de l'arène (data/waves/*.txt) : un péché, sa malédiction, et
+// plusieurs vagues d'ennemis de plus en plus serrées. Les réglages du bloc sont
+// ceux de la première vague ; les suivantes accélèrent selon data/progression.txt.
+// Avec un boss, la dernière vague est la sienne et dure jusqu'à sa mort.
+class Sinwave_CircleDef play
 {
 	Name mId;
 	String mName;
-	int mDurationTics;		// 0 : la vague dure jusqu'à la mort du boss
-	int mIntervalTics;
-	int mMaxAlive;
-	int mBreakTics;
+	int mWaveCount;
+	int mWaveTics;			// durée d'une vague
+	int mPauseTics;			// répit entre deux vagues du cercle
+	int mBreakTics;			// répit avant le cercle suivant
+	int mIntervalTics;		// entre deux apparitions, à la première vague
+	int mMaxAlive;			// ennemis vivants au maximum, à la première vague
 	Name mCurseId;
 	Name mBossId;
 	Array<Name> mEnemyIds;
 	Array<int> mWeights;
 	int mTotalWeight;
 
-	static Sinwave_WaveDef FromBlock(Sinwave_DataBlock block)
+	static Sinwave_CircleDef FromBlock(Sinwave_DataBlock block)
 	{
-		let def = new('Sinwave_WaveDef');
+		let def = new('Sinwave_CircleDef');
 		def.mId = block.mId;
 		def.mName = block.GetString("name", block.mId);
-		def.mDurationTics = max(0, block.GetTics("duration", 30));
+		def.mWaveCount = max(1, block.GetInt("waves", 3));
+		def.mWaveTics = max(1, block.GetTics("duration", 8));
+		def.mPauseTics = max(1, block.GetTics("pause", 2));
 		def.mIntervalTics = max(1, block.GetTics("interval", 1));
 		def.mMaxAlive = max(1, block.GetInt("max", 10));
 		def.mBreakTics = max(0, block.GetTics("break", 3));
@@ -263,16 +270,37 @@ class Sinwave_WaveDef play
 			def.mWeights.Push(weight);
 			def.mTotalWeight += weight;
 		}
-		if (def.mDurationTics == 0 && def.mBossId == 'None')
-		{
-			block.Warn("une vague sans durée doit avoir un boss.");
-		}
 		return def;
 	}
 
 	bool HasBoss()
 	{
 		return mBossId != 'None' && mBossId != '';
+	}
+
+	// Vague du boss : la dernière du cercle. Elle dure jusqu'à la mort du boss.
+	bool IsBossWave(int wave)
+	{
+		return HasBoss() && wave == mWaveCount - 1;
+	}
+
+	// Durée de la vague, en tics (0 : jusqu'à la mort du boss).
+	int WaveTics(int wave)
+	{
+		return IsBossWave(wave) ? 0 : mWaveTics;
+	}
+
+	// Montée en difficulté à l'intérieur du cercle : chaque vague fait apparaître
+	// les ennemis `spawnGrowth` fois plus vite (0,15 : +15 %) que la première...
+	int IntervalTicsForWave(int wave, double spawnGrowth)
+	{
+		return max(1, int(mIntervalTics / (1.0 + spawnGrowth * wave) + 0.5));
+	}
+
+	// ... et autorise `maxGrowth` ennemis vivants de plus.
+	int MaxAliveForWave(int wave, int maxGrowth)
+	{
+		return mMaxAlive + maxGrowth * wave;
 	}
 
 	// Tire un type d'ennemi selon les poids. `roll` est compris entre 0 et mTotalWeight - 1.
@@ -356,7 +384,7 @@ class Sinwave_ShopItemDef play
 	}
 }
 
-// Une arène jouable (data/arenas.txt) : une carte, ses vagues et ses règles.
+// Une arène jouable (data/arenas.txt) : une carte, ses cercles et ses règles.
 class Sinwave_ArenaDef play
 {
 	Name mId;
@@ -424,6 +452,10 @@ class Sinwave_ProgressionDef play
 	Array<Sinwave_ItemStack> mStartItems;
 	int mSupplyTics;
 	Array<Sinwave_ItemStack> mSupplyItems;
+	// Montée en difficulté d'une vague à l'autre (voir Sinwave_CircleDef).
+	double mWaveSpawnGrowth;
+	int mWaveMaxGrowth;
+	double mWaveHealthGrowth;	// vie des ennemis, par vague depuis le début de l'arène
 
 	// `block` peut être null : on garde alors les valeurs par défaut.
 	static Sinwave_ProgressionDef FromBlock(Sinwave_DataBlock block)
@@ -441,6 +473,9 @@ class Sinwave_ProgressionDef play
 		def.mIndulgencesAbsolution = max(0, block.GetInt("indulgences_absolution", 20));
 		def.mIndulgencesDamnation = max(0, block.GetInt("indulgences_damnation", 5));
 		def.mSupplyTics = block.GetTics("supply_seconds", 0);
+		def.mWaveSpawnGrowth = max(0.0, block.GetDouble("wave_spawn_growth", 0.15));
+		def.mWaveMaxGrowth = max(0, block.GetInt("wave_max_growth", 2));
+		def.mWaveHealthGrowth = max(0.0, block.GetDouble("wave_health_growth", 0.03));
 		Sinwave_ItemStack.ParseList(block, "start_items", def.mStartItems);
 		Sinwave_ItemStack.ParseList(block, "supply_items", def.mSupplyItems);
 		return def;

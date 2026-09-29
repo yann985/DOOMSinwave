@@ -36,11 +36,14 @@ class Sinwave_HudModel : Sinwave_Service
 	int mLevel;
 	int mXp;
 	int mXpNeeded;
-	int mWave;
-	int mWaveCount;
-	String mWaveName;
-	int mWaveTicsLeft;		// 0 pendant un cercle de boss
-	bool mBetweenWaves;
+	int mCircle;
+	int mCircleCount;
+	String mCircleName;
+	int mWave;				// vague en cours dans le cercle
+	int mWaveCount;			// vagues du cercle
+	int mWaveTicsLeft;		// 0 pendant la vague du boss
+	bool mBetweenWaves;		// répit entre deux vagues du cercle
+	bool mBetweenCircles;	// répit avant le cercle suivant
 	String mCurseName;
 	String mCurseDescription;
 	int mCorruption;

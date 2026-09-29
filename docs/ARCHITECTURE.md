@@ -12,7 +12,7 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
   - le joueur choisit une **arène** : Le Purgatoire, Les Limbes, ou une arène personnalisée ;
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes.
-- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles, et le dernier cercle du Purgatoire oppose le joueur au boss **Lucifer**.
+- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
 - **À chaque niveau :** choix entre deux **vertus** (sûres) et un **péché** (puissant, avec un défaut). Les péchés remplissent une jauge de **corruption** qui décide du verdict final : **Absolution** ou **Damnation**.
 - **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes.
 
@@ -22,8 +22,8 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 
 | | DoomSurvivor / Doom2Survive | Sinwave |
 |---|---|---|
-| Structure | Vagues sans fin | Descente finie de cercles, avec un boss et une fin |
-| Vagues | Plus d'ennemis à chaque vague | Chaque cercle **change une règle** (malédiction) |
+| Structure | Vagues sans fin | Descente finie : des cercles de quelques vagues chacun, un boss, une fin |
+| Vagues | Plus d'ennemis à chaque vague | Les vagues se resserrent aussi, mais chaque cercle **change une règle** (malédiction) |
 | Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu ou péché**, avec une conséquence (corruption, verdict) |
 | Monnaie | Âmes, boutique en cours de partie | Indulgences, boutique **entre les runs** (méta-progression) |
 | Contenu | Dans le code | Dans des **fichiers de données** ; arènes personnalisées sans code |
@@ -81,7 +81,7 @@ Les flèches indiquent « dépend de ». Elles descendent toujours :
 |---|---|---|
 | `app/` | Racine de composition : crée et relie tout. Seule classe déclarée au moteur (`MAPINFO`). | `Sinwave_Game` |
 | `core/` | Briques réutilisables, sans règle de jeu. | `Sinwave_EventBus`, `Sinwave_Services`, `Sinwave_StateMachine`, `Sinwave_System`, `Sinwave_DataParser` |
-| `data/` | Définitions chargées depuis les fichiers texte, et sauvegarde de la méta-progression. | `Sinwave_GameData`, `Sinwave_ArenaDef`, `Sinwave_WaveDef`, `Sinwave_UpgradeDef`, `Sinwave_ShopItemDef`, `Sinwave_SaveService` |
+| `data/` | Définitions chargées depuis les fichiers texte, et sauvegarde de la méta-progression. | `Sinwave_GameData`, `Sinwave_ArenaDef`, `Sinwave_CircleDef`, `Sinwave_UpgradeDef`, `Sinwave_ShopItemDef`, `Sinwave_SaveService` |
 | `gameplay/` | Événements, états globaux, systèmes de jeu, malédictions, acteurs (orbe d'XP, point d'apparition). | `Sinwave_WaveSystem`, `Sinwave_CurseSystem`, `Sinwave_MetaSystem`, `Sinwave_InGameState`... |
 | `ui/` | Présentation : un modèle de données d'affichage, le présentateur qui le remplit, le HUD et les menus qui le lisent. | `Sinwave_HudModel`, `Sinwave_HudPresenter`, `Sinwave_Hud`, `Sinwave_ShopMenu` |
 
@@ -145,6 +145,21 @@ Pour qu'une action survive au changement de carte (lancer la run dans l'arène c
 - Pause et Upgrade héritent de `Sinwave_SuspendedState`, qui contient une seule fois le code de suspension et de reprise.
 
 Les états **ne font pas le travail** : ils décident seulement des transitions. Quand la run démarre, ils publient `RunStartedEvent`, et ce sont les systèmes qui réagissent (cercles, joueur, XP, achats de la boutique...).
+
+### Cercles et vagues
+
+Une run traverse les cercles de l'arène (`data/waves/<arène>.txt`) ; chaque cercle enchaîne plusieurs vagues. `Sinwave_WaveSystem` publie le déroulé, et les autres systèmes s'y accrochent au bon niveau :
+
+```mermaid
+flowchart LR
+    CS([CircleStarted]) --> WS1([WaveStarted 1]) --> WE1([WaveEnded 1]) --> P1[répit court] --> WS2([WaveStarted 2]) --> WE2([WaveEnded 2]) --> CE([CircleEnded]) --> P2[répit] --> CS2([cercle suivant...])
+```
+
+- **Malédiction :** `Sinwave_CurseSystem` l'active à `CircleStarted` et l'arrête à `CircleEnded` : elle dure tout le cercle, répits compris.
+- **Indulgences :** `Sinwave_MetaSystem` compte les `CircleEnded` (cercles franchis).
+- **Interface :** le haut de l'écran affiche « Cercle 3/7 : Luxure   vague 2/3   0:05 », et un bandeau annonce chaque cercle, puis chaque nouvelle vague.
+- **Difficulté croissante :** les réglages d'un cercle (`interval`, `max`) sont ceux de sa première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage (`Sinwave_CircleDef.IntervalTicsForWave`, `MaxAliveForWave`). La vie des ennemis grandit avec le rang de la vague dans l'arène (`Sinwave_GameData.WaveRank`), donc aussi d'un cercle à l'autre, quel que soit le cercle de départ. Les trois taux sont dans `data/progression.txt` ; le boss, réglé à part, n'est pas concerné.
+- **Boss :** avec `boss = ...`, la dernière vague du cercle est celle du boss et dure jusqu'à sa mort.
 
 ### La horde vise toujours le joueur
 
@@ -249,13 +264,13 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 |---|---|---|
 | `systems.txt` | Systèmes à créer, dans quel ordre, activés ou non | `Sinwave_Game` |
 | `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense), mode d'apparition des ennemis | `Sinwave_GameData`, choix d'arène |
-| `waves/*.txt` | Cercles d'une arène : durée, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
+| `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
 | `enemies.txt` | Les 7 péchés et le boss : classe du moteur, vie, vitesse, taille, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
 | `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `shop.txt` | Armes et améliorations permanentes : prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `difficulties.txt` | Difficultés prédéfinies : vie, vitesse et rythme des ennemis, dégâts subis | `Sinwave_RulesSystem` |
-| `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement | plusieurs systèmes |
+| `progression.txt` | Courbe d'XP, composition des choix, seuil de Damnation, gains d'indulgences, équipement, montée de la difficulté d'une vague à l'autre | plusieurs systèmes |
 
 Exemple, un péché (`upgrades.txt`) :
 
@@ -307,7 +322,7 @@ Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle le
 - **Stockage :** `Sinwave_CVarSaveService`.
   - Il écrit des CVars archivées (déclarées dans `CVARINFO`), dont les achats sous forme de texte : `shotgun=1;vigor=3`.
   - Il force l'écriture du fichier `.ini` du moteur (`CVar.SaveConfig()`).
-- **Découplage :** `Sinwave_MetaSystem` ne dépend que du contrat abstrait `Sinwave_SaveService`. Il ne connaît ni les cercles, ni le score, ni la corruption : il retient les valeurs annoncées sur le bus (`ScoreChangedEvent`, `WaveEndedEvent`, `CorruptionChangedEvent`).
+- **Découplage :** `Sinwave_MetaSystem` ne dépend que du contrat abstrait `Sinwave_SaveService`. Il ne connaît ni les cercles, ni le score, ni la corruption : il retient les valeurs annoncées sur le bus (`ScoreChangedEvent`, `CircleEndedEvent`, `CorruptionChangedEvent`).
 - **Gagner :** à la fin de la run, les indulgences viennent du score, des cercles franchis et du bonus de victoire, qui dépend du verdict. Le tout est multiplié par la récompense de l'arène.
 - **Dépenser :** en état Shop, `ShopBuyRequestedEvent` fait vérifier le prix (qui augmente à chaque niveau) et le niveau maximum. L'achat est ensuite sauvegardé. Le résultat est annoncé par `PurchaseEvent`, que la boutique affiche.
 - **Appliquer :** au début de chaque run, chaque niveau acheté publie ses effets (`EffectGrantedEvent`), par le même chemin que les vertus.
@@ -361,7 +376,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 |---|---|---|---|
 | `debug` : `Sinwave_EventLogger` | EventBus | tout | rien |
 | `rules` : `Sinwave_RulesSystem` | EventBus, GameData, Save, Rules | RuleAdjusted, ArenaChosen | RulesChanged |
-| `waves` : `Sinwave_WaveSystem` | EventBus, GameData, Rules | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested | WaveStarted, WaveEnded, AllWavesCleared, EnemyKilled, BossSpawned, BossDefeated |
+| `waves` : `Sinwave_WaveSystem` | EventBus, GameData, Rules | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested | CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared, EnemyKilled, BossSpawned, BossDefeated |
 | `curses` : `Sinwave_CurseSystem` | EventBus, GameData | tout (transmis à la malédiction active) | CurseStarted, CurseEnded, EffectGranted |
 | `boss` : `Sinwave_BossSystem` | EventBus | BossSpawned, BossDefeated, RunEnded | BossHealthChanged, BossEnraged, SpawnRequested |
 | `xp` : `Sinwave_XpSystem` | EventBus, GameData | RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted | XpOrbDropped, XpChanged, LevelUp |
@@ -369,7 +384,7 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `corruption` : `Sinwave_CorruptionSystem` | EventBus, GameData | RunStarted, UpgradeChosen | CorruptionChanged |
 | `score` : `Sinwave_ScoreSystem` | EventBus | RunStarted, RunEnded, EnemyKilled | ScoreChanged |
 | `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
-| `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
+| `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
@@ -405,9 +420,9 @@ Ce que la désactivation change pour chaque système :
 
 **`test.ps1`** lance GZDoom avec l'archive `tests/smoke` par-dessus le jeu : deux arènes de test, avec des cercles courts. Il joue quatre scénarios par la console du moteur :
 1. **victoire** :
-   - choix d'arène, puis un cercle maudit (Paresse) ;
+   - choix d'arène, puis un cercle maudit (Paresse) de deux vagues ;
    - XP, montée de niveau, choix, pause ;
-   - cercle de boss (Orgueil + Lucifer), victoire, verdict ;
+   - cercle du boss, réduit à sa vague (Orgueil + Lucifer), victoire, verdict ;
    - sauvegarde, rechargement de la carte et relecture de la méta ;
 2. **mort** : boutique refusée pendant la run, mort du joueur, sauvegarde, puis boutique ouverte depuis l'écran de fin ;
 3. **boutique** :
@@ -417,9 +432,10 @@ Ce que la désactivation change pour chaque système :
    - les achats s'appliquent au début de la run ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **37 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Il exécute aussi **42 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
-- le lecteur de données, les poids des vagues et les effets ;
+- le lecteur de données, les poids du tirage des ennemis et les effets ;
+- les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
 - vertus et péchés, verdict, prix de la boutique, enregistrement des achats ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 
@@ -431,7 +447,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 
 ## 11. Limites connues
 
-- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run.
+- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée.
 - **Événements alloués à chaque publication :** simple et lisible, mais cela crée des objets à collecter. C'est sans effet mesurable à cette échelle.
 - **Malédictions et monstres :** certaines malédictions parcourent tous les monstres de la carte toutes les 4 à 5 tics. C'est sans problème pour quelques dizaines d'ennemis, mais à surveiller pour de très grosses vagues.
 - **Pause en double :** GZDoom a sa propre pause (touche Pause, menu principal). L'état Pause du projet utilise un menu dédié ; les deux coexistent sans se connaître.

@@ -1,6 +1,6 @@
 # Créer une arène personnalisée
 
-Une arène est une carte avec ses cercles (vagues) et ses règles. Elle apparaît dans le choix d'arène du jeu. Il n'y a **pas de code à écrire** : tout se fait avec Ultimate Doom Builder et des fichiers texte.
+Une arène est une carte avec ses cercles, de plusieurs vagues chacun, et ses règles. Elle apparaît dans le choix d'arène du jeu. Il n'y a **pas de code à écrire** : tout se fait avec Ultimate Doom Builder et des fichiers texte.
 
 ## 1. Créer les fichiers de départ
 
@@ -33,16 +33,18 @@ Enregistre (Ctrl+S). Attention : relancer `new-arena.ps1` ou `generate-arena.ps1
 
 ## 3. Écrire les cercles
 
-Dans `src/data/waves/<id>.txt`, un bloc par cercle, joué dans l'ordre du fichier :
+Dans `src/data/waves/<id>.txt`, un bloc par cercle, joué dans l'ordre du fichier. Chaque cercle enchaîne plusieurs **vagues**, séparées par un court répit, puis on passe au cercle suivant :
 
 ```ini
-[wave 1]
+[circle 1]
 name     = Premier cercle
-duration = 30              # secondes (0 : jusqu'à la mort du boss)
-interval = 1.0             # secondes entre deux apparitions
-max      = 15              # ennemis vivants en même temps, au maximum
+curse    = sloth           # malédiction de tout le cercle (data/curses.txt)
+waves    = 3               # nombre de vagues du cercle
+duration = 8               # durée d'une vague, en secondes
+pause    = 2               # répit entre deux vagues du cercle
 break    = 4               # répit avant le cercle suivant
-curse    = sloth           # malédiction du cercle (data/curses.txt)
+interval = 1.1             # secondes entre deux apparitions, à la 1re vague
+max      = 10              # ennemis vivants en même temps, à la 1re vague
 enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
 ```
 
@@ -50,7 +52,9 @@ enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
 - Ennemis : `sloth`, `gluttony`, `lust`, `envy`, `greed`, `wrath`, `pride`.
 - Boss : `lucifer`.
 
-Pour un cercle de boss : `duration = 0` et `boss = lucifer`. Le cercle se termine à la mort du boss.
+**Difficulté croissante :** `interval` et `max` sont ceux de la première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage, et la vie des ennemis augmente d'une vague à l'autre sur toute l'arène. Ces montées se règlent dans `src/data/progression.txt` (`wave_spawn_growth`, `wave_max_growth`, `wave_health_growth`). Pour que la difficulté monte aussi d'un cercle à l'autre, donne aux cercles suivants un `interval` plus court, un `max` plus grand ou des ennemis plus forts.
+
+**Cercle de boss :** ajoute `boss = lucifer`. La dernière vague du cercle est celle du boss : elle dure jusqu'à sa mort. Avec `waves = 1`, le cercle n'a que la vague du boss.
 
 ## 4. Régler l'arène
 
@@ -75,7 +79,7 @@ Choisis `spawn = points` pour une carte faite de couloirs ou de pièces : autour
 
 - **Ctrl+Maj+B** dans VS Code : vérifie le code et les données.
 - **Sinwave - Jouer** : lance le jeu ; choisis ton arène au menu.
-- Dans la console du jeu (touche `²`), `sinwave_debug 1` affiche chaque événement : début des cercles, malédictions, boss...
+- Dans la console du jeu (touche `²`), `sinwave_debug 1` affiche chaque événement : début des cercles et des vagues, malédictions, boss...
 
 Une faute de frappe dans un fichier de données (ennemi inconnu, malédiction mal écrite...) est signalée en rouge dans la console, avec le fichier et la ligne.
 

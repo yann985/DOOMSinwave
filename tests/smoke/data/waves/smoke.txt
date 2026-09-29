@@ -1,20 +1,23 @@
-# Un cercle très court avec malédiction, puis un cercle de boss.
+# Un cercle très court de deux vagues avec malédiction, puis un cercle de boss
+# d'une seule vague (celle du boss). Le premier cercle dure 6 s de jeu en tout.
 
-[wave 1]
+[circle 1]
 name     = Test Paresse
-duration = 6
+curse    = sloth
+waves    = 2
+duration = 2.5
+pause    = 1
+break    = 1
 interval = 0.5
 max      = 6
-break    = 1
-curse    = sloth
 enemies  = sloth:1, gluttony:1
 
-[wave 2]
+[circle 2]
 name     = Test Boss
-duration = 0
+curse    = pride
+waves    = 1
 interval = 1
 max      = 3
 break    = 0
-curse    = pride
 boss     = lucifer
 enemies  = sloth:1
