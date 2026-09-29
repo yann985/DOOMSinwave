@@ -32,10 +32,11 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	Write-Host ""
 	Write-Host "=== Scénario : $Name"
 	# Configuration isolée : les réglages et la méta-progression du développeur ne sont pas touchés.
+	# Le jeu continue même si sa fenêtre passe à l'arrière-plan (sinon il se met en pause).
 	$config = Join-Path $BuildDir "smoke.ini"
 	$log = Join-Path $BuildDir "smoke-$Name.log"
 	Remove-Item $config, $log -ErrorAction SilentlyContinue
-	Set-Content $config -Encoding ASCII -Value "[GlobalSettings]`r`nvid_fullscreen=false`r`n"
+	Set-Content $config -Encoding ASCII -Value "[GlobalSettings]`r`nvid_fullscreen=false`r`ni_pauseinbackground=false`r`n"
 
 	# Une seule commande : « wait » ne retarde que la suite de la même ligne de commandes.
 	$scenario = (@("sinwave_debug 1", "disableautosave 1") + $Commands + @("quit")) -join "; "
@@ -53,8 +54,10 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	$remaining = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe -and $_.StartTime -ge $started }
 	if ($remaining)
 	{
+		# Le titre dit où il attendait : la partie, ou une fenêtre du moteur (choix du jeu, erreur).
+		$title = ($remaining | Select-Object -First 1).MainWindowTitle
 		$remaining | Stop-Process -Force
-		$failures += "Le jeu ne s'est pas fermé tout seul (délai de $TimeoutSeconds s dépassé)."
+		$failures += "Le jeu ne s'est pas fermé tout seul (délai de $TimeoutSeconds s dépassé, fenêtre « $title »)."
 	}
 	if (-not (Test-Path $log)) { return @("Aucun journal produit.") }
 	$lines = Get-Content $log -Encoding UTF8 | ForEach-Object { $_ -replace "\x1c(\[[^\]]*\]|.)", "" }
@@ -93,7 +96,8 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 
 $allFailures = @()
 
-# 1. Run complète gagnée : cercle maudit, XP, choix, pause, boss, victoire, sauvegarde, rechargement.
+# 1. Run complète gagnée : cercle maudit de deux vagues, XP, choix, pause, cercle du boss,
+#    victoire, sauvegarde, rechargement.
 $allFailures += Invoke-Scenario "victoire" @(
 	"wait 35", "god",
 	"wait 35", "netevent sinwave_confirm",		# t=70   Menu -> choix d'arène
@@ -111,8 +115,9 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
 	'Sinwave_StateChangedEvent : Rules -> InGame',
 	'Sinwave_RunStartedEvent',
-	'Sinwave_WaveStartedEvent : 1/2',
+	'Sinwave_CircleStartedEvent : 1/2',
 	'Sinwave_CurseStartedEvent : sloth',
+	'Sinwave_WaveStartedEvent : cercle 1, vague 1/2',
 	'Sinwave_EnemyKilledEvent',
 	'Sinwave_XpCollectedEvent',
 	'Sinwave_LevelUpEvent',
@@ -124,16 +129,18 @@ $allFailures += Invoke-Scenario "victoire" @(
 	'Sinwave_EffectGrantedEvent',
 	'Sinwave_StateChangedEvent : InGame -> Pause',
 	'Sinwave_StateChangedEvent : Pause -> InGame',
-	'Sinwave_WaveEndedEvent : 1',
+	'Sinwave_WaveEndedEvent : cercle 1, vague 2',			# la deuxième vague du cercle a eu lieu
+	'Sinwave_CircleEndedEvent : 1',
 	'Sinwave_CurseEndedEvent',
-	'Sinwave_WaveStartedEvent : 2/2',
+	'Sinwave_CircleStartedEvent : 2/2',
 	'Sinwave_CurseStartedEvent : pride',
+	'Sinwave_WaveStartedEvent : cercle 2, vague 1/1',		# le cercle du boss n'a que sa vague
 	'Sinwave_BossSpawnedEvent : lucifer',
 	'Sinwave_BossDefeatedEvent',
-	'Sinwave_AllWavesClearedEvent',
+	'Sinwave_AllCirclesClearedEvent',
 	'Sinwave_StateChangedEvent : InGame -> GameOver',
 	'Sinwave_RunEndedEvent : victoire',
-	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*absolution',
+	'Sinwave_MetaSavedEvent : \+[1-9]\d* indulgences .*(absolution|purgatoire|damnation), jugement \d+ -> \d+',
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après la sauvegarde
 	'Sinwave_MetaLoadedEvent : [1-9]\d* indulgences',		# après le rechargement : relu depuis les CVars
 	'Sinwave_StateChangedEvent : None -> Menu'
@@ -160,12 +167,14 @@ $allFailures += Invoke-Scenario "mort" @(
 )
 
 # 3. Boutique puis voyage vers l'autre arène : les achats s'appliquent au début de la run.
+#    Jugement neutre : l'armurerie et l'Équilibre sont ouverts, la Grâce est fermée.
 $allFailures += Invoke-Scenario "boutique" @(
 	"sinwave_meta_indulgences 500",
 	"wait 35", "netevent sinwave_shop",			# Menu -> boutique
 	"wait 5", "netevent sinwave_buy 0",			# fusil à pompe (15)
-	"wait 5", "netevent sinwave_buy 4",			# Vigueur niveau 1 (10)
+	"wait 5", "netevent sinwave_buy 10",		# Balance d'Astrée, Équilibre (25)
 	"wait 5", "netevent sinwave_buy 0",			# déjà acheté : refusé
+	"wait 5", "netevent sinwave_buy 2",			# Vigueur, Grâce I : verrouillée
 	"wait 5", "netevent sinwave_back",			# retour au menu
 	"wait 5", "netevent sinwave_confirm",		# choix d'arène...
 	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : écran des règles
@@ -178,19 +187,20 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_StateChangedEvent : Menu -> Shop',
 	'Sinwave_PurchaseEvent : shotgun ok',
 	'Sinwave_MetaLoadedEvent : 485 indulgences',
-	'Sinwave_PurchaseEvent : vigor ok',
-	'Sinwave_MetaLoadedEvent : 475 indulgences',
+	'Sinwave_PurchaseEvent : astraea ok',
+	'Sinwave_MetaLoadedEvent : 460 indulgences',
 	'Sinwave_PurchaseEvent : shotgun refusé',
+	'Sinwave_PurchaseEvent : vigor refusé',					# rayon fermé par le Jugement
 	'Sinwave_StateChangedEvent : Shop -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> ArenaSelect',
 	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
 	'Sinwave_RulesChangedEvent : health=1\.25',
 	'Sinwave_RulesChangedEvent : .*circle=2',
-	'Sinwave_MetaLoadedEvent : 475 indulgences',			# nouvelle carte : méta relue
+	'Sinwave_MetaLoadedEvent : 460 indulgences',			# nouvelle carte : méta relue
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',
-	'Sinwave_WaveStartedEvent : 2/2',						# départ au cercle choisi
+	'Sinwave_CircleStartedEvent : 2/2',						# départ au cercle choisi
 	'Sinwave_EffectGrantedEvent : give Shotgun',
 	'Sinwave_EffectGrantedEvent : maxhealth'
 )

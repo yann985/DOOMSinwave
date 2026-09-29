@@ -9,20 +9,38 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 ## Jouer
 
 1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 3 minutes) ou **Les Limbes** (3 cercles, plus dur et mieux payé). Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
-2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés.
-3. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis entre deux **vertus** et un **péché**, plus puissant mais avec un défaut.
-4. Les péchés remplissent ta **corruption** ; au seuil, la run finit en **Damnation** plutôt qu'en **Absolution**.
-5. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique** : des armes de départ et des améliorations permanentes.
+2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
+3. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche.
+4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis entre deux **vertus** et un **péché**, plus puissant mais avec un défaut.
+5. Tes choix font pencher la **balance de l'âme** (corruption de 0 à 30, départ à 15, l'équilibre) : les péchés la font monter, les vertus descendre. Plus elle penche, plus la partie change :
+   - vers le péché : plus de munitions et moins de soins, jusqu'aux **munitions infinies** ;
+   - vers la vertu : l'inverse, jusqu'à l'**aura sainte** ;
+   - la pente est glissante : une âme qui penche se voit proposer plus de choix de son côté ;
+   - reste 20 secondes au bout de la balance : ton **reflet damné** surgit (un mini-boss qui rapporte beaucoup d'XP), ou un **ange** vient te soigner ;
+   - Lucifer suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
 
-| Touche | Action |
-|---|---|
-| Utiliser (E / Espace) | Choisir l'arène et lancer la run, recommencer après le bilan |
-| B | Boutique des indulgences (écran titre ou écran de fin) |
-| P | Pause de la run |
-| 1 à 9 ou flèches + Entrée | Choisir dans les menus |
-| Gauche / Droite | Régler une valeur (règles de la descente) |
+   En fin de run : **Absolution**, **Purgatoire** ou **Damnation**.
+6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique**. Elle a quatre rayons :
+   - l'**Armurerie**, toujours ouverte ;
+   - la **Grâce** (vie, défense, soins), l'**Équilibre** (objets compensés) et la **Corruption** (dégâts, vitesse), ouverts selon ton **Jugement**.
 
-Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom.
+   Le Jugement est la réputation de ton âme, gardée d'une run à l'autre (de 0 à 100, neutre à 50). Il bouge à chaque fin de run, d'autant plus que l'âme a penché. Plus il s'éloigne du neutre, meilleurs sont les objets ouverts de son côté. Un rayon se referme si le Jugement revient en arrière, mais un objet déjà acheté reste à toi.
+
+   En haut de la boutique, une jauge montre ton Jugement comme la balance de l'âme en run : ses paliers, le chemin de ta dernière run, et la zone à atteindre pour l'objet verrouillé que tu regardes.
+
+Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activée automatiquement par les lanceurs).
+
+| Action | Clavier | Souris | Manette |
+|---|---|---|---|
+| Se déplacer, viser, tirer | touches de GZDoom | viser, clic pour tirer | stick gauche, stick droit, gâchette droite |
+| Choisir l'arène, recommencer après le bilan | Utiliser (E) | | A |
+| Boutique des indulgences (écran titre ou écran de fin) | B | | B |
+| Pause de la run | P | | Start |
+| Choisir dans un menu | flèches + Entrée, ou 1 à 9 | survol + clic, molette | croix ou stick gauche + A |
+| Régler une valeur (règles de la descente), changer de rayon (boutique) | Gauche / Droite | clic sur `<` ou `>`, clic sur un rayon | croix gauche / droite |
+| Revenir en arrière | Échap | clic droit ou bouton *Retour* | B |
+
+Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom. Hors d'une run, Start ouvre le menu de GZDoom (options, quitter).
 
 ## Démarrage rapide (développement)
 
@@ -60,7 +78,7 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/data/          définitions chargées depuis data/, sauvegarde
   zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
-  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, boutique
+  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, âme, boutique, Jugement
   maps/                  SW01 Les Limbes, SW02 Le Purgatoire (tools/generate-arena.ps1)
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging

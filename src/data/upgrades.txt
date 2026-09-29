@@ -1,5 +1,7 @@
-# Choix proposés à chaque montée de niveau : des vertus (sûres) et des péchés
-# (puissants, avec un défaut, qui augmentent la corruption).
+# Choix proposés à chaque montée de niveau : des vertus (modestes, qui purifient
+# l'âme) et des péchés (puissants, avec un défaut, qui la corrompent).
+# La corruption fait pencher la balance de l'âme (data/soul.txt) : à chaque palier
+# franchi, d'un côté ou de l'autre, la partie change.
 #
 #   name        : nom affiché
 #   description : texte affiché sous le nom
@@ -7,75 +9,83 @@
 #   corruption  : corruption ajoutée (négative : la vertu purifie)
 #   effects     : liste d'effets « type:valeur », séparés par des virgules
 #                 types : maxhealth, heal, armor, damage, vulnerability, speed,
-#                         regen, magnet, xpgain, give (give:Classe ou give:Classe:nombre)
+#                         regen, magnet, xpgain, aura, infiniteammo,
+#                         give (give:Classe ou give:Classe:nombre)
 #   max         : nombre de fois où il peut être choisi pendant une run
 
-# --- Les sept vertus -------------------------------------------------------
+# --- Les sept vertus : un petit bonus, et l'âme se purifie ---------------------
 
 [upgrade temperance]
 name        = Tempérance
-description = +25 points de vie maximum
+description = +15 points de vie maximum
 kind        = virtue
-effects     = maxhealth:25
+corruption  = -3
+effects     = maxhealth:15
 max         = 4
 
 [upgrade diligence]
 name        = Diligence
-description = +10 % de vitesse de déplacement
+description = +7 % de vitesse de déplacement
 kind        = virtue
-effects     = speed:0.1
+corruption  = -3
+effects     = speed:0.07
 max         = 3
 
 [upgrade patience]
 name        = Patience
-description = Régénère 1 point de vie par seconde
+description = Régénère 1 point de vie toutes les 2 secondes
 kind        = virtue
-effects     = regen:1
+corruption  = -3
+effects     = regen:0.5
 max         = 3
 
 [upgrade chastity]
 name        = Chasteté
-description = +20 % de dégâts infligés
+description = +10 % de dégâts infligés
 kind        = virtue
-effects     = damage:0.2
+corruption  = -3
+effects     = damage:0.1
 max         = 5
 
 [upgrade charity]
 name        = Charité
-description = Les orbes d'expérience sont attirées 50 % plus loin
+description = Les orbes d'expérience sont attirées 30 % plus loin
 kind        = virtue
-effects     = magnet:0.5
+corruption  = -3
+effects     = magnet:0.3
 max         = 3
 
 [upgrade humility]
 name        = Humilité
-description = +25 % d'expérience gagnée
+description = +15 % d'expérience gagnée
 kind        = virtue
-effects     = xpgain:0.25
+corruption  = -3
+effects     = xpgain:0.15
 max         = 3
 
 [upgrade kindness]
 name        = Bienveillance
-description = +50 points d'armure
+description = +30 points d'armure
 kind        = virtue
-effects     = armor:50
+corruption  = -3
+effects     = armor:30
 max         = 4
 
 [upgrade penance]
 name        = Pénitence
-description = Soigne 30 points de vie et purifie ton âme
+description = Soigne 20 points de vie et purifie profondément ton âme
 kind        = virtue
-corruption  = -2
-effects     = heal:30
+corruption  = -5
+effects     = heal:20
 max         = 3
 
-# --- Les sept péchés : puissants, mais avec un défaut -------------------------
+# --- Les sept péchés : puissants, avec un défaut, et l'âme se corrompt ---------
 
 [upgrade sin_gluttony]
 name        = Gourmandise
 description = +50 PV maximum, mais -15 % de vitesse
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = maxhealth:50, speed:-0.15
 max         = 2
 
@@ -83,7 +93,7 @@ max         = 2
 name        = Colère
 description = +40 % de dégâts, mais tu subis +25 % de dégâts
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = damage:0.4, vulnerability:0.25
 max         = 2
 
@@ -91,7 +101,7 @@ max         = 2
 name        = Avarice
 description = +60 % d'expérience, mais attraction des orbes réduite de moitié
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = xpgain:0.6, magnet:-0.5
 max         = 2
 
@@ -99,7 +109,7 @@ max         = 2
 name        = Paresse
 description = Régénère 3 PV par seconde, mais -20 % de dégâts
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = regen:3, damage:-0.2
 max         = 2
 
@@ -107,7 +117,7 @@ max         = 2
 name        = Luxure
 description = +25 % de vitesse, mais -25 PV maximum
 kind        = sin
-corruption  = 2
+corruption  = 3
 effects     = speed:0.25, maxhealth:-25
 max         = 2
 
@@ -115,7 +125,7 @@ max         = 2
 name        = Envie
 description = Vole un super fusil de chasse, mais tu subis +15 % de dégâts
 kind        = sin
-corruption  = 3
+corruption  = 4
 effects     = give:SuperShotgun, give:Shell:20, vulnerability:0.15
 max         = 1
 
@@ -123,6 +133,6 @@ max         = 1
 name        = Orgueil
 description = +30 % dégâts, +20 % vitesse, mais +50 % de dégâts subis
 kind        = sin
-corruption  = 3
+corruption  = 4
 effects     = damage:0.3, speed:0.2, vulnerability:0.5
 max         = 1

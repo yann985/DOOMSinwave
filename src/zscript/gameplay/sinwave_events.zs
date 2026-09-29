@@ -181,22 +181,23 @@ class Sinwave_RunEndedEvent : Sinwave_Event
 	}
 }
 
-// --- Cercles, ennemis et boss (Sinwave_WaveSystem, Sinwave_BossSystem) -------
+// --- Cercles, vagues, ennemis et boss (Sinwave_WaveSystem, Sinwave_BossSystem) -
+//
+// Une run traverse des cercles ; chaque cercle enchaîne plusieurs vagues.
+//   CircleStarted, WaveStarted, WaveEnded, WaveStarted, ..., WaveEnded, CircleEnded
 
-class Sinwave_WaveStartedEvent : Sinwave_Event
+class Sinwave_CircleStartedEvent : Sinwave_Event
 {
 	int mIndex;
 	int mCount;
 	String mName;
-	int mDurationTics;	// 0 : jusqu'à la mort du boss
 
-	static Sinwave_WaveStartedEvent Create(int index, int count, String name, int durationTics)
+	static Sinwave_CircleStartedEvent Create(int index, int count, String name)
 	{
-		let e = new('Sinwave_WaveStartedEvent');
+		let e = new('Sinwave_CircleStartedEvent');
 		e.mIndex = index;
 		e.mCount = count;
 		e.mName = name;
-		e.mDurationTics = durationTics;
 		return e;
 	}
 
@@ -206,13 +207,13 @@ class Sinwave_WaveStartedEvent : Sinwave_Event
 	}
 }
 
-class Sinwave_WaveEndedEvent : Sinwave_Event
+class Sinwave_CircleEndedEvent : Sinwave_Event
 {
 	int mIndex;
 
-	static Sinwave_WaveEndedEvent Create(int index)
+	static Sinwave_CircleEndedEvent Create(int index)
 	{
-		let e = new('Sinwave_WaveEndedEvent');
+		let e = new('Sinwave_CircleEndedEvent');
 		e.mIndex = index;
 		return e;
 	}
@@ -223,8 +224,88 @@ class Sinwave_WaveEndedEvent : Sinwave_Event
 	}
 }
 
+class Sinwave_WaveStartedEvent : Sinwave_Event
+{
+	int mCircle;
+	int mIndex;			// vague dans le cercle
+	int mCount;			// vagues du cercle
+	int mDurationTics;	// 0 : jusqu'à la mort du boss
+
+	static Sinwave_WaveStartedEvent Create(int circle, int index, int count, int durationTics)
+	{
+		let e = new('Sinwave_WaveStartedEvent');
+		e.mCircle = circle;
+		e.mIndex = index;
+		e.mCount = count;
+		e.mDurationTics = durationTics;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("cercle %d, vague %d/%d", mCircle + 1, mIndex + 1, mCount);
+	}
+}
+
+class Sinwave_WaveEndedEvent : Sinwave_Event
+{
+	int mCircle;
+	int mIndex;
+
+	static Sinwave_WaveEndedEvent Create(int circle, int index)
+	{
+		let e = new('Sinwave_WaveEndedEvent');
+		e.mCircle = circle;
+		e.mIndex = index;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("cercle %d, vague %d", mCircle + 1, mIndex + 1);
+	}
+}
+
 // Tous les cercles sont franchis : la run est gagnée.
-class Sinwave_AllWavesClearedEvent : Sinwave_Event {}
+class Sinwave_AllCirclesClearedEvent : Sinwave_Event {}
+
+// --- Menaces (Sinwave_ThreatSystem) ------------------------------------------
+
+// Une attaque se prépare contre le joueur : un ennemi prend son élan, ou un de
+// ses projectiles arrive. Annoncée avant l'impact.
+class Sinwave_ThreatStartedEvent : Sinwave_Event
+{
+	Actor mSource;	// l'ennemi ou le projectile
+
+	static Sinwave_ThreatStartedEvent Create(Actor source)
+	{
+		let e = new('Sinwave_ThreatStartedEvent');
+		e.mSource = source;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSource != null ? String.Format("%s", mSource.GetClassName()) : "?";
+	}
+}
+
+class Sinwave_ThreatEndedEvent : Sinwave_Event
+{
+	Actor mSource;
+
+	static Sinwave_ThreatEndedEvent Create(Actor source)
+	{
+		let e = new('Sinwave_ThreatEndedEvent');
+		e.mSource = source;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSource != null ? String.Format("%s", mSource.GetClassName()) : "?";
+	}
+}
 
 class Sinwave_EnemyKilledEvent : Sinwave_Event
 {
@@ -245,17 +326,20 @@ class Sinwave_EnemyKilledEvent : Sinwave_Event
 	}
 }
 
-// Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss...).
+// Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss,
+// épreuve de l'âme...). Les renforts d'un boss (escort) suivent la balance de l'âme.
 class Sinwave_SpawnRequestedEvent : Sinwave_Event
 {
 	Name mEnemyId;
 	int mCount;
+	bool mEscort;
 
-	static Sinwave_SpawnRequestedEvent Create(Name enemyId, int count)
+	static Sinwave_SpawnRequestedEvent Create(Name enemyId, int count, bool escort = false)
 	{
 		let e = new('Sinwave_SpawnRequestedEvent');
 		e.mEnemyId = enemyId;
 		e.mCount = count;
+		e.mEscort = escort;
 		return e;
 	}
 
@@ -449,28 +533,129 @@ class Sinwave_EffectGrantedEvent : Sinwave_Event
 	}
 }
 
-// La corruption de la run a changé. La règle du verdict est ici, à un seul endroit.
+// La corruption (balance de l'âme) a changé. La règle du verdict est ici, à un
+// seul endroit : un palier du péché atteint, Damnation ; un palier de la vertu,
+// Absolution ; sinon, Purgatoire.
 class Sinwave_CorruptionChangedEvent : Sinwave_Event
 {
-	int mCorruption;
-	int mThreshold;
+	enum EVerdict
+	{
+		VERDICT_ABSOLUTION,
+		VERDICT_PURGATORY,
+		VERDICT_DAMNATION
+	}
 
-	static Sinwave_CorruptionChangedEvent Create(int corruption, int threshold)
+	int mCorruption;
+	Sinwave_SoulDef mSoul;
+	int mSide;						// +1 : péché ; -1 : vertu ; 0 : équilibre
+	int mLevel;						// paliers atteints de ce côté (0 à 3)
+	Sinwave_SoulTierDef mTier;		// le plus extrême des paliers atteints (ou null)
+
+	static Sinwave_CorruptionChangedEvent Create(int corruption, Sinwave_SoulDef soul)
 	{
 		let e = new('Sinwave_CorruptionChangedEvent');
 		e.mCorruption = corruption;
-		e.mThreshold = threshold;
+		e.mSoul = soul;
+		e.mSide = soul.Side(corruption);
+		Array<Sinwave_SoulTierDef> reached;
+		soul.ReachedTiers(corruption, reached);
+		e.mLevel = reached.Size();
+		e.mTier = reached.Size() > 0 ? reached[reached.Size() - 1] : null;
 		return e;
 	}
 
-	bool IsDamned()
+	int Verdict()
 	{
-		return mCorruption >= mThreshold;
+		if (mLevel == 0) return VERDICT_PURGATORY;
+		return mSide > 0 ? VERDICT_DAMNATION : VERDICT_ABSOLUTION;
+	}
+
+	static String VerdictName(int verdict)
+	{
+		static const String NAMES[] = { "absolution", "purgatoire", "damnation" };
+		return NAMES[clamp(verdict, 0, 2)];
 	}
 
 	override String Describe()
 	{
-		return String.Format("%d/%d", mCorruption, mThreshold);
+		return String.Format("%d/%d (%s)", mCorruption, mSoul.mMax, mTier != null ? mTier.mName : "équilibre");
+	}
+}
+
+// Un objet ramassable vient d'apparaître dans le monde (butin, objet lâché par un
+// monstre...). Publié par Sinwave_Game depuis le moteur.
+class Sinwave_ItemSpawnedEvent : Sinwave_Event
+{
+	Inventory mItem;
+
+	static Sinwave_ItemSpawnedEvent Create(Inventory item)
+	{
+		let e = new('Sinwave_ItemSpawnedEvent');
+		e.mItem = item;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mItem != null ? String.Format("%s", mItem.GetClassName()) : "?";
+	}
+}
+
+// Débogage : décale l'âme sans passer par un choix (« netevent sinwave_soul 5 »
+// dans la console, avec sinwave_debug 1). Sert à essayer les paliers.
+class Sinwave_SoulShiftEvent : Sinwave_Event
+{
+	int mDelta;
+
+	static Sinwave_SoulShiftEvent Create(int delta)
+	{
+		let e = new('Sinwave_SoulShiftEvent');
+		e.mDelta = delta;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%+d", mDelta);
+	}
+}
+
+// Épreuve de l'âme (Sinwave_SoulTrialSystem) : +1, ton reflet damné surgit ;
+// -1, un ange te visite.
+class Sinwave_SoulTrialEvent : Sinwave_Event
+{
+	int mSide;
+
+	static Sinwave_SoulTrialEvent Create(int side)
+	{
+		let e = new('Sinwave_SoulTrialEvent');
+		e.mSide = side;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSide > 0 ? "reflet damné" : "ange";
+	}
+}
+
+// Un palier de la balance de l'âme vient d'être atteint (reached) ou perdu.
+class Sinwave_SoulTierChangedEvent : Sinwave_Event
+{
+	Sinwave_SoulTierDef mTier;
+	bool mReached;
+
+	static Sinwave_SoulTierChangedEvent Create(Sinwave_SoulTierDef tier, bool reached)
+	{
+		let e = new('Sinwave_SoulTierChangedEvent');
+		e.mTier = tier;
+		e.mReached = reached;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s %s", mTier.mName, mReached ? "atteint" : "perdu");
 	}
 }
 
@@ -528,7 +713,7 @@ class Sinwave_MetaLoadedEvent : Sinwave_Event
 
 	override String Describe()
 	{
-		return String.Format("%d indulgences, record %d, %d runs", mMeta.mIndulgences, mMeta.mBestScore, mMeta.mRuns);
+		return String.Format("%d indulgences, record %d, %d runs, jugement %d", mMeta.mIndulgences, mMeta.mBestScore, mMeta.mRuns, mMeta.mJudgement);
 	}
 }
 
@@ -560,20 +745,23 @@ class Sinwave_MetaSavedEvent : Sinwave_Event
 	Sinwave_MetaData mMeta;
 	int mEarned;
 	bool mNewBest;
-	bool mDamned;
+	int mVerdict;			// Sinwave_CorruptionChangedEvent.VERDICT_...
+	int mJudgementBefore;	// Jugement avant la run (le nouveau est dans mMeta)
 
-	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, bool damned)
+	static Sinwave_MetaSavedEvent Create(Sinwave_MetaData metaData, int earned, bool newBest, int verdict, int judgementBefore)
 	{
 		let e = new('Sinwave_MetaSavedEvent');
 		e.mMeta = metaData;
 		e.mEarned = earned;
 		e.mNewBest = newBest;
-		e.mDamned = damned;
+		e.mVerdict = verdict;
+		e.mJudgementBefore = judgementBefore;
 		return e;
 	}
 
 	override String Describe()
 	{
-		return String.Format("+%d indulgences (total %d), %s", mEarned, mMeta.mIndulgences, mDamned ? "damnation" : "absolution");
+		return String.Format("+%d indulgences (total %d), %s, jugement %d -> %d", mEarned, mMeta.mIndulgences,
+			Sinwave_CorruptionChangedEvent.VerdictName(mVerdict), mJudgementBefore, mMeta.mJudgement);
 	}
 }

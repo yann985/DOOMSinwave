@@ -4,7 +4,7 @@
 //
 //  Les fichiers sont lus au chargement de la carte, puis vérifiés (références
 //  croisées, doublons). L'arène courante est celle dont la carte est chargée ;
-//  ses vagues viennent de son propre fichier (data/waves/...). Les systèmes lisent
+//  ses cercles viennent de son propre fichier (data/waves/...). Les systèmes lisent
 //  ces données sans jamais les modifier. Un mod peut remplacer n'importe quel
 //  fichier, ou ajouter des arènes, dans une archive chargée après sinwave.pk3.
 
@@ -18,11 +18,13 @@ class Sinwave_GameData : Sinwave_Service
 	Array<Sinwave_ArenaDef> mArenas;
 	Array<Sinwave_DifficultyDef> mDifficulties;
 	Sinwave_ProgressionDef mProgression;
+	Sinwave_SoulDef mSoul;
+	Sinwave_JudgementDef mJudgement;
 
-	// Arène de la carte courante et ses vagues.
+	// Arène de la carte courante et ses cercles.
 	Sinwave_ArenaDef mArena;
 	int mArenaIndex;
-	Array<Sinwave_WaveDef> mWaves;
+	Array<Sinwave_CircleDef> mCircles;
 
 	static Sinwave_GameData From(Sinwave_Services services)
 	{
@@ -71,6 +73,14 @@ class Sinwave_GameData : Sinwave_Service
 		ReadBlocks("data/progression.txt", 'progression', blocks);
 		mProgression = Sinwave_ProgressionDef.FromBlock(blocks.Size() > 0 ? blocks[0] : null);
 
+		// Balance de l'âme : un bloc [soul] et des blocs [tier] dans le même fichier.
+		Array<Sinwave_DataBlock> soulBlocks;
+		Sinwave_DataParser.ParseLump("data/soul.txt", soulBlocks);
+		mSoul = Sinwave_SoulDef.FromBlocks(soulBlocks);
+
+		ReadBlocks("data/judgement.txt", 'judgement', blocks);
+		mJudgement = Sinwave_JudgementDef.FromBlock(blocks.Size() > 0 ? blocks[0] : null);
+
 		ReadBlocks("data/difficulties.txt", 'difficulty', blocks);
 		for (int i = 0; i < blocks.Size(); i++)
 		{
@@ -83,9 +93,9 @@ class Sinwave_GameData : Sinwave_Service
 			let def = Sinwave_ArenaDef.FromBlock(blocks[i]);
 			if (def == null) continue;
 			// Noms des cercles de chaque arène, pour choisir le cercle de départ avant d'y aller.
-			Array<Sinwave_DataBlock> waveBlocks;
-			ReadBlocks(def.mWavesFile, 'wave', waveBlocks);
-			for (int k = 0; k < waveBlocks.Size(); k++) def.mCircleNames.Push(waveBlocks[k].GetString("name", waveBlocks[k].mId));
+			Array<Sinwave_DataBlock> circleBlocks;
+			ReadBlocks(def.mWavesFile, 'circle', circleBlocks);
+			for (int k = 0; k < circleBlocks.Size(); k++) def.mCircleNames.Push(circleBlocks[k].GetString("name", circleBlocks[k].mId));
 			mArenas.Push(def);
 		}
 
@@ -93,7 +103,17 @@ class Sinwave_GameData : Sinwave_Service
 
 		Console.Printf("[Sinwave] Données chargées : %d systèmes, %d ennemis, %d malédictions, %d améliorations, %d articles, %d arènes.",
 			mSystems.Size(), mEnemies.Size(), mCurses.Size(), mUpgrades.Size(), mShopItems.Size(), mArenas.Size());
-		if (mArena != null) Console.Printf("[Sinwave] Arène : %s (%d cercles).", mArena.mName, mWaves.Size());
+		if (mArena != null) Console.Printf("[Sinwave] Arène : %s (%d cercles, %d vagues).", mArena.mName, mCircles.Size(), WaveRank(mCircles.Size(), 0));
+	}
+
+	// Rang d'une vague depuis le début de l'arène (0 : première vague du premier
+	// cercle), quel que soit le cercle de départ choisi : la difficulté d'une vague
+	// ne dépend que de sa place dans l'arène.
+	int WaveRank(int circle, int wave)
+	{
+		int rank = wave;
+		for (int i = 0; i < circle && i < mCircles.Size(); i++) rank += mCircles[i].mWaveCount;
+		return rank;
 	}
 
 	Sinwave_EnemyDef FindEnemy(Name id)
@@ -159,13 +179,13 @@ class Sinwave_GameData : Sinwave_Service
 		}
 
 		Array<Sinwave_DataBlock> blocks;
-		ReadBlocks(mArena.mWavesFile, 'wave', blocks);
+		ReadBlocks(mArena.mWavesFile, 'circle', blocks);
 		for (int i = 0; i < blocks.Size(); i++)
 		{
-			let def = Sinwave_WaveDef.FromBlock(blocks[i]);
-			if (ValidateWave(def, blocks[i])) mWaves.Push(def);
+			let def = Sinwave_CircleDef.FromBlock(blocks[i]);
+			if (ValidateCircle(def, blocks[i])) mCircles.Push(def);
 		}
-		if (mWaves.Size() == 0) Console.Printf("\cg[Sinwave] Aucune vague valide : la run se terminera immédiatement.");
+		if (mCircles.Size() == 0) Console.Printf("\cg[Sinwave] Aucun cercle valide : la run se terminera immédiatement.");
 	}
 
 	// Lit un fichier et ne garde que les blocs du type attendu.
@@ -181,30 +201,30 @@ class Sinwave_GameData : Sinwave_Service
 		}
 	}
 
-	// Une vague ne doit référencer que des ennemis, une malédiction et un boss existants.
-	private bool ValidateWave(Sinwave_WaveDef wave, Sinwave_DataBlock block)
+	// Un cercle ne doit référencer que des ennemis, une malédiction et un boss existants.
+	private bool ValidateCircle(Sinwave_CircleDef circle, Sinwave_DataBlock block)
 	{
-		for (int i = wave.mEnemyIds.Size() - 1; i >= 0; i--)
+		for (int i = circle.mEnemyIds.Size() - 1; i >= 0; i--)
 		{
-			if (FindEnemy(wave.mEnemyIds[i]) == null)
+			if (FindEnemy(circle.mEnemyIds[i]) == null)
 			{
-				block.Warn(String.Format("ennemi inconnu : \"%s\".", wave.mEnemyIds[i]));
-				wave.RemoveEnemyAt(i);
+				block.Warn(String.Format("ennemi inconnu : \"%s\".", circle.mEnemyIds[i]));
+				circle.RemoveEnemyAt(i);
 			}
 		}
-		if (wave.mCurseId != 'None' && FindCurse(wave.mCurseId) == null)
+		if (circle.mCurseId != 'None' && FindCurse(circle.mCurseId) == null)
 		{
-			block.Warn(String.Format("malédiction inconnue : \"%s\".", wave.mCurseId));
-			wave.mCurseId = 'None';
+			block.Warn(String.Format("malédiction inconnue : \"%s\".", circle.mCurseId));
+			circle.mCurseId = 'None';
 		}
-		if (wave.HasBoss() && FindEnemy(wave.mBossId) == null)
+		if (circle.HasBoss() && FindEnemy(circle.mBossId) == null)
 		{
-			block.Warn(String.Format("boss inconnu : \"%s\".", wave.mBossId));
+			block.Warn(String.Format("boss inconnu : \"%s\".", circle.mBossId));
 			return false;
 		}
-		if (wave.mEnemyIds.Size() == 0 && !wave.HasBoss())
+		if (circle.mEnemyIds.Size() == 0 && !circle.HasBoss())
 		{
-			block.Warn("aucun ennemi valide, vague ignorée.");
+			block.Warn("aucun ennemi valide, cercle ignoré.");
 			return false;
 		}
 		return true;

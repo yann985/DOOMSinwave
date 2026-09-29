@@ -2,15 +2,18 @@
 //  Méta-progression : indulgences, record et boutique, conservés entre les runs.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunEnded, ScoreChanged, WaveEnded, CorruptionChanged,
+//  Écoute : RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged,
 //           ShopBuyRequested, GameLoaded
 //  Publie : MetaLoaded, MetaSaved, Purchase, EffectGranted (achats de la boutique)
 //
 //  Gagner : à la fin de la run, les indulgences viennent du score, des cercles
-//  franchis et du verdict (Absolution ou Damnation), multipliées par la
+//  franchis et du verdict (Absolution, Purgatoire ou Damnation), multipliées par la
 //  récompense de l'arène et celle des règles de la descente (difficulté).
 //  Dépenser : à la boutique, entre les runs, contre des armes et des améliorations
 //  permanentes, accordées au début de chaque run.
+//  Juger : à la fin de la run, le Jugement (data/judgement.txt) bouge selon le
+//  palier de l'âme atteint ; il décide des rayons ouverts de la boutique. Un
+//  article déjà acheté reste achetable, même si son rayon se referme.
 //
 //  Ne connaît ni les vagues, ni le score, ni la corruption : il retient seulement
 //  les valeurs annoncées sur le bus, et passe par le service de sauvegarde sans
@@ -23,18 +26,20 @@ class Sinwave_MetaSystem : Sinwave_System
 	private Sinwave_MetaData mMeta;
 	private bool mRunning;
 	private int mScore;
-	private int mWavesEnded;
-	private bool mDamned;
+	private int mCirclesEnded;
+	private int mVerdict;	// Sinwave_CorruptionChangedEvent.VERDICT_...
+	private int mSoulSide;	// côté et palier de l'âme, pour le Jugement
+	private int mSoulLevel;
 
 	override void Setup()
 	{
 		mSave = Sinwave_SaveService.From(mServices);
 		mData = Sinwave_GameData.From(mServices);
-		mMeta = mSave.Load();
+		mMeta = LoadMeta();
 		mBus.Subscribe(self, 'Sinwave_RunStartedEvent');
 		mBus.Subscribe(self, 'Sinwave_RunEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_ScoreChangedEvent');
-		mBus.Subscribe(self, 'Sinwave_WaveEndedEvent');
+		mBus.Subscribe(self, 'Sinwave_CircleEndedEvent');
 		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
 		mBus.Subscribe(self, 'Sinwave_ShopBuyRequestedEvent');
 		mBus.Subscribe(self, 'Sinwave_GameLoadedEvent');
@@ -51,21 +56,26 @@ class Sinwave_MetaSystem : Sinwave_System
 		{
 			mRunning = true;
 			mScore = 0;
-			mWavesEnded = 0;
-			mDamned = false;
+			mCirclesEnded = 0;
+			mVerdict = Sinwave_CorruptionChangedEvent.VERDICT_PURGATORY;
+			mSoulSide = 0;
+			mSoulLevel = 0;
 			GrantPurchases();
 		}
 		else if (e is 'Sinwave_ScoreChangedEvent')
 		{
 			mScore = Sinwave_ScoreChangedEvent(e).mScore;
 		}
-		else if (e is 'Sinwave_WaveEndedEvent')
+		else if (e is 'Sinwave_CircleEndedEvent')
 		{
-			mWavesEnded++;
+			mCirclesEnded++;
 		}
 		else if (e is 'Sinwave_CorruptionChangedEvent')
 		{
-			mDamned = Sinwave_CorruptionChangedEvent(e).IsDamned();
+			let soul = Sinwave_CorruptionChangedEvent(e);
+			mVerdict = soul.Verdict();
+			mSoulSide = soul.mSide;
+			mSoulLevel = soul.mLevel;
 		}
 		else if (e is 'Sinwave_RunEndedEvent' && mRunning)
 		{
@@ -79,9 +89,17 @@ class Sinwave_MetaSystem : Sinwave_System
 		else if (e is 'Sinwave_GameLoadedEvent')
 		{
 			// La sauvegarde de partie contient d'anciennes valeurs : on relit la méta.
-			mMeta = mSave.Load();
+			mMeta = LoadMeta();
 			PublishMeta();
 		}
+	}
+
+	// Un Jugement jamais fixé (première partie) part de la neutralité.
+	private Sinwave_MetaData LoadMeta()
+	{
+		let metaData = mSave.Load();
+		if (metaData.mJudgement < 0) metaData.mJudgement = mData.mJudgement.mNeutral;
+		return metaData;
 	}
 
 	// Chaque niveau acheté d'un article applique ses effets au début de la run.
@@ -112,6 +130,11 @@ class Sinwave_MetaSystem : Sinwave_System
 			return;
 		}
 		int level = mMeta.GetLevel(item.mId);
+		if (!mData.mJudgement.CanBuy(item, mMeta.mJudgement, level))
+		{
+			mBus.Publish(Sinwave_PurchaseEvent.Create(item, false, "Verrouillé. " .. mData.mJudgement.Requirement(item) .. "."));
+			return;
+		}
 		if (level >= item.mMaxLevel)
 		{
 			mBus.Publish(Sinwave_PurchaseEvent.Create(item, false, "Déjà au niveau maximum."));
@@ -134,10 +157,15 @@ class Sinwave_MetaSystem : Sinwave_System
 	private void SaveRun(int reason)
 	{
 		let progression = mData.mProgression;
-		int earned = mScore / progression.mIndulgencesPerScore + mWavesEnded * progression.mIndulgencesPerCircle;
+		int earned = mScore / progression.mIndulgencesPerScore + mCirclesEnded * progression.mIndulgencesPerCircle;
 		if (reason == Sinwave_RunEndedEvent.REASON_VICTORY)
 		{
-			earned += mDamned ? progression.mIndulgencesDamnation : progression.mIndulgencesAbsolution;
+			switch (mVerdict)
+			{
+			case Sinwave_CorruptionChangedEvent.VERDICT_ABSOLUTION:	earned += progression.mIndulgencesAbsolution; break;
+			case Sinwave_CorruptionChangedEvent.VERDICT_DAMNATION:	earned += progression.mIndulgencesDamnation; break;
+			default:												earned += progression.mIndulgencesPurgatory; break;
+			}
 		}
 		// Arènes et règles plus dures rapportent davantage.
 		earned = int(earned * mData.mArena.mRewardFactor * Sinwave_RunRules.From(mServices).RewardFactor() + 0.5);
@@ -146,9 +174,12 @@ class Sinwave_MetaSystem : Sinwave_System
 		mMeta.mRuns++;
 		bool newBest = mScore > mMeta.mBestScore;
 		if (newBest) mMeta.mBestScore = mScore;
+		int judgementBefore = mMeta.mJudgement;
+		mMeta.mJudgementLast = judgementBefore;
+		mMeta.mJudgement = mData.mJudgement.AfterRun(judgementBefore, mSoulSide, mSoulLevel);
 		mSave.Save(mMeta);
 
-		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, mDamned));
+		mBus.Publish(Sinwave_MetaSavedEvent.Create(mMeta, earned, newBest, mVerdict, judgementBefore));
 		PublishMeta();
 	}
 

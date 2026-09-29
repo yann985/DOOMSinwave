@@ -36,15 +36,31 @@ class Sinwave_HudModel : Sinwave_Service
 	int mLevel;
 	int mXp;
 	int mXpNeeded;
-	int mWave;
-	int mWaveCount;
-	String mWaveName;
-	int mWaveTicsLeft;		// 0 pendant un cercle de boss
-	bool mBetweenWaves;
+	int mCircle;
+	int mCircleCount;
+	String mCircleName;
+	int mWave;				// vague en cours dans le cercle
+	int mWaveCount;			// vagues du cercle
+	int mWaveTicsLeft;		// 0 pendant la vague du boss
+	bool mBetweenWaves;		// répit entre deux vagues du cercle
+	bool mBetweenCircles;	// répit avant le cercle suivant
 	String mCurseName;
 	String mCurseDescription;
+	// Balance de l'âme (data/soul.txt)
 	int mCorruption;
-	int mCorruptionThreshold;
+	int mSoulMin;
+	int mSoulMax;
+	int mSoulBalance;
+	int mSoulSide;				// +1 : péché ; -1 : vertu ; 0 : équilibre
+	int mSoulLevel;				// paliers atteints (0 à 3)
+	String mSoulTierName;		// le plus extrême des paliers atteints, ou « équilibre »
+	Array<int> mSoulMarks;		// position des paliers, pour la jauge
+
+	// Attaques qui se préparent contre le joueur (Sinwave_ThreatSystem). Le HUD ne
+	// montre que celles venues de l'angle mort, en suivant leur source.
+	Array<Actor> mThreatSources;	// ennemi ou projectile
+	Array<int> mThreatAge;			// tics depuis l'annonce (apparition en fondu)
+	Array<int> mThreatFade;			// -1 : en cours ; sinon tics restants du fondu de fin
 
 	// Boss
 	bool mBossActive;
@@ -56,6 +72,17 @@ class Sinwave_HudModel : Sinwave_Service
 	int mIndulgences;
 	int mBestScore;
 	int mRuns;
+	// Jugement de l'âme, gardé d'une run à l'autre (data/judgement.txt)
+	int mJudgement;
+	int mJudgementMin;
+	int mJudgementMax;
+	int mJudgementNeutral;
+	int mJudgementNeutralZone;			// rayon Équilibre ouvert à cette distance du neutre
+	Array<int> mJudgementGraceTiers;		// seuils de Grâce I, II, III, pour la jauge
+	Array<int> mJudgementCorruptionTiers;	// seuils de Corruption I, II, III
+	int mJudgementTier;			// -3 à -1 : Grâce ; 0 : neutralité ; 1 à 3 : Corruption
+	String mJudgementTierName;
+	int mJudgementBefore;		// Jugement avant la dernière run (égal au Jugement s'il n'y en a pas eu)
 
 	// Choix d'une vertu ou d'un péché. Le numéro change à chaque proposition.
 	int mOfferSerial;
@@ -97,6 +124,11 @@ class Sinwave_HudModel : Sinwave_Service
 	Array<int> mShopLevels;
 	Array<int> mShopMaxLevels;
 	Array<bool> mShopIsWeapon;
+	Array<int> mShopSides;			// rayon : Sinwave_ShopItemDef.SIDE_...
+	Array<bool> mShopLocked;		// rayon fermé par le Jugement, et jamais acheté
+	Array<String> mShopRequirements;
+	Array<int> mShopRangeMin;		// Jugement qui ouvre l'article : de mShopRangeMin
+	Array<int> mShopRangeMax;		// à mShopRangeMax
 	String mShopMessage;
 	bool mShopMessageOk;
 
@@ -105,7 +137,7 @@ class Sinwave_HudModel : Sinwave_Service
 	bool mResultReady;
 	int mEarned;
 	bool mNewBest;
-	bool mDamned;
+	int mVerdict;				// Sinwave_CorruptionChangedEvent.VERDICT_...
 
 	// Bandeau temporaire au centre de l'écran
 	String mBanner;

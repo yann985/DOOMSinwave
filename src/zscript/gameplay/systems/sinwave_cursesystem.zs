@@ -2,12 +2,13 @@
 //  Malédictions de cercle.
 // =============================================================================
 //
-//  Écoute : WaveStarted, WaveEnded, RunEnded, RunSuspended, RunResumed, et
+//  Écoute : CircleStarted, CircleEnded, RunEnded, RunSuspended, RunResumed, et
 //           transmet tout le reste à la malédiction active
 //  Publie : CurseStarted, CurseEnded (+ ce que publient les malédictions)
 //
 //  Chaque cercle (data/waves/...) peut porter une malédiction (data/curses.txt)
-//  qui change les règles tant que le cercle dure. Le système ne sait pas ce que
+//  qui change les règles tant que le cercle dure, sur toutes ses vagues et
+//  pendant les répits entre elles. Le système ne sait pas ce que
 //  fait une malédiction : il crée l'objet décrit par les données (pattern
 //  Stratégie, voir gameplay/curses/) et lui transmet les événements.
 
@@ -25,13 +26,13 @@ class Sinwave_CurseSystem : Sinwave_System
 
 	override void OnEvent(Sinwave_Event e)
 	{
-		let started = Sinwave_WaveStartedEvent(e);
+		let started = Sinwave_CircleStartedEvent(e);
 		if (started != null)
 		{
-			Activate(mData.mWaves[started.mIndex].mCurseId);
+			Activate(mData.mCircles[started.mIndex].mCurseId);
 			return;
 		}
-		if (e is 'Sinwave_WaveEndedEvent' || e is 'Sinwave_RunEndedEvent')
+		if (e is 'Sinwave_CircleEndedEvent' || e is 'Sinwave_RunEndedEvent')
 		{
 			Deactivate();
 			return;

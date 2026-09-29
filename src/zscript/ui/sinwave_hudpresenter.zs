@@ -12,15 +12,18 @@
 class Sinwave_HudPresenter : Sinwave_System
 {
 	const BANNER_TICS = 3 * TICRATE;
+	const THREAT_FADE_TICS = 8;		// fondu de l'indicateur une fois l'attaque partie
 
 	private Sinwave_HudModel mModel;
 	private Sinwave_GameData mData;
+	private int mTierBannerTime;	// instant du dernier bandeau de palier
 	private bool mSuspended;
 
 	override void Setup()
 	{
 		mModel = Sinwave_HudModel.From(mServices);
 		mData = Sinwave_GameData.From(mServices);
+		mTierBannerTime = -1;
 		mBus.Subscribe(self);
 	}
 
@@ -30,7 +33,20 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mArenaName = mData.mArena.mName;
 		m.mArenaDescription = mData.mArena.mDescription;
 		m.mCurrentArena = mData.mArenaIndex;
-		m.mCorruptionThreshold = mData.mProgression.mDamnationThreshold;
+		let soul = mData.mSoul;
+		m.mSoulMin = soul.mMin;
+		m.mSoulMax = soul.mMax;
+		m.mSoulBalance = soul.mBalance;
+		m.mCorruption = soul.mBalance;
+		m.mSoulTierName = "équilibre";
+		for (int i = 0; i < soul.mTiers.Size(); i++) m.mSoulMarks.Push(soul.mTiers[i].mAt);
+		let judgement = mData.mJudgement;
+		m.mJudgementMin = judgement.mMin;
+		m.mJudgementMax = judgement.mMax;
+		m.mJudgementNeutral = judgement.mNeutral;
+		m.mJudgementNeutralZone = judgement.mNeutralZone;
+		m.mJudgementGraceTiers.Copy(judgement.mGraceTiers);
+		m.mJudgementCorruptionTiers.Copy(judgement.mCorruptionTiers);
 		for (int i = 0; i < mData.mArenas.Size(); i++)
 		{
 			m.mArenaNames.Push(mData.mArenas[i].mName);
@@ -41,6 +57,7 @@ class Sinwave_HudPresenter : Sinwave_System
 	override void Tick()
 	{
 		if (mModel.mBannerTics > 0) mModel.mBannerTics--;
+		TickThreats();
 		if (mModel.mRunActive && !mSuspended)
 		{
 			mModel.mRunTics++;
@@ -74,15 +91,16 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mRunTics = 0;
 			m.mScore = 0;
 			m.mKills = 0;
-			m.mCorruption = 0;
+			// La corruption n'est pas remise ici : CorruptionChanged, publié pendant
+			// RunStarted, arrive avant lui et donne déjà l'équilibre de départ.
 			m.mBossActive = false;
 			m.mResultReady = false;
-			ShowBanner(m.mArenaName, "La descente commence...");
+			// Pas de bandeau ici : le premier cercle, annoncé pendant RunStarted, a le sien.
 			return;
 		}
 		if (e is 'Sinwave_ShopRequestedEvent' && m.mRunActive)
 		{
-			ShowBanner("La boutique ouvre entre les runs", "Termine ou abandonne la run (P) pour y accéder");
+			ShowBanner("La boutique ouvre entre les runs", "Termine ou abandonne la run (P ou Start) pour y accéder");
 			return;
 		}
 		if (e is 'Sinwave_RunSuspendedEvent') { mSuspended = true; return; }
@@ -95,6 +113,43 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mBossActive = false;
 			m.mEndReason = ended.mReason;
 			m.mBannerTics = 0;
+			m.mThreatSources.Clear();
+			m.mThreatAge.Clear();
+			m.mThreatFade.Clear();
+			return;
+		}
+		let threat = Sinwave_ThreatStartedEvent(e);
+		if (threat != null && threat.mSource != null)
+		{
+			int index = m.mThreatSources.Find(threat.mSource);
+			if (index < m.mThreatSources.Size())
+			{
+				m.mThreatFade[index] = -1;	// la même source menace de nouveau
+				return;
+			}
+			m.mThreatSources.Push(threat.mSource);
+			m.mThreatAge.Push(0);
+			m.mThreatFade.Push(-1);
+			return;
+		}
+		let threatEnded = Sinwave_ThreatEndedEvent(e);
+		if (threatEnded != null)
+		{
+			int index = m.mThreatSources.Find(threatEnded.mSource);
+			if (index < m.mThreatSources.Size()) m.mThreatFade[index] = THREAT_FADE_TICS;
+			return;
+		}
+		let circle = Sinwave_CircleStartedEvent(e);
+		if (circle != null)
+		{
+			m.mCircle = circle.mIndex;
+			m.mCircleCount = circle.mCount;
+			m.mCircleName = circle.mName;
+			m.mBetweenCircles = false;
+			// La malédiction du cercle peut être annoncée avant ou après lui (le bus ne
+			// garantit pas l'ordre) : on ne l'efface pas ici, CurseEnded s'en charge à la
+			// fin du cercle précédent, et le bandeau reprend celle déjà connue.
+			ShowBanner(String.Format("Cercle %d : %s", circle.mIndex + 1, circle.mName), m.mCurseDescription);
 			return;
 		}
 		let wave = Sinwave_WaveStartedEvent(e);
@@ -102,18 +157,27 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 			m.mWave = wave.mIndex;
 			m.mWaveCount = wave.mCount;
-			m.mWaveName = wave.mName;
 			m.mWaveTicsLeft = wave.mDurationTics;
 			m.mBetweenWaves = false;
-			m.mCurseName = "";
-			m.mCurseDescription = "";
-			ShowBanner(String.Format("Cercle %d : %s", wave.mIndex + 1, wave.mName), "");
+			// La première vague partage le bandeau du cercle.
+			if (wave.mIndex > 0)
+			{
+				String detail = wave.mDurationTics == 0 ? "Le boss arrive !" : "Les damnés se pressent...";
+				ShowBanner(String.Format("Vague %d/%d", wave.mIndex + 1, wave.mCount), detail);
+			}
 			return;
 		}
-		if (e is 'Sinwave_WaveEndedEvent')
+		let waveEnded = Sinwave_WaveEndedEvent(e);
+		if (waveEnded != null)
 		{
-			m.mBetweenWaves = true;
+			m.mBetweenWaves = waveEnded.mIndex + 1 < m.mWaveCount;
 			m.mWaveTicsLeft = 0;
+			return;
+		}
+		if (e is 'Sinwave_CircleEndedEvent')
+		{
+			m.mBetweenWaves = false;
+			m.mBetweenCircles = true;
 			return;
 		}
 		let curse = Sinwave_CurseStartedEvent(e);
@@ -168,7 +232,25 @@ class Sinwave_HudPresenter : Sinwave_System
 		if (corruption != null)
 		{
 			m.mCorruption = corruption.mCorruption;
-			m.mCorruptionThreshold = corruption.mThreshold;
+			m.mSoulSide = corruption.mSide;
+			m.mSoulLevel = corruption.mLevel;
+			m.mSoulTierName = corruption.mTier != null ? corruption.mTier.mName : "équilibre";
+			m.mVerdict = corruption.Verdict();
+			return;
+		}
+		let trial = Sinwave_SoulTrialEvent(e);
+		if (trial != null)
+		{
+			if (trial.mSide > 0) ShowBanner("Ton reflet damné surgit !", "Abats-le : il porte une part de ton âme (beaucoup d'XP)");
+			else ShowBanner("Un ange te visite", "Sa lumière referme tes plaies");
+			return;
+		}
+		let tier = Sinwave_SoulTierChangedEvent(e);
+		if (tier != null)
+		{
+			if (tier.mReached) ShowBanner("Palier : " .. tier.mTier.mName, tier.mTier.mDescription);
+			else ShowBanner(tier.mTier.mName .. " s'efface", "Ton âme revient vers l'équilibre");
+			mTierBannerTime = level.maptime;
 			return;
 		}
 		let offer = Sinwave_UpgradeOfferedEvent(e);
@@ -192,6 +274,9 @@ class Sinwave_HudPresenter : Sinwave_System
 		let chosen = Sinwave_UpgradeChosenEvent(e);
 		if (chosen != null)
 		{
+			// Un palier franchi par ce choix a déjà son bandeau, plus important (il a pu
+			// arriver avant ce choix : il est publié pendant sa diffusion).
+			if (mTierBannerTime == level.maptime) return;
 			let upgrade = chosen.mUpgrade;
 			if (upgrade.mIsSin) ShowBanner(upgrade.mName .. " te corrompt", upgrade.mDescription);
 			else ShowBanner(upgrade.mName .. " t'accompagne", upgrade.mDescription);
@@ -203,6 +288,11 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mIndulgences = loaded.mMeta.mIndulgences;
 			m.mBestScore = loaded.mMeta.mBestScore;
 			m.mRuns = loaded.mMeta.mRuns;
+			m.mJudgement = loaded.mMeta.mJudgement;
+			m.mJudgementTier = mData.mJudgement.Tier(m.mJudgement);
+			m.mJudgementTierName = Sinwave_JudgementDef.TierName(m.mJudgementTier);
+			int last = loaded.mMeta.mJudgementLast;
+			m.mJudgementBefore = last >= 0 ? last : m.mJudgement;
 			RefreshShop(loaded.mMeta);
 			return;
 		}
@@ -219,7 +309,7 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 			m.mEarned = saved.mEarned;
 			m.mNewBest = saved.mNewBest;
-			m.mDamned = saved.mDamned;
+			m.mJudgementBefore = saved.mJudgementBefore;
 			m.mResultReady = true;
 		}
 	}
@@ -259,6 +349,12 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mShopLevels.Clear();
 		m.mShopMaxLevels.Clear();
 		m.mShopIsWeapon.Clear();
+		m.mShopSides.Clear();
+		m.mShopLocked.Clear();
+		m.mShopRequirements.Clear();
+		m.mShopRangeMin.Clear();
+		m.mShopRangeMax.Clear();
+		let judgement = mData.mJudgement;
 		for (int i = 0; i < mData.mShopItems.Size(); i++)
 		{
 			let item = mData.mShopItems[i];
@@ -269,8 +365,39 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mShopLevels.Push(level);
 			m.mShopMaxLevels.Push(item.mMaxLevel);
 			m.mShopIsWeapon.Push(item.mIsWeapon);
+			m.mShopSides.Push(item.mSide);
+			m.mShopLocked.Push(!judgement.CanBuy(item, metaData.mJudgement, level));
+			String requirement = judgement.Requirement(item);
+			int distance = judgement.Distance(item, metaData.mJudgement);
+			if (distance > 0) requirement = requirement .. String.Format(" (encore %d)", distance);
+			m.mShopRequirements.Push(requirement);
+			int low, high;
+			[low, high] = judgement.Range(item);
+			m.mShopRangeMin.Push(low);
+			m.mShopRangeMax.Push(high);
 		}
 		m.mShopRevision++;
+	}
+
+	// Menaces : apparition, fondu de fin, et retrait des sources disparues (un
+	// projectile arrivé n'est plus une menace : l'indicateur s'éteint à l'impact).
+	private void TickThreats()
+	{
+		let m = mModel;
+		for (int i = m.mThreatSources.Size() - 1; i >= 0; i--)
+		{
+			m.mThreatAge[i]++;
+			if (m.mThreatFade[i] > 0) m.mThreatFade[i]--;
+			// Disparue : ennemi mort, ou projectile qui a touché (il n'est plus un projectile).
+			let source = m.mThreatSources[i];
+			bool gone = source == null || (source.bIsMonster ? source.health <= 0 : !source.bMissile);
+			if (gone || m.mThreatFade[i] == 0)
+			{
+				m.mThreatSources.Delete(i);
+				m.mThreatAge.Delete(i);
+				m.mThreatFade.Delete(i);
+			}
+		}
 	}
 
 	private void ShowBanner(String text, String detail)

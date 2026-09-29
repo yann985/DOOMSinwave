@@ -133,6 +133,13 @@ class Sinwave_Game : EventHandler
 		mPreviousButtons = buttons;
 	}
 
+	// Seuls les objets ramassables sont publiés (butin, objets lâchés par les monstres).
+	override void WorldThingSpawned(WorldEvent e)
+	{
+		if (!mReady || e.Thing == null || !(e.Thing is 'Inventory')) return;
+		mBus.Publish(Sinwave_ItemSpawnedEvent.Create(Inventory(e.Thing)));
+	}
+
 	override void WorldThingDied(WorldEvent e)
 	{
 		if (!mReady || e.Thing == null) return;
@@ -164,6 +171,14 @@ class Sinwave_Game : EventHandler
 		else if (e.Name ~== "sinwave_arena") mBus.Publish(Sinwave_ArenaChosenEvent.Create(e.Args[0]));
 		else if (e.Name ~== "sinwave_rule") mBus.Publish(Sinwave_RuleAdjustedEvent.Create(e.Args[0], e.Args[1]));
 		else if (e.Name ~== "sinwave_descend") mBus.Publish(new('Sinwave_DescendRequestedEvent'));
+		else if (e.Name ~== "sinwave_soul" && IsDebugOn()) mBus.Publish(Sinwave_SoulShiftEvent.Create(e.Args[0]));
+	}
+
+	// Les commandes de débogage ne marchent qu'avec « sinwave_debug 1 ».
+	private static bool IsDebugOn()
+	{
+		let cv = CVar.FindCVar('sinwave_debug');
+		return cv != null && cv.GetBool();
 	}
 
 	// -------------------------------------------------------------------------
@@ -186,12 +201,15 @@ class Sinwave_Game : EventHandler
 	// Commande Sinwave d'une touche selon l'écran affiché (vide : touche laissée au
 	// moteur). La touche choisie dans Options > Commandes > Sinwave marche toujours ;
 	// B et P marchent aussi tant qu'elles ne sont liées à rien d'autre.
+	// Manette : B pour la boutique, Start pour la pause pendant la run (ailleurs,
+	// Start garde son rôle : ouvrir le menu du moteur, pour les options ou quitter).
 	private static ui String CommandForKey(int key, int screen)
 	{
 		String binding = Bindings.GetBinding(key);
 		bool unbound = binding.Length() == 0;
-		bool shop = binding ~== "sinwave_shop" || (key == KEY_B && unbound);
-		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound);
+		bool shop = binding ~== "sinwave_shop" || ((key == KEY_B || key == InputEvent.Key_Pad_B) && unbound);
+		bool pause = binding ~== "sinwave_pause" || (key == KEY_P && unbound)
+			|| (key == InputEvent.Key_Pad_Start && (unbound || binding ~== "menu_main"));
 
 		switch (screen)
 		{
@@ -218,6 +236,6 @@ class Sinwave_Game : EventHandler
 	{
 		if (!mReady) return;
 		if (mHud == null) mHud = new('Sinwave_Hud');
-		mHud.Draw(mHudModel);
+		mHud.Draw(mHudModel, e.ViewPos, e.ViewAngle);
 	}
 }

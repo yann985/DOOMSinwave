@@ -8,6 +8,8 @@ class Sinwave_MetaData play
 	int mIndulgences;		// monnaie de méta-progression, dépensée à la boutique
 	int mBestScore;
 	int mRuns;
+	int mJudgement;			// réputation de l'âme (data/judgement.txt) ; -1 : jamais fixée
+	int mJudgementLast;		// Jugement avant la dernière run ; -1 : aucune run finie
 	private Array<Name> mItemIds;	// articles achetés à la boutique...
 	private Array<int> mItemLevels;	// ...et leur niveau
 
@@ -90,6 +92,8 @@ class Sinwave_CVarSaveService : Sinwave_SaveService
 		metaData.mIndulgences = ReadInt('sinwave_meta_indulgences');
 		metaData.mBestScore = ReadInt('sinwave_meta_best');
 		metaData.mRuns = ReadInt('sinwave_meta_runs');
+		metaData.mJudgement = ReadInt('sinwave_meta_judgement', -1);
+		metaData.mJudgementLast = ReadInt('sinwave_meta_judgement_last', -1);
 		let purchases = CVar.FindCVar('sinwave_meta_purchases');
 		if (purchases != null) metaData.DecodePurchases(purchases.GetString());
 		return metaData;
@@ -100,6 +104,8 @@ class Sinwave_CVarSaveService : Sinwave_SaveService
 		WriteInt('sinwave_meta_indulgences', metaData.mIndulgences);
 		WriteInt('sinwave_meta_best', metaData.mBestScore);
 		WriteInt('sinwave_meta_runs', metaData.mRuns);
+		WriteInt('sinwave_meta_judgement', metaData.mJudgement);
+		WriteInt('sinwave_meta_judgement_last', metaData.mJudgementLast);
 		let purchases = CVar.FindCVar('sinwave_meta_purchases');
 		if (purchases != null) purchases.SetString(metaData.EncodePurchases());
 		// Écrit le fichier tout de suite : rien n'est perdu si le jeu plante ensuite.
@@ -119,10 +125,10 @@ class Sinwave_CVarSaveService : Sinwave_SaveService
 		CVar.SaveConfig();
 	}
 
-	private static int ReadInt(Name cvarName)
+	private static int ReadInt(Name cvarName, int fallback = 0)
 	{
 		let cv = CVar.FindCVar(cvarName);
-		return cv != null ? cv.GetInt() : 0;
+		return cv != null ? cv.GetInt() : fallback;
 	}
 
 	private static void WriteInt(Name cvarName, int value)

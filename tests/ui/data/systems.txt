@@ -34,5 +34,14 @@ class   = Sinwave_PlayerSystem
 [system meta]
 class   = Sinwave_MetaSystem
 
+[system threats]
+class   = Sinwave_ThreatSystem
+
+[system loot]
+class   = Sinwave_LootSystem
+
+[system trials]
+class   = Sinwave_SoulTrialSystem
+
 [system hud]
 class   = Sinwave_HudPresenter

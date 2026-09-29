@@ -21,12 +21,14 @@ if (Test-Path $Output) { Remove-Item $Output -Force }
 
 # Fichiers propres au dépôt, inutiles dans le jeu.
 $excluded = @(".gitkeep", ".DS_Store", "Thumbs.db")
+# Sauvegardes automatiques des éditeurs (Ultimate Doom Builder, SLADE...).
+$excludedPattern = '\.(autosave\d*|backup\d*|dbs|bak|tmp)$'
 
 $zip = [System.IO.Compression.ZipFile]::Open($Output, [System.IO.Compression.ZipArchiveMode]::Create)
 $count = 0
 try
 {
-	Get-ChildItem $Source -Recurse -File | Where-Object { $excluded -notcontains $_.Name } | ForEach-Object {
+	Get-ChildItem $Source -Recurse -File | Where-Object { $excluded -notcontains $_.Name -and $_.Name -notmatch $excludedPattern } | ForEach-Object {
 		$entry = $_.FullName.Substring($Source.Length + 1).Replace('\', '/')
 		[void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal)
 		$count++

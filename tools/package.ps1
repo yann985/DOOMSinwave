@@ -28,16 +28,18 @@ Copy-Item $IwadPath $outDir
 # Mode portable : réglages et méta-progression enregistrés à côté de l'exécutable.
 New-Item -ItemType File -Force (Join-Path $outDir "gzdoom_portable.ini") | Out-Null
 
+# use_joystick : la manette est désactivée par défaut dans GZDoom ; Sinwave se joue aussi avec.
 $launcher = @"
 @echo off
 cd /d "%~dp0"
-start "" "gzdoom.exe" -iwad freedoom2.wad -file $PackageName.pk3
+start "" "gzdoom.exe" -iwad freedoom2.wad -file $PackageName.pk3 +use_joystick 1
 "@
 Set-Content -Path (Join-Path $outDir "Jouer $GameName.bat") -Value $launcher -Encoding ASCII
 
 $readme = @"
 $GameName - build Windows
 Lancer : double-clic sur « Jouer $GameName.bat ».
+Se joue au clavier et à la souris, ou à la manette.
 
 Moteur : GZDoom $GZDoomVersion (GPL v3) - https://zdoom.org
 Données de base : Freedoom $FreedoomVersion (BSD) - https://freedoom.github.io
