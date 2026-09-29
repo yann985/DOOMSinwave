@@ -31,6 +31,11 @@ sin_health_drop    = -0.3
 virtue_health_drop = 1.2
 virtue_ammo_drop   = -0.3
 
+# Épreuves de l'âme : rester trial_seconds au bout de la balance...
+trial_seconds = 20
+trial_enemy   = reflet        # ... côté péché : ton reflet damné surgit (data/enemies.txt)
+angel_heal    = 100           # ... côté vertu : un ange te soigne de ce nombre de PV
+
 # --- Paliers ------------------------------------------------------------------
 #   side        : sin ou virtue
 #   at          : valeur de l'âme qui déclenche le palier

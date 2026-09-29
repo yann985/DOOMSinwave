@@ -244,6 +244,7 @@ class Sinwave_WaveSystem : Sinwave_System
 			mo.Scale *= def.mScale;
 			mo.A_SetSize(mo.radius * def.mScale, mo.height * def.mScale);
 		}
+		if (def.mTranslation != 'None' && def.mTranslation != '') mo.A_SetTranslation(def.mTranslation);
 
 		// L'ennemi connaît déjà le joueur : il fonce sur lui au lieu d'attendre de le voir.
 		let pawn = Sinwave_World.Player();

@@ -230,6 +230,13 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mVerdict = corruption.Verdict();
 			return;
 		}
+		let trial = Sinwave_SoulTrialEvent(e);
+		if (trial != null)
+		{
+			if (trial.mSide > 0) ShowBanner("Ton reflet damné surgit !", "Abats-le : il porte une part de ton âme (beaucoup d'XP)");
+			else ShowBanner("Un ange te visite", "Sa lumière referme tes plaies");
+			return;
+		}
 		let tier = Sinwave_SoulTierChangedEvent(e);
 		if (tier != null)
 		{

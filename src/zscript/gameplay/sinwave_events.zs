@@ -326,8 +326,8 @@ class Sinwave_EnemyKilledEvent : Sinwave_Event
 	}
 }
 
-// Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss...).
-// Les renforts d'un boss (escort) suivent la balance de l'âme.
+// Demande d'apparition d'ennemis hors du rythme normal (renforts d'un boss,
+// épreuve de l'âme...). Les renforts d'un boss (escort) suivent la balance de l'âme.
 class Sinwave_SpawnRequestedEvent : Sinwave_Event
 {
 	Name mEnemyId;
@@ -617,6 +617,25 @@ class Sinwave_SoulShiftEvent : Sinwave_Event
 	override String Describe()
 	{
 		return String.Format("%+d", mDelta);
+	}
+}
+
+// Épreuve de l'âme (Sinwave_SoulTrialSystem) : +1, ton reflet damné surgit ;
+// -1, un ange te visite.
+class Sinwave_SoulTrialEvent : Sinwave_Event
+{
+	int mSide;
+
+	static Sinwave_SoulTrialEvent Create(int side)
+	{
+		let e = new('Sinwave_SoulTrialEvent');
+		e.mSide = side;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return mSide > 0 ? "reflet damné" : "ange";
 	}
 }
 

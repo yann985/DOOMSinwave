@@ -169,6 +169,7 @@ class Sinwave_EnemyDef play
 	double mScale;
 	int mXp;
 	int mScore;
+	Name mTranslation;		// teinte (TRNSLATE), ou 'None'
 
 	// Boss : rage quand ses PV passent sous mRageAt (fraction), avec renforts.
 	bool mIsBoss;
@@ -188,6 +189,7 @@ class Sinwave_EnemyDef play
 		def.mScale = max(0.1, block.GetDouble("scale", 1.0));
 		def.mXp = max(0, block.GetInt("xp", 1));
 		def.mScore = max(0, block.GetInt("score", 10));
+		def.mTranslation = block.GetString("translation");
 
 		def.mIsBoss = block.GetBool("boss");
 		def.mRageAt = clamp(block.GetDouble("rage_at", 0), 0.0, 1.0);
@@ -513,6 +515,9 @@ class Sinwave_SoulDef play
 	double mSinAmmoDrop;
 	double mVirtueHealthDrop;	// par point en dessous
 	double mVirtueAmmoDrop;
+	int mTrialTics;				// temps au bout de la balance avant une épreuve
+	Name mTrialEnemy;			// côté péché : l'ennemi qui surgit
+	int mAngelHeal;				// côté vertu : soins de l'ange
 	// Paliers, du plus proche de l'équilibre au plus extrême, pour chaque côté.
 	Array<Sinwave_SoulTierDef> mTiers;
 
@@ -544,6 +549,9 @@ class Sinwave_SoulDef play
 		def.mSinAmmoDrop = soul.GetDouble("sin_ammo_drop", 0);
 		def.mVirtueHealthDrop = soul.GetDouble("virtue_health_drop", 0);
 		def.mVirtueAmmoDrop = soul.GetDouble("virtue_ammo_drop", 0);
+		def.mTrialTics = soul.GetTics("trial_seconds", 0);
+		def.mTrialEnemy = soul.GetString("trial_enemy").MakeLower();
+		def.mAngelHeal = max(0, soul.GetInt("angel_heal", 0));
 
 		for (int i = 0; i < blocks.Size(); i++)
 		{
