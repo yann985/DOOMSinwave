@@ -367,7 +367,7 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 
 ### Le Jugement : une boutique à quatre rayons
 
-Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'autre** : de 0 (Grâce) à 100 (Corruption), neutre à 50, sauvegardé dans une CVar (`sinwave_meta_judgement`).
+Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'autre** : de 0 (Grâce) à 100 (Corruption), neutre à 50, sauvegardé dans une CVar (`sinwave_meta_judgement`), avec sa valeur d'avant la dernière run (`sinwave_meta_judgement_last`) pour montrer le chemin parcouru.
 
 - **Il bouge en fin de run**, selon le palier de l'âme atteint : +6, +10 ou +15 vers la Corruption (Souillure, Perdition, Damnation), autant vers la Grâce (Piété, Bénédiction, Sainteté). Une run restée sans palier le ramène de 4 vers le neutre. L'écran de fin l'affiche (`Jugement : 50 -> 65`).
 - **Il ouvre les rayons** de la boutique (`side` et `tier` de `data/shop.txt`) :
@@ -381,7 +381,14 @@ Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'aut
 
 - Plus le palier est haut, meilleurs sont les objets. Un objet se verrouille si le Jugement repasse le seuil, mais **un objet acheté une fois reste débloqué** : on peut continuer à le monter en niveau.
 - **Une seule règle, un seul endroit :** `Sinwave_JudgementDef` (`Tier`, `IsUnlocked`, `CanBuy`, `AfterRun`) sert à la méta-progression, qui refuse un achat verrouillé et déplace le Jugement, comme au présentateur, qui grise les articles verrouillés et affiche la condition (« Grâce III : Jugement 10 ou moins »).
-- **Interface :** la boutique s'ouvre sur le rayon du Jugement. Gauche/Droite, ou un clic sur un onglet, change de rayon (`TabCount`, `SelectTab` de `Sinwave_ChoiceMenu`).
+- **Interface :** la boutique s'ouvre sur le rayon du Jugement. Gauche/Droite, ou un clic sur un onglet, change de rayon (`TabCount`, `SelectTab` de `Sinwave_ChoiceMenu`). Une longue liste resserre ses lignes pour rester au-dessus de la barre d'état.
+- **La jauge du Jugement**, sous le titre de la boutique, est dessinée comme la balance de l'âme pendant la run :
+  - la Grâce en or à gauche, la Corruption en violet à droite, remplies depuis le neutre ;
+  - une zone par palier, de plus en plus marquée vers les extrêmes, avec son nom en dessous (I, II, III, Équilibre), allumé quand le Jugement l'atteint ;
+  - la dernière run : l'ancienne position, le chemin parcouru sous la barre, et « Jugement : 50 -> 60 » au-dessus ;
+  - pour l'article verrouillé choisi, la zone qui l'ouvrirait clignote, et sa description dit combien de points il manque (« encore 10 »).
+
+  Le menu ne fait que dessiner : les seuils et la zone de chaque article (`Sinwave_JudgementDef.Range`, `Distance`) arrivent dans le modèle, par le présentateur. `Sinwave_ChoiceMenu` offre à chaque menu un bloc sous le titre (`HeaderExtraHeight`, `DrawHeaderExtra`).
 
 ---
 
@@ -496,7 +503,7 @@ Le script vérifie dans le journal que chaque événement attendu apparaît, dan
 - les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
 - vertus et péchés, prix de la boutique, enregistrement des achats ;
 - la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
-- le Jugement : paliers, rayons ouverts ou verrouillés, article acheté qui reste débloqué, déplacement en fin de run ;
+- le Jugement : paliers, rayons ouverts ou verrouillés, zone qui ouvre un article et points qui manquent, article acheté qui reste débloqué, déplacement en fin de run ;
 - l'interface : l'âme affichée au début d'une run, quel que soit l'ordre de diffusion ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
 

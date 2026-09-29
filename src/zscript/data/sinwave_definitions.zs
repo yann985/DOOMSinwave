@@ -488,19 +488,39 @@ class Sinwave_JudgementDef play
 		return abs(judgement - mNeutral) <= mNeutralZone;
 	}
 
-	// L'article est-il en vente pour ce Jugement ?
-	bool IsUnlocked(Sinwave_ShopItemDef item, int judgement)
+	// Valeurs du Jugement qui ouvrent l'article : de `low` à `high` (aucune si low > high).
+	int, int Range(Sinwave_ShopItemDef item)
 	{
 		switch (item.mSide)
 		{
 		case Sinwave_ShopItemDef.SIDE_GRACE:
-			return item.mTier <= mGraceTiers.Size() && judgement <= mGraceTiers[item.mTier - 1];
+			if (item.mTier > mGraceTiers.Size()) return mMax + 1, mMin - 1;
+			return mMin, mGraceTiers[item.mTier - 1];
 		case Sinwave_ShopItemDef.SIDE_CORRUPTION:
-			return item.mTier <= mCorruptionTiers.Size() && judgement >= mCorruptionTiers[item.mTier - 1];
+			if (item.mTier > mCorruptionTiers.Size()) return mMax + 1, mMin - 1;
+			return mCorruptionTiers[item.mTier - 1], mMax;
 		case Sinwave_ShopItemDef.SIDE_NEUTRAL:
-			return IsNeutral(judgement);
+			return mNeutral - mNeutralZone, mNeutral + mNeutralZone;
 		}
-		return true;
+		return mMin, mMax;
+	}
+
+	// L'article est-il en vente pour ce Jugement ?
+	bool IsUnlocked(Sinwave_ShopItemDef item, int judgement)
+	{
+		int low, high;
+		[low, high] = Range(item);
+		return judgement >= low && judgement <= high;
+	}
+
+	// Points de Jugement qui manquent pour ouvrir l'article (0 : il est ouvert).
+	int Distance(Sinwave_ShopItemDef item, int judgement)
+	{
+		int low, high;
+		[low, high] = Range(item);
+		if (low > high) return 0;	// jamais ouvert (données incomplètes)
+		if (judgement < low) return low - judgement;
+		return max(0, judgement - high);
 	}
 
 	// Achetable : en vente, ou déjà acheté une fois (débloqué pour toujours).
@@ -512,16 +532,16 @@ class Sinwave_JudgementDef play
 	// Ce qu'il faut pour débloquer l'article.
 	String Requirement(Sinwave_ShopItemDef item)
 	{
+		int low, high;
+		[low, high] = Range(item);
 		switch (item.mSide)
 		{
 		case Sinwave_ShopItemDef.SIDE_GRACE:
-			if (item.mTier > mGraceTiers.Size()) return "";
-			return String.Format("%s : Jugement %d ou moins", TierName(-item.mTier), mGraceTiers[item.mTier - 1]);
+			return String.Format("%s : Jugement %d ou moins", TierName(-item.mTier), high);
 		case Sinwave_ShopItemDef.SIDE_CORRUPTION:
-			if (item.mTier > mCorruptionTiers.Size()) return "";
-			return String.Format("%s : Jugement %d ou plus", TierName(item.mTier), mCorruptionTiers[item.mTier - 1]);
+			return String.Format("%s : Jugement %d ou plus", TierName(item.mTier), low);
 		case Sinwave_ShopItemDef.SIDE_NEUTRAL:
-			return String.Format("Neutralité : Jugement entre %d et %d", mNeutral - mNeutralZone, mNeutral + mNeutralZone);
+			return String.Format("Neutralité : Jugement entre %d et %d", low, high);
 		}
 		return "";
 	}

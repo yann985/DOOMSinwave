@@ -268,6 +268,12 @@ class Sinwave_UnitTests : StaticEventHandler
 		Check(judgement.IsUnlocked(mid, 65) && !judgement.IsUnlocked(mid, 66), "jugement : l'Équilibre n'est ouvert que près de la neutralité");
 		Check(judgement.IsUnlocked(gun, 0) && judgement.IsUnlocked(gun, 100), "jugement : l'armurerie est toujours ouverte");
 		Check(!judgement.CanBuy(holy, 50, 0) && judgement.CanBuy(holy, 50, 1), "jugement : un article acheté reste débloqué pour toujours");
+		int low, high;
+		[low, high] = judgement.Range(holy);
+		Check(low == 0 && high == 25 && judgement.Distance(holy, 30) == 5 && judgement.Distance(holy, 25) == 0,
+			"jugement : la zone qui ouvre un article, et les points qui manquent");
+		Check(judgement.Distance(evil, 50) == 10 && judgement.Distance(mid, 70) == 5 && judgement.Distance(mid, 20) == 15 && judgement.Distance(gun, 0) == 0,
+			"jugement : les points qui manquent, de chaque côté");
 		Check(judgement.AfterRun(50, 1, 3) == 65 && judgement.AfterRun(50, -1, 1) == 44, "jugement : plus l'âme a penché, plus il bouge");
 		Check(judgement.AfterRun(60, 0, 0) == 56 && judgement.AfterRun(48, 0, 0) == 50, "jugement : une run à l'équilibre le ramène vers la neutralité");
 		Check(judgement.AfterRun(98, 1, 3) == 100, "jugement : borné");
