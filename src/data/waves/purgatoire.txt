@@ -1,0 +1,75 @@
+# Le Purgatoire : sept cercles, un par péché, puis Lucifer.
+# Durée : 6 cercles de 22 s + répits, puis le boss (environ 3 minutes).
+#
+#   name     : nom affiché
+#   duration : durée en secondes (0 : jusqu'à la mort du boss)
+#   interval : secondes entre deux apparitions
+#   max      : nombre maximum d'ennemis vivants en même temps
+#   break    : secondes de répit avant le cercle suivant
+#   curse    : malédiction active pendant le cercle (data/curses.txt)
+#   boss     : boss qui apparaît au début du cercle (data/enemies.txt)
+#   enemies  : identifiants de data/enemies.txt, avec leur poids (chance d'apparaître)
+
+[wave 1]
+name     = Paresse
+duration = 22
+interval = 1.0
+max      = 14
+break    = 3
+curse    = sloth
+enemies  = sloth:4, gluttony:1
+
+[wave 2]
+name     = Gourmandise
+duration = 22
+interval = 0.9
+max      = 16
+break    = 3
+curse    = gluttony
+enemies  = gluttony:3, sloth:2
+
+[wave 3]
+name     = Luxure
+duration = 22
+interval = 1.0
+max      = 16
+break    = 3
+curse    = lust
+enemies  = lust:3, sloth:1
+
+[wave 4]
+name     = Envie
+duration = 22
+interval = 0.9
+max      = 18
+break    = 3
+curse    = envy
+enemies  = envy:3, lust:1, sloth:1
+
+[wave 5]
+name     = Avarice
+duration = 22
+interval = 1.0
+max      = 16
+break    = 3
+curse    = greed
+enemies  = greed:3, envy:1
+
+[wave 6]
+name     = Colère
+duration = 22
+interval = 0.8
+max      = 20
+break    = 4
+curse    = wrath
+enemies  = wrath:3, gluttony:2
+
+[wave 7]
+name     = Orgueil
+duration = 0
+interval = 2.5
+max      = 6
+break    = 0
+curse    = pride
+boss     = lucifer
+enemies  = lust:2, greed:1

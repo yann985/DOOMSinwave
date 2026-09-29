@@ -1,0 +1,30 @@
+# Les Limbes : trois cercles courts et furieux dans une salle close.
+# Les règles de l'arène (data/arenas.txt) rendent les ennemis plus résistants et
+# plus nombreux ; la récompense est plus élevée.
+
+[wave 1]
+name     = Colère
+duration = 30
+interval = 0.8
+max      = 20
+break    = 4
+curse    = wrath
+enemies  = wrath:3, gluttony:2, sloth:2
+
+[wave 2]
+name     = Avarice
+duration = 30
+interval = 0.9
+max      = 20
+break    = 4
+curse    = greed
+enemies  = greed:2, envy:2, lust:2
+
+[wave 3]
+name     = Orgueil
+duration = 35
+interval = 1.2
+max      = 14
+break    = 0
+curse    = pride
+enemies  = pride:2, lust:2, greed:1

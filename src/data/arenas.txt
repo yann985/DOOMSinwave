@@ -1,0 +1,31 @@
+# Arènes jouables, proposées au choix en jeu.
+# Pour créer ta propre arène : docs/CREER-UNE-ARENE.md (ou tools/new-arena.ps1).
+#
+#   name         : nom affiché
+#   description  : texte affiché dans le choix d'arène
+#   map          : carte (déclarée dans MAPINFO, fichier maps/NOM.wad)
+#   waves        : fichier des cercles de cette arène
+#   enemy_health : multiplicateur de vie des ennemis
+#   enemy_speed  : multiplicateur de vitesse des ennemis
+#   spawn_rate   : multiplicateur du rythme d'apparition (2 = deux fois plus souvent)
+#   reward       : multiplicateur des indulgences gagnées
+
+[arena purgatoire]
+name         = Le Purgatoire
+description  = Les sept cercles, puis Lucifer. Environ 3 minutes.
+map          = SW02
+waves        = data/waves/purgatoire.txt
+enemy_health = 1.0
+enemy_speed  = 1.0
+spawn_rate   = 1.0
+reward       = 1.0
+
+[arena limbes]
+name         = Les Limbes
+description  = Salle close, trois cercles furieux. Plus dur, mieux payé.
+map          = SW01
+waves        = data/waves/limbes.txt
+enemy_health = 1.3
+enemy_speed  = 1.15
+spawn_rate   = 1.5
+reward       = 1.5

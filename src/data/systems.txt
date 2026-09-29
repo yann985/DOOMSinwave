@@ -16,12 +16,24 @@ enabled = true
 class   = Sinwave_WaveSystem
 enabled = true
 
+[system curses]
+class   = Sinwave_CurseSystem
+enabled = true
+
+[system boss]
+class   = Sinwave_BossSystem
+enabled = true
+
 [system xp]
 class   = Sinwave_XpSystem
 enabled = true
 
 [system upgrades]
 class   = Sinwave_UpgradeSystem
+enabled = true
+
+[system corruption]
+class   = Sinwave_CorruptionSystem
 enabled = true
 
 [system score]
