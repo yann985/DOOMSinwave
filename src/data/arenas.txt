@@ -13,7 +13,7 @@
 
 [arena purgatoire]
 name         = Le Purgatoire
-description  = Les sept cercles, puis Lucifer. Environ 3 minutes.
+description  = Les sept cercles, puis Lucifer. Environ 8 minutes.
 map          = SW02
 waves        = data/waves/purgatoire.txt
 enemy_health = 1.0
@@ -24,7 +24,7 @@ spawn        = player
 
 [arena limbes]
 name         = Les Limbes
-description  = Salle close, trois cercles furieux. Plus dur, mieux payé.
+description  = 3 cercles furieux, 6 minutes. Plus dur, mieux payé.
 map          = SW01
 waves        = data/waves/limbes.txt
 enemy_health = 1.3

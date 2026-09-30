@@ -40,9 +40,9 @@ Dans `src/data/waves/<id>.txt`, un bloc par cercle, joué dans l'ordre du fichie
 name     = Premier cercle
 curse    = sloth           # malédiction de tout le cercle (data/curses.txt)
 waves    = 3               # nombre de vagues du cercle
-duration = 8               # durée d'une vague, en secondes
-pause    = 2               # répit entre deux vagues du cercle
-break    = 4               # répit avant le cercle suivant
+duration = 20              # durée d'une vague, en secondes
+pause    = 3               # répit entre deux vagues du cercle
+break    = 5               # répit avant le cercle suivant
 interval = 1.1             # secondes entre deux apparitions, à la 1re vague
 max      = 10              # ennemis vivants en même temps, à la 1re vague
 enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
@@ -53,6 +53,8 @@ enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
 - Boss : `lucifer`.
 
 **Difficulté croissante :** `interval` et `max` sont ceux de la première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage, et la vie des ennemis augmente d'une vague à l'autre sur toute l'arène. Ces montées se règlent dans `src/data/progression.txt` (`wave_spawn_growth`, `wave_max_growth`, `wave_health_growth`). Pour que la difficulté monte aussi d'un cercle à l'autre, donne aux cercles suivants un `interval` plus court, un `max` plus grand ou des ennemis plus forts.
+
+**Durée :** vise au moins 5 minutes de vagues au total (nombre de vagues × `duration`, sur tous les cercles, sans compter la vague du boss). Le Purgatoire en a 6 (18 vagues de 20 s), les Limbes 5 min 15 (9 vagues de 35 s).
 
 **Cercle de boss :** ajoute `boss = lucifer`. La dernière vague du cercle est celle du boss : elle dure jusqu'à sa mort. Avec `waves = 1`, le cercle n'a que la vague du boss.
 
