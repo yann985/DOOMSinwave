@@ -258,14 +258,14 @@ class Sinwave_HudPresenter : Sinwave_System
 		{
 			m.mOfferNames.Clear();
 			m.mOfferDescriptions.Clear();
-			m.mOfferIsSin.Clear();
+			m.mOfferKinds.Clear();
 			m.mOfferCorruption.Clear();
 			for (int i = 0; i < offer.mChoices.Size(); i++)
 			{
 				let choice = offer.mChoices[i];
 				m.mOfferNames.Push(choice.mName);
 				m.mOfferDescriptions.Push(choice.mDescription);
-				m.mOfferIsSin.Push(choice.mIsSin);
+				m.mOfferKinds.Push(choice.mKind);
 				m.mOfferCorruption.Push(choice.mCorruption);
 			}
 			m.mOfferSerial++;
@@ -278,7 +278,8 @@ class Sinwave_HudPresenter : Sinwave_System
 			// arriver avant ce choix : il est publié pendant sa diffusion).
 			if (mTierBannerTime == level.maptime) return;
 			let upgrade = chosen.mUpgrade;
-			if (upgrade.mIsSin) ShowBanner(upgrade.mName .. " te corrompt", upgrade.mDescription);
+			if (upgrade.mKind == Sinwave_UpgradeDef.KIND_SIN) ShowBanner(upgrade.mName .. " te corrompt", upgrade.mDescription);
+			else if (upgrade.mKind == Sinwave_UpgradeDef.KIND_NEUTRAL) ShowBanner(upgrade.mName .. " te renforce", upgrade.mDescription);
 			else ShowBanner(upgrade.mName .. " t'accompagne", upgrade.mDescription);
 			return;
 		}

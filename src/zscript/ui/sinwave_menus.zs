@@ -459,7 +459,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	}
 }
 
-// Montée de niveau : deux vertus et un péché.
+// Montée de niveau : des vertus, des neutres et des péchés, dans l'ordre de la balance.
 class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 {
 	override void Build()
@@ -469,15 +469,20 @@ class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 		mHint = "Clic, Entrée, A ou touches 1, 2, 3 : choisir";
 		for (int i = 0; i < mModel.mOfferNames.Size(); i++)
 		{
-			if (mModel.mOfferIsSin[i])
+			String title = mModel.mOfferNames[i];
+			String description = mModel.mOfferDescriptions[i];
+			int corruption = mModel.mOfferCorruption[i];
+			switch (mModel.mOfferKinds[i])
 			{
-				AddOption("Péché : " .. mModel.mOfferNames[i], mModel.mOfferDescriptions[i], Font.CR_RED,
-					String.Format("+%d corruption", mModel.mOfferCorruption[i]));
-			}
-			else
-			{
-				String value = mModel.mOfferCorruption[i] < 0 ? String.Format("%d corruption", mModel.mOfferCorruption[i]) : "";
-				AddOption(mModel.mOfferNames[i], mModel.mOfferDescriptions[i], Font.CR_GRAY, value);
+			case Sinwave_UpgradeDef.KIND_SIN:
+				AddOption("Péché : " .. title, description, Font.CR_RED, String.Format("+%d corruption", corruption));
+				break;
+			case Sinwave_UpgradeDef.KIND_NEUTRAL:
+				AddOption("Neutre : " .. title, description, Font.CR_GRAY, "âme intacte");
+				break;
+			default:
+				AddOption("Vertu : " .. title, description, Font.CR_GOLD, corruption < 0 ? String.Format("%d corruption", corruption) : "");
+				break;
 			}
 		}
 	}

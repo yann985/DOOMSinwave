@@ -32,6 +32,29 @@ class Sinwave_TestListener : Sinwave_Listener
 	}
 }
 
+// Retient les familles de la dernière proposition de choix, ex. « virtue,neutral,sin ».
+class Sinwave_TestOfferListener : Sinwave_Listener
+{
+	private String mKinds;
+
+	override void OnEvent(Sinwave_Event e)
+	{
+		let offer = Sinwave_UpgradeOfferedEvent(e);
+		if (offer == null) return;
+		static const String NAMES[] = { "virtue", "neutral", "sin" };
+		mKinds = "";
+		for (int i = 0; i < offer.mChoices.Size(); i++)
+		{
+			mKinds = mKinds .. (i > 0 ? "," : "") .. NAMES[clamp(offer.mChoices[i].mKind, 0, 2)];
+		}
+	}
+
+	String Kinds()
+	{
+		return mKinds;
+	}
+}
+
 class Sinwave_TestLog play
 {
 	String mText;
@@ -89,6 +112,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestEffects();
 		TestUpgradeKinds();
 		TestSoul();
+		TestOffer();
 		TestJudgement();
 		TestShopPrices();
 		TestPurchasesEncoding();
@@ -325,13 +349,53 @@ class Sinwave_UnitTests : StaticEventHandler
 	{
 		Array<Sinwave_DataBlock> blocks;
 		Sinwave_DataParser.ParseText("test",
-			"[upgrade v]\nkind = virtue\neffects = speed:0.1\n[upgrade s]\nkind = sin\ncorruption = 2\neffects = damage:0.4, vulnerability:0.25\n",
+			"[upgrade v]\nkind = virtue\neffects = speed:0.1\n[upgrade s]\nkind = sin\ncorruption = 2\neffects = damage:0.4, vulnerability:0.25\n"
+			.. "[upgrade n]\nkind = neutral\neffects = damage:0.15\n",
 			blocks);
 		let virtue = Sinwave_UpgradeDef.FromBlock(blocks[0]);
 		let sin = Sinwave_UpgradeDef.FromBlock(blocks[1]);
+		let neutral = Sinwave_UpgradeDef.FromBlock(blocks[2]);
 
-		Check(!virtue.mIsSin && virtue.mCorruption == 0, "améliorations : sans clé corruption, aucune corruption");
-		Check(sin.mIsSin && sin.mCorruption == 2 && sin.mEffects.Size() == 2, "améliorations : un péché a un défaut et de la corruption");
+		Check(virtue.mKind == Sinwave_UpgradeDef.KIND_VIRTUE && virtue.mCorruption == 0, "améliorations : sans clé corruption, aucune corruption");
+		Check(sin.mKind == Sinwave_UpgradeDef.KIND_SIN && sin.mCorruption == 2 && sin.mEffects.Size() == 2, "améliorations : un péché a un défaut et de la corruption");
+		Check(neutral.mKind == Sinwave_UpgradeDef.KIND_NEUTRAL && neutral.mCorruption == 0 && neutral.mEffects.Size() == 1, "améliorations : un neutre ne touche pas à l'âme");
+	}
+
+	// Le tirage des choix de niveau : à l'équilibre, le choix libre est neutre (ici
+	// avec une chance de 1) ; au bout de la balance, jamais, et la pente glissante le
+	// donne au camp de l'âme.
+	private void TestOffer()
+	{
+		Array<Sinwave_DataBlock> progressionBlocks;
+		Array<Sinwave_DataBlock> soulBlocks;
+		Array<Sinwave_DataBlock> upgradeBlocks;
+		Sinwave_DataParser.ParseText("test", "[progression p]\noffer_virtues = 1\noffer_sins = 1\noffer_free = 1\noffer_neutral_chance = 1\n", progressionBlocks);
+		Sinwave_DataParser.ParseText("test", "[soul s]\nmin = 0\nmax = 30\nbalance = 15\n[tier t]\nside = sin\nat = 20\ntemptation = 1\n", soulBlocks);
+		Sinwave_DataParser.ParseText("test",
+			"[upgrade v]\nkind = virtue\ncorruption = -3\nmax = 3\n[upgrade n]\nkind = neutral\n[upgrade s]\nkind = sin\ncorruption = 3\n[upgrade s2]\nkind = sin\ncorruption = 3\n",
+			upgradeBlocks);
+		let data = new('Sinwave_GameData');
+		data.mProgression = Sinwave_ProgressionDef.FromBlock(progressionBlocks[0]);
+		data.mSoul = Sinwave_SoulDef.FromBlocks(soulBlocks);
+		for (int i = 0; i < upgradeBlocks.Size(); i++) data.mUpgrades.Push(Sinwave_UpgradeDef.FromBlock(upgradeBlocks[i]));
+
+		let services = new('Sinwave_Services');
+		let bus = new('Sinwave_EventBus');
+		services.Register('EventBus', bus);
+		services.Register('GameData', data);
+		let system = new('Sinwave_UpgradeSystem');
+		system.Init('upgrades', services);
+		let offers = new('Sinwave_TestOfferListener');
+		bus.Subscribe(offers, 'Sinwave_UpgradeOfferedEvent');
+
+		bus.Publish(new('Sinwave_RunStartedEvent'));
+		bus.Publish(Sinwave_LevelUpEvent.Create(2));
+		Check(offers.Kinds() == "virtue,neutral,sin", "choix : à l'équilibre, une vertu, un neutre et un péché (" .. offers.Kinds() .. ")");
+
+		bus.Publish(Sinwave_UpgradePickedEvent.Create(1));	// le neutre
+		bus.Publish(Sinwave_CorruptionChangedEvent.Create(30, data.mSoul));
+		bus.Publish(Sinwave_LevelUpEvent.Create(3));
+		Check(offers.Kinds() == "virtue,sin,sin", "choix : au bout de la balance, plus de neutre, la pente glissante (" .. offers.Kinds() .. ")");
 	}
 
 	// Balance de l'âme : paliers des deux côtés, butin, verdict, puis le système
@@ -359,6 +423,8 @@ class Sinwave_UnitTests : StaticEventHandler
 		Check(reached.Size() == 2, "âme : les paliers d'un même côté s'additionnent");
 		Check(soul.DropChance(5, true) == 30 && soul.DropChance(5, false) == 0, "âme : l'inverse côté vertu");
 		Check(soul.Temptation(15) == 0 && soul.Temptation(25) == 1, "âme : la pente glissante tire les choix vers le camp atteint");
+		Check(soul.Lean(15) == 0 && soul.Lean(30) == 1 && soul.Lean(0) == 1 && soul.Lean(20) ~== 1.0 / 3 && soul.Lean(10) ~== 1.0 / 3,
+			"âme : elle penche de 0 (équilibre) à 1 (bout de la balance), des deux côtés");
 		Check(soul.BossHealthFactor(25) ~== 0.9 && soul.BossEscortFactor(25) ~== 1.2, "âme : corrompue, boss plus faible mais mieux entouré");
 		Check(soul.BossHealthFactor(5) ~== 1.15 && soul.BossEscortFactor(5) ~== 0.85, "âme : pure, boss plus fort mais seul");
 
