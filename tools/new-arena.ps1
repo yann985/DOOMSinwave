@@ -4,7 +4,9 @@
 #   - son entrée dans data\arenas.txt (elle apparaît dans le choix d'arène)
 #   - sa déclaration dans MAPINFO
 #
-#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Circles
+#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Funnel
+#   -Shape Funnel : entonnoir de l'Enfer (terrasses) ; Castle : château à sept portes
+#   (tools\generate-arena.ps1)
 #
 # Voir docs\CREER-UNE-ARENE.md pour la suite.
 
@@ -12,7 +14,7 @@ param(
 	[Parameter(Mandatory = $true)] [ValidatePattern('^[a-z][a-z0-9_]*$')] [string]$Id,
 	[string]$Name,
 	[string]$Map,
-	[ValidateSet("Circles", "Square")] [string]$Shape = "Square"
+	[ValidateSet("Funnel", "Castle", "Circles", "Square")] [string]$Shape = "Castle"
 )
 
 $ErrorActionPreference = "Stop"
