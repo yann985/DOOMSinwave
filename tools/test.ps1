@@ -5,12 +5,14 @@
 # vagues, désactive le système d'interface (test de découplage) et ajoute les
 # tests unitaires du noyau. Le jeu lui-même n'est pas modifié.
 #
-#   powershell -ExecutionPolicy Bypass -File tools\test.ps1
+#   powershell -ExecutionPolicy Bypass -File tools\test.ps1                -> avec Freedoom
+#   powershell -ExecutionPolicy Bypass -File tools\test.ps1 -Iwad doom2    -> avec le vrai Doom II
 
-param([int]$TimeoutSeconds = 90)
+param([int]$TimeoutSeconds = 90, [string]$Iwad)
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "config.ps1")
+if ($Iwad) { $IwadPath = Resolve-Iwad $Iwad }
 
 # Archives séparées : les tests marchent même si le jeu est ouvert (il verrouille sinwave.pk3).
 $Pk3Path = Join-Path $BuildDir "$PackageName-test.pk3"
@@ -91,6 +93,7 @@ function Invoke-Scenario([string]$Name, [string[]]$Commands, [string[]]$Expected
 	return $failures
 }
 
+"IWAD : $IwadPath"
 "Une fenêtre GZDoom va s'ouvrir plusieurs fois (environ 1 minute au total)."
 "Ne touche pas au clavier pendant ce temps (Espace ou E comptent comme « Utiliser »)."
 
