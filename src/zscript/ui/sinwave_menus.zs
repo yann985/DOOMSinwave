@@ -331,6 +331,18 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		if (!StaysOpen() || mCloseRequested) Close();
 	}
 
+	// Taille du texte, réduite s'il le faut pour tenir dans `width` : les descriptions
+	// viennent des données (une arène créée par un joueur peut en avoir une longue).
+	private static double FitSize(String text, double size, double width)
+	{
+		Array<String> lines;
+		text.Split(lines, "\n");
+		int widest = 0;
+		for (int i = 0; i < lines.Size(); i++) widest = max(widest, NewSmallFont.StringWidth(lines[i]));
+		double natural = widest * size;
+		return natural > width ? size * width / natural : size;
+	}
+
 	// Lignes de la plus longue description : le cadre garde la même taille d'une option à l'autre.
 	private int DetailLines()
 	{
@@ -418,11 +430,15 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 			mValueWidth[i] = NewSmallFont.StringWidth(mValues[i]) * labelSize;
 			mValueLeft[i] = left + panelWidth - 20 - mValueWidth[i];
 			if (mValues[i].Length() > 0) c.Text(NewSmallFont, labelColor, left + panelWidth - 20, y, mValues[i], labelSize, Sinwave_Canvas.ALIGN_RIGHT);
-			if (detailsInline && mDetails[i].Length() > 0) c.Text(NewSmallFont, Font.CR_GOLD, left + 44, y + labelSize * 11, mDetails[i], detailSize);
+			if (detailsInline && mDetails[i].Length() > 0)
+			{
+				c.Text(NewSmallFont, Font.CR_GOLD, left + 44, y + labelSize * 11, mDetails[i], FitSize(mDetails[i], detailSize, panelWidth - 60));
+			}
 		}
 		if (!detailsInline && mSelected < count && mDetails[mSelected].Length() > 0)
 		{
-			c.Text(NewSmallFont, Font.CR_GOLD, center, top + header + count * rowHeight + 10, mDetails[mSelected], detailSize, Sinwave_Canvas.ALIGN_CENTER);
+			String detail = mDetails[mSelected];
+			c.Text(NewSmallFont, Font.CR_GOLD, center, top + header + count * rowHeight + 8, detail, FitSize(detail, detailSize, panelWidth - 24), Sinwave_Canvas.ALIGN_CENTER);
 		}
 
 		if (HasBackButton())
