@@ -10,14 +10,15 @@ powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'
 
 - `-Id` : identifiant court, en minuscules, sans espace.
 - `-Name` : nom affiché dans le jeu.
-- `-Shape` : plan de la carte de départ, le même que l'une des deux arènes du jeu :
+- `-Shape` : plan de la carte de départ, le même que l'une des arènes du jeu :
   - `Funnel` : l'entonnoir de l'Enfer du Purgatoire (terrasses, aiguilles de roche, tombeaux, fleuve de sang, lac gelé) ;
-  - `Castle` : le château des Limbes (champ, fossé, rempart à sept portes, prairie).
+  - `Castle` : le château des Limbes (champ, fossé, rempart à sept portes, prairie) ;
+  - `Vestibule` : le vestibule de l'Enfer (la porte, une plaine de cendre semée de rochers, l'Achéron au sud) : petit, pour des runs courtes.
 
   Les anciens noms `Circles` et `Square` marchent encore.
 
 Le script crée :
-- la carte `src/maps/SW03.wad` (le numéro suit les cartes existantes) ;
+- la carte `src/maps/SW04.wad` (le numéro suit les cartes existantes) ;
 - le fichier de cercles `src/data/waves/enfer.txt` ;
 - l'entrée `[arena enfer]` dans `src/data/arenas.txt` ;
 - la déclaration de la carte dans `src/MAPINFO.txt`.
@@ -33,7 +34,7 @@ Ouvre la carte dans Ultimate Doom Builder (*File → Open Map*, configuration **
 - Tu peux aussi placer des **points d'apparition** : catégorie *Sinwave*, « Point d'apparition des ennemis » (numéro 30001). Ils servent de secours quand la place manque autour du joueur, ou de seule source avec `spawn = points`. Mets-les loin du centre : ils ne servent jamais à moins de 384 unités du joueur.
 - Les marches ne doivent pas dépasser 24 unités de haut, sinon le joueur ne peut pas les monter, et les monstres ne savent ni les monter ni les descendre.
 - Un obstacle plein (rocher, pilier) se dessine comme un trou dans la carte. Un bloc bas (tombeau, rempart) peut être un secteur plus haut : aucun ennemi n'apparaît sur un plateau plus haut d'une marche que tout ce qui l'entoure.
-- Pour que la horde soit agréable à combattre : des boucles autour des obstacles pour la faire tourner en rond, pas de cul-de-sac, des obstacles qui coupent les tirs, et des passages plus étroits où elle se tasse. Les deux arènes du jeu suivent ces règles (voir `tools/generate-arena.ps1`).
+- Pour que la horde soit agréable à combattre : des boucles autour des obstacles pour la faire tourner en rond, pas de cul-de-sac, des obstacles qui coupent les tirs, et des passages plus étroits où elle se tasse. Les arènes du jeu suivent ces règles (voir `tools/generate-arena.ps1`).
 
 Enregistre (Ctrl+S). Attention : relancer `new-arena.ps1` ou `generate-arena.ps1` sur la même carte l'écrase.
 
@@ -56,11 +57,11 @@ enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
 
 - Malédictions : `sloth`, `gluttony`, `lust`, `envy`, `greed`, `wrath`, `pride`.
 - Ennemis : `sloth`, `gluttony`, `lust`, `envy`, `greed`, `wrath`, `pride`.
-- Boss : `lucifer`.
+- Boss : `lucifer`, ou `charon`, plus léger (celui du Vestibule).
 
 **Difficulté croissante :** `interval` et `max` sont ceux de la première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage, et la vie des ennemis augmente d'une vague à l'autre sur toute l'arène. Ces montées se règlent dans `src/data/progression.txt` (`wave_spawn_growth`, `wave_max_growth`, `wave_health_growth`). Pour que la difficulté monte aussi d'un cercle à l'autre, donne aux cercles suivants un `interval` plus court, un `max` plus grand ou des ennemis plus forts.
 
-**Durée :** vise au moins 5 minutes de vagues au total (nombre de vagues × `duration`, sur tous les cercles, sans compter la vague du boss). Le Purgatoire en a 6 (18 vagues de 20 s), les Limbes 5 min 15 (9 vagues de 35 s).
+**Durée :** vise au moins 5 minutes de vagues au total (nombre de vagues × `duration`, sur tous les cercles, sans compter la vague du boss). Le Purgatoire en a 6 (18 vagues de 20 s), les Limbes 5 min 15 (9 vagues de 35 s). Seule exception : le Vestibule, la run minimale demandée par le sujet (2 vagues d'une minute, puis Charon : 2 à 3 minutes).
 
 **Cercle de boss :** ajoute `boss = lucifer`. La dernière vague du cercle est celle du boss : elle dure jusqu'à sa mort. Avec `waves = 1`, le cercle n'a que la vague du boss.
 
@@ -72,7 +73,7 @@ Dans `src/data/arenas.txt` :
 [arena enfer]
 name         = L'Enfer
 description  = Texte affiché dans le choix d'arène.
-map          = SW03
+map          = SW04
 waves        = data/waves/enfer.txt
 enemy_health = 1.2     # vie des ennemis ×1,2
 enemy_speed  = 1.1     # vitesse des ennemis ×1,1

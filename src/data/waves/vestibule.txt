@@ -1,0 +1,18 @@
+# Le Vestibule : la run minimale demandée par le sujet (2 à 3 minutes). Un seul
+# cercle : deux vagues d'une minute, puis Charon, le passeur de l'Achéron. Elle
+# traverse tous les systèmes : vagues, XP, choix de niveau, balance de l'âme,
+# malédiction, boss, score, puis indulgences et Jugement sauvegardés à la fin.
+# Exception voulue à la règle des 5 minutes de vagues des autres arènes.
+# Clés : voir data/waves/purgatoire.txt.
+
+[circle 1]
+name     = Vestibule
+curse    = sloth
+waves    = 3
+duration = 60
+pause    = 3
+break    = 0
+interval = 0.9
+max      = 12
+boss     = charon
+enemies  = sloth:3, gluttony:2, envy:1

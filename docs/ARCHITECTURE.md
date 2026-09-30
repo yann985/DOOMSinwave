@@ -9,10 +9,10 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
 ## 1. Le jeu en bref
 
 - **Hors run :**
-  - le joueur choisit une **arène** : Le Purgatoire, Les Limbes, ou une arène personnalisée ;
+  - le joueur choisit une **arène** : Le Vestibule (la run minimale, 2 à 3 minutes), Le Purgatoire, Les Limbes, ou une arène personnalisée ;
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes. Ses rayons s'ouvrent selon le **Jugement** de son âme, gardé d'une run à l'autre.
-- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
+- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle se termine par un boss : **Charon** au Vestibule, **Lucifer** au Purgatoire.
 - **À chaque niveau :** trois choix parmi des **vertus** (modestes, qui purifient), des **neutres** (meilleurs, sans toucher à l'âme, de plus en plus rares quand elle penche) et des **péchés** (puissants, avec un défaut, qui corrompent). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté, et plus les choix suivants penchent du même côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
 - **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes, et le Jugement bouge selon l'âme.
 
@@ -160,6 +160,17 @@ flowchart LR
 - **Interface :** le haut de l'écran affiche « Cercle 3/7 : Luxure   vague 2/3   0:05 », et un bandeau annonce chaque cercle, puis chaque nouvelle vague.
 - **Difficulté croissante :** les réglages d'un cercle (`interval`, `max`) sont ceux de sa première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage (`Sinwave_CircleDef.IntervalTicsForWave`, `MaxAliveForWave`). La vie des ennemis grandit avec le rang de la vague dans l'arène (`Sinwave_GameData.WaveRank`), donc aussi d'un cercle à l'autre, quel que soit le cercle de départ. Les trois taux sont dans `data/progression.txt` ; le boss, réglé à part, n'est pas concerné.
 - **Boss :** avec `boss = ...`, la dernière vague du cercle est celle du boss et dure jusqu'à sa mort.
+
+### La run minimale : le Vestibule
+
+Le sujet demande une run jouable de 2 à 3 minutes. C'est l'arène **Le Vestibule** (carte SW03, `data/waves/vestibule.txt`), la première du choix d'arène : un seul cercle (Paresse), deux vagues d'une minute, puis le boss **Charon**. Les vagues finissent à 2 min 07, et le combat contre Charon porte la run à 2 à 3 minutes. Elle traverse tout ce que le sujet demande :
+- des vagues d'ennemis de plus en plus serrées ;
+- le ramassage d'XP, les montées de niveau et le choix d'une amélioration (vertu, neutre ou péché) ;
+- la balance de l'âme, la malédiction du cercle, le boss et sa rage ;
+- le score final et le verdict ;
+- la sauvegarde de la méta-progression : indulgences et Jugement, relus à la run suivante.
+
+C'est la seule arène sous les 5 minutes de vagues : le Purgatoire et les Limbes durent 6 à 8 minutes. Rien dans le code ne la distingue des autres : elle n'existe que par ses données (`arenas.txt`, `waves/vestibule.txt`, le boss `charon` dans `enemies.txt`) et sa carte.
 
 ### Alerte d'attaque dans l'angle mort
 
@@ -324,7 +335,7 @@ Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle le
 
 ### Les cartes : générées, d'après Dante et les modes de survie
 
-Les deux cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
+Les trois cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
 
 **Principes de level design**, repris des modes de survie existants (zombies de Call of Duty, mode Horde de Doom Eternal, Serious Sam, Vampire Survivors) :
 - des **boucles** pour faire tourner la horde en rond, sans cul-de-sac où se faire coincer (d'où des anneaux et des octogones, pas de coins) ;
@@ -332,12 +343,13 @@ Les deux cartes sont des créations originales, calculées par `tools/generate-a
 - des **passages étroits** (portes, abords des tombeaux) où la horde se tasse : le fusil à pompe y est roi ;
 - des **zones reconnaissables** au sol, à la lumière et à sa couleur, et un repère au centre.
 
-**Les deux plans**, d'après la géographie de Dante :
+**Les trois plans**, d'après la géographie de Dante :
 
 | Carte | Plan | Ce qui sert au jeu |
 |---|---|---|
 | SW02, le Purgatoire (`Funnel`) | L'entonnoir de l'Enfer : un bord hérissé de 8 aiguilles de roche, les 6 tombeaux ardents, le fleuve de sang (Phlégéthon), et au centre le lac gelé du Cocyte avec 4 piliers de feu bleu | Chaque terrasse est une boucle ; on descend vers le boss d'une marche à la fois ; les piliers du lac cachent du boss, les tombeaux coupent les tirs |
 | SW01, les Limbes (`Castle`) | Le noble château : un champ obscur, le fossé, un rempart percé de 7 portes (pas au sud), et au centre la prairie avec un temple de 4 colonnes et 7 arbres | Trois boucles (champ, chemin de ronde, prairie) ; les portes font se tasser la horde ; le mur sans porte au sud force à tourner |
+| SW03, le Vestibule (`Vestibule`) | L'antichambre de l'Enfer : on entre par la porte, au nord ; une plaine de cendre où courent les tièdes ; l'Achéron, le fleuve de Charon, qui barre le sud ; et l'autre rive | Une seule grande plaine pour une run courte : on voit venir la horde de loin ; cinq rochers à contourner coupent les tirs ; coins coupés, sans cul-de-sac |
 
 **Contraintes du moteur :**
 - marches de 24 unités au plus : les monstres ne montent ni ne descendent plus haut ;
@@ -382,7 +394,7 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 - **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
 - **Trois familles de choix :** chaque montée de niveau propose une vertu, un péché et un choix libre (`data/progression.txt`). Les **neutres** se placent entre les deux : un bonus meilleur que celui d'une vertu, moins fort que celui d'un péché, sans défaut, et l'âme ne bouge pas (ce sont les vertus des païens des Limbes : Force, Justice, Prudence...). Le choix libre est neutre avec une chance de 80 % à l'équilibre (`offer_neutral_chance`), qui baisse à mesure que l'âme penche jusqu'à 0 au bout de la balance (`Sinwave_SoulDef.Lean`).
 - **Pente glissante, dans les deux sens :** s'il n'est pas neutre, la clé `temptation` d'un palier atteint tire le choix libre vers le camp de l'âme : deux péchés pour une âme corrompue, deux vertus pour une âme pure, au hasard à l'équilibre. Un neutre tiré compte comme ce choix : la vertu et le péché restent toujours proposés (`Sinwave_UpgradeSystem.OfferSplit`). Le menu les range dans l'ordre de la balance : vertu, neutre, péché.
-- **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie de Lucifer et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
+- **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie du boss (Charon ou Lucifer) et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
 - **Épreuves, au bout de la balance :** `Sinwave_SoulTrialSystem` compte le temps passé à 0 ou à 30 (hors pause et menus). Au bout de `trial_seconds` (20 s), une fois par séjour :
   - côté péché, il demande l'apparition du **reflet damné** (`SpawnRequested`), un mini-boss rouge qui rapporte 80 XP ;
   - côté vertu, un **ange** soigne le joueur (`EffectGranted` heal), dans une gerbe de lumière dorée.
@@ -485,7 +497,7 @@ Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface
 
 Ce que la désactivation change pour chaque système :
 - **curses** : les cercles n'ont plus de règle spéciale ;
-- **boss** : Lucifer n'entre plus en rage ;
+- **boss** : les boss n'entrent plus en rage ;
 - **corruption** : l'âme reste à l'équilibre, sans palier ; le verdict est toujours Purgatoire ;
 - **loot** : les ennemis ne lâchent plus que ce que Doom leur fait lâcher ;
 - **score** : les indulgences ne viennent plus que des cercles ;
@@ -505,7 +517,7 @@ Ce que la désactivation change pour chaque système :
 | `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). `-Iwad doom2` : les mêmes, sur le vrai Doom II. |
 | `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. `-Iwad doom2` : avec le vrai Doom II. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
-| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`) ou le château des Limbes (`Castle`). |
+| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`), le château des Limbes (`Castle`) ou le vestibule de l'Enfer (`Vestibule`). |
 | `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`, avec un lanceur Freedoom et un lanceur Doom II. |
 | `create-shortcuts.ps1` | Raccourcis du bureau : « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) », « Sinwave - Jouer (Doom II) ». |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |
@@ -558,6 +570,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 - **Malédictions et monstres :** certaines malédictions parcourent tous les monstres de la carte toutes les 4 à 5 tics. C'est sans problème pour quelques dizaines d'ennemis, mais à surveiller pour de très grosses vagues.
 - **Pause en double :** GZDoom a sa propre pause (touche Pause, menu principal). L'état Pause du projet utilise un menu dédié ; les deux coexistent sans se connaître.
 - **Données vérifiées au lancement seulement :** une faute de frappe dans `data/` n'est signalée qu'au chargement de la carte, dans la console. Il n'y a pas d'éditeur ni de schéma comme avec les ScriptableObject.
+- **Une carte par arène :** l'arène se retrouve d'après la carte chargée (la première dont la carte correspond). Deux arènes ne peuvent donc pas partager une carte : chacune a la sienne.
 - **Ajout d'arènes par un mod :** un mod qui veut ajouter une arène doit fournir son propre `data/arenas.txt` complet, qui remplace celui du jeu. Les listes ne se cumulent pas encore entre archives.
 - **Sauvegarde modifiable :** les CVars sont dans un fichier `.ini` lisible ; un joueur peut changer ses indulgences. C'est acceptable pour un prototype solo.
 - **Jeu solo :** le code suppose un seul joueur (`Sinwave_World.Player()`).

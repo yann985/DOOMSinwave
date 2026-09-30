@@ -103,7 +103,11 @@ class Sinwave_GameData : Sinwave_Service
 
 		Console.Printf("[Sinwave] Données chargées : %d systèmes, %d ennemis, %d malédictions, %d améliorations, %d articles, %d arènes.",
 			mSystems.Size(), mEnemies.Size(), mCurses.Size(), mUpgrades.Size(), mShopItems.Size(), mArenas.Size());
-		if (mArena != null) Console.Printf("[Sinwave] Arène : %s (%d cercles, %d vagues).", mArena.mName, mCircles.Size(), WaveRank(mCircles.Size(), 0));
+		if (mArena != null)
+		{
+			int circles = mCircles.Size();
+			Console.Printf("[Sinwave] Arène : %s (%d cercle%s, %d vagues).", mArena.mName, circles, circles > 1 ? "s" : "", WaveRank(circles, 0));
+		}
 	}
 
 	// Rang d'une vague depuis le début de l'arène (0 : première vague du premier
