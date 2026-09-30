@@ -13,7 +13,7 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes. Ses rayons s'ouvrent selon le **Jugement** de son âme, gardé d'une run à l'autre.
 - **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
-- **À chaque niveau :** choix entre deux **vertus** (modestes) et un **péché** (puissant, avec un défaut). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
+- **À chaque niveau :** trois choix parmi des **vertus** (modestes, qui purifient), des **neutres** (meilleurs, sans toucher à l'âme, de plus en plus rares quand elle penche) et des **péchés** (puissants, avec un défaut, qui corrompent). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté, et plus les choix suivants penchent du même côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
 - **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes, et le Jugement bouge selon l'âme.
 
 ### Ce qui distingue Sinwave des mods existants
@@ -24,7 +24,7 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 |---|---|---|
 | Structure | Vagues sans fin | Descente finie : des cercles de quelques vagues chacun, un boss, une fin |
 | Vagues | Plus d'ennemis à chaque vague | Les vagues se resserrent aussi, mais chaque cercle **change une règle** (malédiction) |
-| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu ou péché**, qui fait pencher l'âme : la partie change à chaque palier, et le verdict en dépend |
+| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu, neutre ou péché**, qui fait pencher l'âme (ou non) : la partie change à chaque palier, et le verdict en dépend |
 | Monnaie | Âmes, boutique en cours de partie | Indulgences, boutique **entre les runs** (méta-progression) |
 | Contenu | Dans le code | Dans des **fichiers de données** ; arènes personnalisées sans code |
 | Architecture | DoomSurvivor : un gestionnaire d'événements central qui gère vagues, difficulté et réinitialisations | Systèmes indépendants reliés par un bus d'événements, activables un par un |
@@ -273,7 +273,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
 | `enemies.txt` | Les 7 péchés, le boss et le reflet damné : classe du moteur, vie, vitesse, taille, couleur, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
-| `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
+| `upgrades.txt` | 8 vertus, 7 neutres et 7 péchés : famille, effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets, pente des choix, force du boss, épreuves | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem`, `Sinwave_UpgradeSystem`, `Sinwave_WaveSystem`, `Sinwave_SoulTrialSystem` |
 | `shop.txt` | Armes et améliorations permanentes : rayon, palier du Jugement demandé, prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `judgement.txt` | Jugement de l'âme : bornes, neutralité, seuils des rayons de la boutique, déplacement en fin de run | `Sinwave_MetaSystem`, boutique |
@@ -355,6 +355,8 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 - **Petits changements, à chaque point :** `Sinwave_LootSystem` fait lâcher aux ennemis tués un soin ou des munitions (celles de l'arme en main). Les chances partent de 8 % chacune à l'équilibre : vers le péché, plus de munitions et un peu moins de soins ; vers la vertu, l'inverse. Les chargeurs que les monstres de Doom lâchent d'eux-mêmes sont retirés (`monster_drops`), pour que le butin ne dépende que de l'âme ; leurs armes restent.
 - **Grands changements, à chaque palier :** les paliers d'un même côté s'additionnent. `Sinwave_CorruptionSystem` publie les effets d'un palier atteint et, s'il est perdu, leur inverse ; un bandeau l'annonce (`SoulTierChangedEvent`). Au début d'une run, les paliers ne sont appliqués qu'au tic suivant, après la remise à zéro du joueur : l'ordre de diffusion de `RunStarted` n'est pas garanti.
 - **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
+- **Trois familles de choix :** chaque montée de niveau propose une vertu, un péché et un choix libre (`data/progression.txt`). Les **neutres** se placent entre les deux : un bonus meilleur que celui d'une vertu, moins fort que celui d'un péché, sans défaut, et l'âme ne bouge pas (ce sont les vertus des païens des Limbes : Force, Justice, Prudence...). Le choix libre est neutre avec une chance de 80 % à l'équilibre (`offer_neutral_chance`), qui baisse à mesure que l'âme penche jusqu'à 0 au bout de la balance (`Sinwave_SoulDef.Lean`).
+- **Pente glissante, dans les deux sens :** s'il n'est pas neutre, la clé `temptation` d'un palier atteint tire le choix libre vers le camp de l'âme : deux péchés pour une âme corrompue, deux vertus pour une âme pure, au hasard à l'équilibre. Un neutre tiré compte comme ce choix : la vertu et le péché restent toujours proposés (`Sinwave_UpgradeSystem.OfferSplit`). Le menu les range dans l'ordre de la balance : vertu, neutre, péché.
 - **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie de Lucifer et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
 - **Épreuves, au bout de la balance :** `Sinwave_SoulTrialSystem` compte le temps passé à 0 ou à 30 (hors pause et menus). Au bout de `trial_seconds` (20 s), une fois par séjour :
   - côté péché, il demande l'apparition du **reflet damné** (`SpawnRequested`), un mini-boss rouge qui rapporte 80 XP ;
@@ -506,13 +508,14 @@ Le mod n'utilise que ce que Doom II et Freedoom Phase 2 ont en commun : les clas
    - les achats s'appliquent au début de la run ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **58 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **77 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids du tirage des ennemis et les effets ;
 - les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
 - les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
-- vertus et péchés, prix de la boutique, enregistrement des achats ;
-- la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
+- vertus, neutres et péchés, prix de la boutique, enregistrement des achats ;
+- le tirage des choix de niveau : un neutre à l'équilibre, jamais au bout de la balance, où la pente glissante prend sa place ;
+- la balance de l'âme : paliers des deux côtés, butin, verdict, pente des choix, combien elle penche, force du boss, et le système qui applique puis retire les effets d'un palier ;
 - le Jugement : paliers, rayons ouverts ou verrouillés, zone qui ouvre un article et points qui manquent, article acheté qui reste débloqué, déplacement en fin de run ;
 - l'interface : l'âme affichée au début d'une run, quel que soit l'ordre de diffusion ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.

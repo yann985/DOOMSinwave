@@ -11,7 +11,10 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
 2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
 3. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche.
-4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis entre deux **vertus** et un **péché**, plus puissant mais avec un défaut.
+4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis parmi trois propositions :
+   - une **vertu** : un petit bonus, et ton âme se purifie ;
+   - un **péché** : un gros bonus avec un défaut, et ton âme se corrompt ;
+   - la troisième est souvent un **neutre** : un bonus moyen, sans défaut, et ton âme ne bouge pas. Plus ton âme penche, plus les neutres sont rares.
 5. Tes choix font pencher la **balance de l'âme** (corruption de 0 à 30, départ à 15, l'équilibre) : les péchés la font monter, les vertus descendre. Plus elle penche, plus la partie change :
    - vers le péché : plus de munitions et moins de soins, jusqu'aux **munitions infinies** ;
    - vers la vertu : l'inverse, jusqu'à l'**aura sainte** ;
@@ -87,7 +90,7 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/data/          définitions chargées depuis data/, sauvegarde
   zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
-  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus et péchés, âme, boutique, Jugement
+  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus, neutres et péchés, âme, boutique, Jugement
   maps/                  SW01 Les Limbes, SW02 Le Purgatoire (tools/generate-arena.ps1)
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging

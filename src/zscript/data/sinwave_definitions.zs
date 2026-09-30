@@ -335,14 +335,22 @@ class Sinwave_CircleDef play
 	}
 }
 
-// Une amélioration proposée à la montée de niveau (data/upgrades.txt) :
-// une vertu (sûre) ou un péché (puissant, avec un défaut, et qui corrompt).
+// Une amélioration proposée à la montée de niveau (data/upgrades.txt) : une vertu
+// (modeste, qui purifie), un neutre (meilleur, sans toucher à l'âme) ou un péché
+// (puissant, avec un défaut, et qui corrompt).
 class Sinwave_UpgradeDef play
 {
+	enum EKind
+	{
+		KIND_VIRTUE,
+		KIND_NEUTRAL,
+		KIND_SIN
+	}
+
 	Name mId;
 	String mName;
 	String mDescription;
-	bool mIsSin;
+	int mKind;
 	int mCorruption;
 	int mMaxStacks;
 	Array<Sinwave_Effect> mEffects;
@@ -354,9 +362,19 @@ class Sinwave_UpgradeDef play
 		def.mName = block.GetString("name", block.mId);
 		def.mDescription = block.GetString("description");
 		String kind = block.GetString("kind", "virtue").MakeLower();
-		if (kind != "virtue" && kind != "sin") block.Warn("kind doit valoir virtue ou sin.");
-		def.mIsSin = kind == "sin";
+		if (kind == "sin") def.mKind = KIND_SIN;
+		else if (kind == "neutral") def.mKind = KIND_NEUTRAL;
+		else
+		{
+			if (kind != "virtue") block.Warn("kind doit valoir virtue, neutral ou sin.");
+			def.mKind = KIND_VIRTUE;
+		}
 		def.mCorruption = block.GetInt("corruption", 0);
+		if (def.mKind == KIND_NEUTRAL && def.mCorruption != 0)
+		{
+			block.Warn("un neutre ne touche pas à l'âme : corruption ignorée.");
+			def.mCorruption = 0;
+		}
 		def.mMaxStacks = max(1, block.GetInt("max", 1));
 		Sinwave_Effect.ParseList(block, "effects", def.mEffects);
 		return def;
@@ -759,6 +777,13 @@ class Sinwave_SoulDef play
 		return soul > mBalance ? 1 : (soul < mBalance ? -1 : 0);
 	}
 
+	// Combien l'âme penche : de 0 (équilibre) à 1 (bout de la balance, d'un côté ou de l'autre).
+	double Lean(int soul)
+	{
+		int range = soul > mBalance ? mMax - mBalance : mBalance - mMin;
+		return range > 0 ? clamp(abs(soul - mBalance) / double(range), 0.0, 1.0) : 0.0;
+	}
+
 	// Paliers atteints, du plus proche de l'équilibre au plus extrême.
 	void ReachedTiers(int soul, out Array<Sinwave_SoulTierDef> result)
 	{
@@ -822,6 +847,7 @@ class Sinwave_ProgressionDef play
 	int mOfferVirtues;
 	int mOfferSins;
 	int mOfferFree;			// choix de l'un ou l'autre camp (tirés par l'âme, sinon au hasard)
+	double mOfferNeutralChance;	// chance qu'un choix libre soit neutre, à l'équilibre
 	double mMagnetRadius;
 	int mIndulgencesPerScore;
 	int mIndulgencesPerCircle;
@@ -847,6 +873,7 @@ class Sinwave_ProgressionDef play
 		def.mOfferVirtues = max(0, block.GetInt("offer_virtues", 2));
 		def.mOfferSins = max(0, block.GetInt("offer_sins", 1));
 		def.mOfferFree = max(0, block.GetInt("offer_free", 0));
+		def.mOfferNeutralChance = clamp(block.GetDouble("offer_neutral_chance", 0), 0.0, 1.0);
 		def.mMagnetRadius = max(0.0, block.GetDouble("magnet_radius", 192));
 		def.mIndulgencesPerScore = max(1, block.GetInt("indulgences_per_score", 20));
 		def.mIndulgencesPerCircle = max(0, block.GetInt("indulgences_per_circle", 2));

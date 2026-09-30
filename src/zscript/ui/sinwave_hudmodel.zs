@@ -84,11 +84,11 @@ class Sinwave_HudModel : Sinwave_Service
 	String mJudgementTierName;
 	int mJudgementBefore;		// Jugement avant la dernière run (égal au Jugement s'il n'y en a pas eu)
 
-	// Choix d'une vertu ou d'un péché. Le numéro change à chaque proposition.
+	// Choix d'une vertu, d'un neutre ou d'un péché. Le numéro change à chaque proposition.
 	int mOfferSerial;
 	Array<String> mOfferNames;
 	Array<String> mOfferDescriptions;
-	Array<bool> mOfferIsSin;
+	Array<int> mOfferKinds;			// Sinwave_UpgradeDef.KIND_...
 	Array<int> mOfferCorruption;
 
 	// Pause (numéro de la pause en cours, pour n'ouvrir le menu qu'une fois)
