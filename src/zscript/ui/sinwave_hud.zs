@@ -112,7 +112,7 @@ class Sinwave_Hud ui
 				// droite (écran large), sinon sous ces colonnes (et sous la barre du boss).
 				String curseLine = "Malédiction : " .. m.mCurseDescription;
 				bool fits = NewSmallFont.StringWidth(curseLine) * 0.9 < c.mWidth - 2 * CORNER_WIDTH;
-				double y = fits ? 36 : (m.mBossActive ? 88 : 80);
+				double y = fits ? 36 : (m.mBossActive ? 112 : 80);
 				c.Text(NewSmallFont, Font.CR_ORANGE, center, y, curseLine, 0.9, Sinwave_Canvas.ALIGN_CENTER);
 			}
 		}
@@ -150,7 +150,7 @@ class Sinwave_Hud ui
 		let c = mCanvas;
 		double width = min(420.0, c.mWidth - 40);
 		double left = (c.mWidth - width) / 2;
-		double top = 58;
+		double top = 84;	// sous les colonnes de gauche (corruption, difficulté) qu'elle cachait
 		c.Box(left - 2, top - 2, width + 4, 14, Color(0, 0, 0), 0.8);
 		c.Box(left, top, width * m.mBossHealth, 10, m.mBossEnraged ? Color(255, 60, 0) : Color(170, 0, 0), 0.95);
 		c.Text(NewSmallFont, Font.CR_WHITE, c.mWidth / 2, top + 14, m.mBossName, 1.1, Sinwave_Canvas.ALIGN_CENTER);
@@ -256,7 +256,7 @@ class Sinwave_Hud ui
 		int titleColor;
 		switch (m.mEndReason)
 		{
-		case Sinwave_RunEndedEvent.REASON_VICTORY:	title = "PURGATOIRE VAINCU"; titleColor = Font.CR_GOLD; break;
+		case Sinwave_RunEndedEvent.REASON_VICTORY:	title = "TU AS TRIOMPHÉ"; titleColor = Font.CR_GOLD; break;	// quelle que soit l'arène
 		case Sinwave_RunEndedEvent.REASON_DEATH:	title = "TU AS SUCCOMBÉ"; titleColor = Font.CR_RED; break;
 		default:									title = "RUN ABANDONNÉE"; titleColor = Font.CR_GRAY; break;
 		}
