@@ -4,6 +4,9 @@
 #                   centre le lac gelé du Cocyte, où attend Lucifer.
 #   -Shape Castle : le noble château des Limbes : un champ obscur, un fossé, un rempart
 #                   percé de sept portes, et au centre une prairie lumineuse.
+#   -Shape Vestibule : le vestibule de l'Enfer, petite arène de la run minimale : on
+#                   entre par la porte, une plaine de cendre semée de rochers descend
+#                   vers l'Achéron, le fleuve qui barre le sud.
 # (Circles et Square, les anciens noms, donnent Funnel et Castle.)
 #
 # Principes de level design, repris des modes de survie existants (zombies de Call of
@@ -19,13 +22,14 @@
 #
 #   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW02 -Shape Funnel
 #   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW01 -Shape Castle
+#   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW03 -Shape Vestibule
 #
 # La carte peut ensuite être retouchée dans Ultimate Doom Builder (configuration
 # « GZDoom: Doom 2 (UDMF) »). Attention : relancer ce script écrase les retouches.
 
 param(
 	[string]$Map = "SW01",
-	[ValidateSet("Funnel", "Castle", "Circles", "Square")] [string]$Shape = "Funnel",
+	[ValidateSet("Funnel", "Castle", "Vestibule", "Circles", "Square")] [string]$Shape = "Funnel",
 	[string]$Output		# fichier .wad à écrire (par défaut : src\maps\<Map>.wad)
 )
 
@@ -196,7 +200,7 @@ function Get-Rock([double]$Cx, [double]$Cy, [double]$Radius, [int]$Sides = 7)
 	return , $points.ToArray()
 }
 
-# --- Les deux plans --------------------------------------------------------------
+# --- Les trois plans -------------------------------------------------------------
 
 if ($Shape -eq "Funnel")
 {
@@ -261,7 +265,7 @@ if ($Shape -eq "Funnel")
 	for ($i = 0; $i -lt 8; $i++) { $p = Get-Polar 1425 (45 * $i); if ($i -ne 6) { Add-Thing $p[0] $p[1] 30001 } }
 	for ($i = 0; $i -lt 6; $i++) { $p = Get-Polar 1075 (30 + 60 * $i); Add-Thing $p[0] $p[1] 30001 }
 }
-else
+elseif ($Shape -eq "Castle")
 {
 	# Le château, de l'extérieur vers l'intérieur (octogones : pas de coin où se faire
 	# coincer). Le rempart a sept portes : la horde s'y tasse, et on peut en faire le tour.
@@ -334,6 +338,54 @@ else
 		Add-Thing $spawn[0] $spawn[1] 30001
 		$bank = Get-Polar 990 (22.5 + 45 * $i)
 		Add-Thing $bank[0] $bank[1] 30001
+	}
+}
+
+else
+{
+	# Le vestibule : trois bandes du nord au sud (la plaine, l'Achéron, l'autre rive),
+	# qui touchent toutes le mur d'enceinte. Coins coupés : pas de coin où se faire coincer.
+	$plain = New-Sector 0 "RROCK04" 168 0xE0D8D0 384		# la plaine de cendre, où courent les tièdes
+	$river = New-Sector -16 "FWATER4" 160 0x98D0B0 384	# l'Achéron
+	$shore = New-Sector 0 "RROCK03" 136 0xD0C0B8 384		# l'autre rive
+
+	# Contour de chaque bande, dans le sens horaire (la face avant des murs regarde dedans).
+	# Le côté marqué « vers » une autre bande est un passage (une marche), pas un mur.
+	function Add-Band($Points, [int]$Sector, $Walls)
+	{
+		for ($i = 0; $i -lt $Points.Count; $i++)
+		{
+			$a = $Points[$i]
+			$b = $Points[($i + 1) % $Points.Count]
+			$wall = $Walls[$i]
+			if ($wall -is [int]) { Add-Pass (V $a[0] $a[1]) (V $b[0] $b[1]) $Sector $wall "ASHWALL2" }
+			elseif ($wall) { Add-Wall (V $a[0] $a[1]) (V $b[0] $b[1]) $Sector $wall }
+		}
+	}
+	# La plaine, avec au nord l'alcôve de la porte de l'Enfer.
+	Add-Band @(@(-1100, -340), @(-1100, 600), @(-800, 900), @(-160, 900), @(-160, 1060), @(160, 1060), @(160, 900), @(800, 900), @(1100, 600), @(1100, -340)) $plain `
+		@("ASHWALL2", "ASHWALL2", "ASHWALL2", "SP_DUDE4", "BIGDOOR7", "SP_DUDE4", "ASHWALL2", "ASHWALL2", "ASHWALL2", $river)
+	# L'Achéron ; son bord nord est déjà posé avec la plaine.
+	Add-Band @(@(-1100, -560), @(-1100, -340), @(1100, -340), @(1100, -560)) $river @("ASHWALL2", $null, "ASHWALL2", $shore)
+	# L'autre rive ; son bord nord est déjà posé avec le fleuve.
+	Add-Band @(@(-1100, -600), @(-1100, -560), @(1100, -560), @(1100, -600), @(800, -900), @(-800, -900)) $shore `
+		@("ASHWALL2", $null, "ASHWALL2", "ASHWALL2", "ASHWALL2", "ASHWALL2")
+
+	# Rochers à contourner : un au centre, quatre sur les côtés.
+	foreach ($rock in @(@(0, 300, 110), @(-560, 480, 80), @(560, 480, 80), @(-640, 20, 90), @(640, 20, 90)))
+	{
+		Add-Hole (Get-Rock $rock[0] $rock[1] $rock[2]) $plain "ASHWALL4"
+	}
+
+	# Départ sous la porte, face à l'Achéron ; torches bleues de part et d'autre.
+	Add-Thing 0 980 1 270
+	Add-Thing -220 860 44
+	Add-Thing 220 860 44
+	foreach ($p in @(@(-880, 260), @(880, 260), @(-320, -250), @(320, -250))) { Add-Thing $p[0] $p[1] 43 }
+	foreach ($p in @(@(-700, -760), @(700, -760))) { Add-Thing $p[0] $p[1] 70 }
+	foreach ($p in @(@(-500, -750), @(0, -780), @(500, -750), @(-960, 350), @(960, 350), @(-960, -150), @(960, -150), @(-700, 780), @(700, 780)))
+	{
+		Add-Thing $p[0] $p[1] 30001
 	}
 }
 

@@ -83,6 +83,20 @@ xp          = 80
 score       = 300
 translation = SinwaveRage
 
+# Boss du Vestibule (la run minimale) : plus léger que Lucifer, pour tenir en 2 à 3 minutes.
+[enemy charon]
+name        = Charon, le passeur
+actor       = HellKnight
+health      = 2.5
+speed       = 1.0
+scale       = 1.4
+xp          = 0
+score       = 500
+boss        = true
+rage_at     = 0.5
+rage_speed  = 1.4
+rage_summon = sloth:3
+
 [enemy lucifer]
 name        = Lucifer, l'Orgueil
 actor       = BaronOfHell

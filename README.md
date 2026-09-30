@@ -8,7 +8,10 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 
 ## Jouer
 
-1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Leurs cartes suivent la géographie de Dante :
+**La run minimale du sujet (2 à 3 minutes) :** lance le jeu, appuie sur Utiliser (E), choisis **Le Vestibule**, puis *Descendre*. Deux vagues, de l'XP, des choix d'amélioration, le boss Charon, le score final, puis la sauvegarde des indulgences et du Jugement.
+
+1. Choisis une arène : **Le Vestibule** (1 cercle, 2 vagues puis le boss Charon, 2 à 3 minutes), **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Leurs cartes suivent la géographie de Dante :
+   - le Vestibule est l'antichambre de l'Enfer : on entre par sa porte, puis une plaine de cendre semée de rochers mène à l'Achéron, le fleuve de Charon ;
    - le Purgatoire est l'entonnoir de l'Enfer : des terrasses qui descendent, des aiguilles de roche, des tombeaux ardents, un fleuve de sang, et au centre le lac gelé où attend Lucifer ;
    - les Limbes sont un noble château : un champ obscur, un fossé, un rempart percé de sept portes, et au centre une prairie lumineuse. Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
 2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
@@ -22,7 +25,7 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
    - vers la vertu : l'inverse, jusqu'à l'**aura sainte** ;
    - la pente est glissante : une âme qui penche se voit proposer plus de choix de son côté ;
    - reste 20 secondes au bout de la balance : ton **reflet damné** surgit (un mini-boss qui rapporte beaucoup d'XP), ou un **ange** vient te soigner ;
-   - Lucifer suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
+   - le boss suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
 
    En fin de run : **Absolution**, **Purgatoire** ou **Damnation**.
 6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique**. Elle a quatre rayons :
@@ -93,7 +96,7 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
   data/                  contenu : arènes, cercles, ennemis, malédictions, vertus, neutres et péchés, âme, boutique, Jugement
-  maps/                  SW01 Les Limbes, SW02 Le Purgatoire (tools/generate-arena.ps1)
+  maps/                  SW01 Les Limbes, SW02 Le Purgatoire, SW03 Le Vestibule (tools/generate-arena.ps1)
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging
 docs/                    documentation (architecture)
@@ -113,7 +116,7 @@ Tous se lancent avec `powershell -ExecutionPolicy Bypass -File tools\<script>.ps
 | `run.ps1` | Construit puis lance le jeu (`-Iwad doom2` pour le vrai Doom II, `-Map SW02` pour aller directement au Purgatoire, `-Engine uzdoom`) |
 | `package.ps1` | Crée le build Windows à rendre : `dist\Sinwave-win64.zip`, avec ses deux lanceurs |
 | `new-arena.ps1` | Crée une arène personnalisée : carte, cercles et réglages (voir docs/CREER-UNE-ARENE.md) |
-| `generate-arena.ps1` | Génère une carte (`-Shape Funnel` : l'entonnoir, ou `Castle` : le château) ; écrase les retouches faites dans Doom Builder |
+| `generate-arena.ps1` | Génère une carte (`-Shape Funnel` : l'entonnoir, `Castle` : le château, `Vestibule` : le vestibule) ; écrase les retouches faites dans Doom Builder |
 | `create-shortcuts.ps1` | Crée sur le bureau les raccourcis « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) » et « Sinwave - Jouer (Doom II) » |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder (sur l'arène), SLADE et Claude |
 | `play.ps1` | Construit le code et lance le jeu (`-Iwad doom2` pour le vrai Doom II) |
