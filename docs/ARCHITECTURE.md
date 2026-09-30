@@ -322,6 +322,31 @@ Une malédiction qui touche le joueur publie un `EffectGrantedEvent` temporaire,
 
 Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle les a trouvés. Exemple : la Colère retient la couleur et la vitesse d'origine de chaque ennemi enragé et les lui rend au bout de 3 s, ou à la fin du cercle. Chaque ennemi n'enrage qu'**une fois** : sous un tir continu, une rage relancée à chaque coup le laisserait rouge jusqu'à sa mort.
 
+### Les cartes : générées, d'après Dante et les modes de survie
+
+Les deux cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
+
+**Principes de level design**, repris des modes de survie existants (zombies de Call of Duty, mode Horde de Doom Eternal, Serious Sam, Vampire Survivors) :
+- des **boucles** pour faire tourner la horde en rond, sans cul-de-sac où se faire coincer (d'où des anneaux et des octogones, pas de coins) ;
+- des **obstacles qui coupent les tirs** des zombies et des mitrailleurs, sans fermer l'espace ;
+- des **passages étroits** (portes, abords des tombeaux) où la horde se tasse : le fusil à pompe y est roi ;
+- des **zones reconnaissables** au sol, à la lumière et à sa couleur, et un repère au centre.
+
+**Les deux plans**, d'après la géographie de Dante :
+
+| Carte | Plan | Ce qui sert au jeu |
+|---|---|---|
+| SW02, le Purgatoire (`Funnel`) | L'entonnoir de l'Enfer : un bord hérissé de 8 aiguilles de roche, les 6 tombeaux ardents, le fleuve de sang (Phlégéthon), et au centre le lac gelé du Cocyte avec 4 piliers de feu bleu | Chaque terrasse est une boucle ; on descend vers le boss d'une marche à la fois ; les piliers du lac cachent du boss, les tombeaux coupent les tirs |
+| SW01, les Limbes (`Castle`) | Le noble château : un champ obscur, le fossé, un rempart percé de 7 portes (pas au sud), et au centre la prairie avec un temple de 4 colonnes et 7 arbres | Trois boucles (champ, chemin de ronde, prairie) ; les portes font se tasser la horde ; le mur sans porte au sud force à tourner |
+
+**Contraintes du moteur :**
+- marches de 24 unités au plus : les monstres ne montent ni ne descendent plus haut ;
+- obstacles pleins : des trous dans la carte ; blocs bas (tombeaux, rempart) : des secteurs plus hauts ;
+- ciel à la même hauteur partout : deux ciels à des hauteurs différentes laissent des bandes au raccord ;
+- textures et sols présents à la fois dans Doom II et dans Freedoom.
+
+**Apparition des ennemis :** `Sinwave_WaveSystem` refuse une position sur un plateau plus haut d'une marche que tout ce qui l'entoure (`CanWalkOff`) : un monstre posé sur un tombeau ou sur le rempart ne saurait pas en descendre.
+
 ---
 
 ## 7. Méta-progression et boutique
@@ -480,7 +505,7 @@ Ce que la désactivation change pour chaque système :
 | `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). `-Iwad doom2` : les mêmes, sur le vrai Doom II. |
 | `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. `-Iwad doom2` : avec le vrai Doom II. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
-| `generate-arena.ps1` | Génère une carte en cercles concentriques ou en salle carrée. |
+| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`) ou le château des Limbes (`Castle`). |
 | `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`, avec un lanceur Freedoom et un lanceur Doom II. |
 | `create-shortcuts.ps1` | Raccourcis du bureau : « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) », « Sinwave - Jouer (Doom II) ». |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |

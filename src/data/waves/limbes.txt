@@ -1,4 +1,4 @@
-# Les Limbes : trois cercles furieux dans une salle close, de trois
+# Les Limbes : trois cercles furieux autour du château à sept portes, de trois
 # longues vagues chacun : 5 min 15 de vagues, environ 6 minutes avec les répits. Les
 # règles de l'arène (data/arenas.txt) rendent les ennemis plus résistants et plus
 # nombreux ; la récompense est plus élevée.

@@ -8,7 +8,9 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 
 ## Jouer
 
-1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
+1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Leurs cartes suivent la géographie de Dante :
+   - le Purgatoire est l'entonnoir de l'Enfer : des terrasses qui descendent, des aiguilles de roche, des tombeaux ardents, un fleuve de sang, et au centre le lac gelé où attend Lucifer ;
+   - les Limbes sont un noble château : un champ obscur, un fossé, un rempart percé de sept portes, et au centre une prairie lumineuse. Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
 2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
 3. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche.
 4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis parmi trois propositions :
@@ -111,7 +113,7 @@ Tous se lancent avec `powershell -ExecutionPolicy Bypass -File tools\<script>.ps
 | `run.ps1` | Construit puis lance le jeu (`-Iwad doom2` pour le vrai Doom II, `-Map SW02` pour aller directement au Purgatoire, `-Engine uzdoom`) |
 | `package.ps1` | Crée le build Windows à rendre : `dist\Sinwave-win64.zip`, avec ses deux lanceurs |
 | `new-arena.ps1` | Crée une arène personnalisée : carte, cercles et réglages (voir docs/CREER-UNE-ARENE.md) |
-| `generate-arena.ps1` | Génère une carte (`-Shape Circles` ou `Square`) ; écrase les retouches faites dans Doom Builder |
+| `generate-arena.ps1` | Génère une carte (`-Shape Funnel` : l'entonnoir, ou `Castle` : le château) ; écrase les retouches faites dans Doom Builder |
 | `create-shortcuts.ps1` | Crée sur le bureau les raccourcis « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) » et « Sinwave - Jouer (Doom II) » |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder (sur l'arène), SLADE et Claude |
 | `play.ps1` | Construit le code et lance le jeu (`-Iwad doom2` pour le vrai Doom II) |

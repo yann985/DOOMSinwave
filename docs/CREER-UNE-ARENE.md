@@ -5,12 +5,16 @@ Une arène est une carte avec ses cercles, de plusieurs vagues chacun, et ses r�
 ## 1. Créer les fichiers de départ
 
 ```bash
-powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Circles
+powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Funnel
 ```
 
 - `-Id` : identifiant court, en minuscules, sans espace.
 - `-Name` : nom affiché dans le jeu.
-- `-Shape` : forme de la carte de départ, `Circles` (cercles concentriques) ou `Square` (salle carrée).
+- `-Shape` : plan de la carte de départ, le même que l'une des deux arènes du jeu :
+  - `Funnel` : l'entonnoir de l'Enfer du Purgatoire (terrasses, aiguilles de roche, tombeaux, fleuve de sang, lac gelé) ;
+  - `Castle` : le château des Limbes (champ, fossé, rempart à sept portes, prairie).
+
+  Les anciens noms `Circles` et `Square` marchent encore.
 
 Le script crée :
 - la carte `src/maps/SW03.wad` (le numéro suit les cartes existantes) ;
@@ -27,7 +31,9 @@ Ouvre la carte dans Ultimate Doom Builder (*File → Open Map*, configuration **
 - Garde un **départ du joueur** (Player 1 Start).
 - Par défaut, les ennemis apparaissent **autour du joueur**, juste hors de portée (clé `spawn = player`, voir plus bas).
 - Tu peux aussi placer des **points d'apparition** : catégorie *Sinwave*, « Point d'apparition des ennemis » (numéro 30001). Ils servent de secours quand la place manque autour du joueur, ou de seule source avec `spawn = points`. Mets-les loin du centre : ils ne servent jamais à moins de 384 unités du joueur.
-- Les marches ne doivent pas dépasser 24 unités de haut, sinon le joueur ne peut pas les monter.
+- Les marches ne doivent pas dépasser 24 unités de haut, sinon le joueur ne peut pas les monter, et les monstres ne savent ni les monter ni les descendre.
+- Un obstacle plein (rocher, pilier) se dessine comme un trou dans la carte. Un bloc bas (tombeau, rempart) peut être un secteur plus haut : aucun ennemi n'apparaît sur un plateau plus haut d'une marche que tout ce qui l'entoure.
+- Pour que la horde soit agréable à combattre : des boucles autour des obstacles pour la faire tourner en rond, pas de cul-de-sac, des obstacles qui coupent les tirs, et des passages plus étroits où elle se tasse. Les deux arènes du jeu suivent ces règles (voir `tools/generate-arena.ps1`).
 
 Enregistre (Ctrl+S). Attention : relancer `new-arena.ps1` ou `generate-arena.ps1` sur la même carte l'écrase.
 
