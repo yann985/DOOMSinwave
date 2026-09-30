@@ -8,7 +8,7 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 
 ## Jouer
 
-1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 3 minutes) ou **Les Limbes** (3 cercles, plus dur et mieux payé). Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
+1. Choisis une arène : **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
 2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
 3. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche.
 4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis entre deux **vertus** et un **péché**, plus puissant mais avec un défaut.
