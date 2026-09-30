@@ -57,5 +57,16 @@ Données de base : Freedoom $FreedoomVersion (BSD) - https://freedoom.github.io
 "@
 Set-Content -Path (Join-Path $outDir "LISEZMOI.txt") -Value $readme -Encoding UTF8
 
-Compress-Archive -Path (Join-Path $outDir "*") -DestinationPath $outZip -CompressionLevel Optimal
+# Un fichier tout juste écrit peut être verrouillé un instant (antivirus) : on réessaie.
+for ($try = 1; -not (Test-Path $outZip); $try++)
+{
+	if ($try -gt 3) { throw "Impossible de créer $outZip." }
+	try { Compress-Archive -Path (Join-Path $outDir "*") -DestinationPath $outZip -CompressionLevel Optimal -ErrorAction Stop }
+	catch
+	{
+		if (Test-Path $outZip) { Remove-Item $outZip -Force }
+		if ($try -ge 3) { throw }
+		Start-Sleep -Seconds 2
+	}
+}
 "{0} prêt ({1:N1} Mo)" -f $outZip, ((Get-Item $outZip).Length / 1MB)
