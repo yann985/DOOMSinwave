@@ -1,12 +1,16 @@
 ﻿# Construit la dernière version du code puis lance le jeu.
-# Lancé par le raccourci « Sinwave - Jouer » du bureau (tools\create-shortcuts.ps1).
+# Lancé par les raccourcis « Sinwave - Jouer (Freedoom) » et « Sinwave - Jouer (Doom II) »
+# du bureau (tools\create-shortcuts.ps1).
 # Une erreur de ZScript est affichée par GZDoom lui-même, avec le fichier et la ligne.
+#   -Iwad doom2 : avec le vrai Doom II (GOG, Steam) au lieu de Freedoom.
+
+param([string]$Iwad)
 
 $ErrorActionPreference = "Stop"
 
 try
 {
-	& (Join-Path $PSScriptRoot "run.ps1") | Out-Null
+	& (Join-Path $PSScriptRoot "run.ps1") -Iwad $Iwad | Out-Null
 }
 catch
 {

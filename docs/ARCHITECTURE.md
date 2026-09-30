@@ -420,7 +420,7 @@ flowchart LR
   - la touche liée dans *Options → Commandes → Sinwave* marche toujours ;
   - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre ;
   - manette : B ouvre la boutique ; Start met en pause pendant la run, et garde ailleurs son rôle d'ouverture du menu de GZDoom (options, quitter). Dans le menu pause, P et Start reprennent la run.
-- La manette est désactivée par défaut dans GZDoom (`use_joystick`). Plutôt que de modifier ce réglage global depuis le code du mod, ce sont les lanceurs (`tools/run.ps1`, et `Jouer Sinwave.bat` du build) qui l'activent.
+- La manette est désactivée par défaut dans GZDoom (`use_joystick`). Plutôt que de modifier ce réglage global depuis le code du mod, ce sont les lanceurs (`tools/run.ps1`, et les `.bat` du build) qui l'activent.
 - Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
@@ -475,12 +475,22 @@ Ce que la désactivation change pour chaque système :
 | Commande (dossier `tools/`) | Rôle |
 |---|---|
 | `check.ps1` (Ctrl+Maj+B dans VS Code) | Construit le `.pk3` et vérifie que le ZScript compile. Les erreurs vont dans l'onglet *Problèmes* de VS Code. |
-| `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). |
-| `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. |
+| `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). `-Iwad doom2` : les mêmes, sur le vrai Doom II. |
+| `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. `-Iwad doom2` : avec le vrai Doom II. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
 | `generate-arena.ps1` | Génère une carte en cercles concentriques ou en salle carrée. |
-| `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`. |
+| `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`, avec un lanceur Freedoom et un lanceur Doom II. |
+| `create-shortcuts.ps1` | Raccourcis du bureau : « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) », « Sinwave - Jouer (Doom II) ». |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |
+
+### Freedoom et le vrai Doom II
+
+Le mod n'utilise que ce que Doom II et Freedoom Phase 2 ont en commun : les classes des monstres et des armes, les noms des textures, des sols, des ciels et des musiques. Le même `sinwave.pk3` tourne donc sur les deux, et les tests passent sur les deux (`test.ps1`, puis `test.ps1 -Iwad doom2`).
+
+- **Livré :** Freedoom seulement, seul IWAD redistribuable. Doom II est un jeu commercial : il n'est jamais copié dans le build.
+- **Trouvé :** `Find-Doom2Iwad` (`tools/config.ps1`) cherche `SINWAVE_DOOM2`, puis `DoomTools/iwads/doom2.wad`, puis les installations GOG et Steam, par le registre de Windows : un jeu déplacé sur un autre disque est retrouvé. La version DOS d'origine passe avant les rééditions (Unity, KEX), que GZDoom sait aussi lire. Dans le build rendu, c'est GZDoom qui cherche lui-même `doom2.wad` (GOG, Steam, dossier du jeu) ; s'il ne le trouve pas, il propose les jeux qu'il a trouvés.
+- **Progression commune :** GZDoom range les réglages et les CVars de la méta-progression par famille de jeu (section `Doom` de son `.ini`), la même pour Freedoom et Doom II.
+- **Doom 1 ne suffit pas :** le chevalier de l'Enfer (Orgueil), le soldat à la mitrailleuse (Avarice), le super fusil de la boutique, les sols `RROCK` des cartes et les musiques n'existent que dans Doom II.
 
 **`test.ps1`** lance GZDoom avec l'archive `tests/smoke` par-dessus le jeu : deux arènes de test, avec des cercles courts. Il joue quatre scénarios par la console du moteur :
 1. **victoire** :

@@ -29,6 +29,14 @@
       "problemMatcher": []
     },
     {
+      "label": "Sinwave : jouer avec le vrai Doom II",
+      "detail": "Même jeu, avec le doom2.wad d'une installation GOG ou Steam au lieu de Freedoom.",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run.ps1", "-Iwad", "doom2"],
+      "problemMatcher": []
+    },
+    {
       "label": "Sinwave : jouer directement dans l'arène",
       "type": "process",
       "command": "powershell.exe",
@@ -41,6 +49,15 @@
       "type": "process",
       "command": "powershell.exe",
       "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/test.ps1"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sinwave : tests automatiques (Doom II)",
+      "detail": "Les mêmes tests, avec le vrai Doom II (GOG ou Steam).",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/test.ps1", "-Iwad", "doom2"],
       "group": "test",
       "problemMatcher": []
     },
@@ -60,7 +77,7 @@
     },
     {
       "label": "Sinwave : build Windows à rendre",
-      "detail": "Crée dist/Sinwave-win64.zip (GZDoom + sinwave.pk3 + Freedoom + lanceur).",
+      "detail": "Crée dist/Sinwave-win64.zip (GZDoom + sinwave.pk3 + Freedoom + lanceurs Freedoom et Doom II).",
       "type": "process",
       "command": "powershell.exe",
       "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/package.ps1"],

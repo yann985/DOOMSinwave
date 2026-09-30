@@ -42,6 +42,15 @@ Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activ�
 
 Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom. Hors d'une run, Start ouvre le menu de GZDoom (options, quitter).
 
+### Freedoom ou le vrai Doom II
+
+Sinwave se joue sur **Freedoom Phase 2** (libre, fourni) ou sur le **vrai Doom II**, si tu l'as : mêmes règles et mêmes cartes, avec les graphismes et les sons d'origine. Chaque version a son lanceur :
+
+- sur le bureau : « Sinwave - Jouer (Freedoom) » et « Sinwave - Jouer (Doom II) » (créés par `tools\create-shortcuts.ps1`) ;
+- dans le build rendu : « Jouer Sinwave.bat » et « Jouer Sinwave (Doom II).bat ».
+
+Doom II est trouvé tout seul dans une installation GOG ou Steam, même sur un autre disque. Les deux versions partagent la même progression. Doom 1 (`doom.wad`) ne suffit pas : Sinwave utilise des monstres, le super fusil, des sols et des musiques propres à Doom II.
+
 ## Démarrage rapide (développement)
 
 1. Installer les outils (moteurs, IWAD libre, éditeurs) :
@@ -67,7 +76,7 @@ Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu
 | GIMP, Audacity | Sprites et sons | menu Démarrer |
 
 Le dossier des outils peut être déplacé avec la variable d'environnement `SINWAVE_TOOLS`.
-Pour tester avec un vrai `doom2.wad` (version achetée), définir `SINWAVE_IWAD` vers ce fichier. Le build rendu utilise toujours Freedoom, seul IWAD redistribuable.
+Le vrai Doom II se choisit avec `-Iwad doom2` (`run.ps1`, `play.ps1`, `test.ps1`) : il est cherché dans les installations GOG et Steam, ou désigné par la variable `SINWAVE_DOOM2`. Le build rendu ne contient que Freedoom, seul IWAD redistribuable.
 
 ## Arborescence
 
@@ -95,14 +104,14 @@ Tous se lancent avec `powershell -ExecutionPolicy Bypass -File tools\<script>.ps
 | `setup.ps1` | Installe tous les outils (versions figées dans `config.ps1`) |
 | `build.ps1` | Construit `build\sinwave.pk3` à partir de `src\` |
 | `check.ps1` | Construit puis vérifie que le ZScript compile dans GZDoom |
-| `test.ps1` | Tests automatiques : joue des runs complètes et vérifie chaque étape (ne pas toucher au clavier) |
-| `run.ps1` | Construit puis lance le jeu (`-Map SW02` pour aller directement au Purgatoire, `-Engine uzdoom`) |
-| `package.ps1` | Crée le build Windows à rendre : `dist\Sinwave-win64.zip` |
+| `test.ps1` | Tests automatiques : joue des runs complètes et vérifie chaque étape (ne pas toucher au clavier) ; `-Iwad doom2` pour les rejouer sur le vrai Doom II |
+| `run.ps1` | Construit puis lance le jeu (`-Iwad doom2` pour le vrai Doom II, `-Map SW02` pour aller directement au Purgatoire, `-Engine uzdoom`) |
+| `package.ps1` | Crée le build Windows à rendre : `dist\Sinwave-win64.zip`, avec ses deux lanceurs |
 | `new-arena.ps1` | Crée une arène personnalisée : carte, cercles et réglages (voir docs/CREER-UNE-ARENE.md) |
 | `generate-arena.ps1` | Génère une carte (`-Shape Circles` ou `Square`) ; écrase les retouches faites dans Doom Builder |
-| `create-shortcuts.ps1` | Crée sur le bureau les raccourcis « Sinwave - Travailler » et « Sinwave - Jouer » |
+| `create-shortcuts.ps1` | Crée sur le bureau les raccourcis « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) » et « Sinwave - Jouer (Doom II) » |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder (sur l'arène), SLADE et Claude |
-| `play.ps1` | Construit le code et lance le jeu |
+| `play.ps1` | Construit le code et lance le jeu (`-Iwad doom2` pour le vrai Doom II) |
 
 Dans le jeu, `sinwave_debug 1` (console, touche `²`) affiche chaque événement du bus.
 
@@ -118,3 +127,4 @@ Dans le jeu, `sinwave_debug 1` (console, touche `²`) affiche chaque événement
 
 - GZDoom : GPL v3 (<https://zdoom.org>)
 - Freedoom : BSD modifiée (<https://freedoom.github.io>)
+- Doom II : jeu commercial, jamais livré avec Sinwave ; utilisé seulement si le joueur le possède
