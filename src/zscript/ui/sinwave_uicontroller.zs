@@ -8,6 +8,7 @@ class Sinwave_UiController ui
 	private int mOpenedShop;
 	private int mOpenedArenaSelect;
 	private int mOpenedRules;
+	private int mOpenedStory;
 
 	void Update(Sinwave_HudModel model)
 	{
@@ -15,6 +16,14 @@ class Sinwave_UiController ui
 		// plus et bloquerait le jeu en pause. On le ferme.
 		let current = Sinwave_ChoiceMenu(Menu.GetCurrentMenu());
 		if (current != null && !current.IsBoundTo(model)) current.Close();
+
+		// Un texte de l'histoire passe avant tout le reste, quel que soit l'écran : le
+		// jeu reste en pause tant qu'il est ouvert.
+		if (model.mStorySerial != mOpenedStory)
+		{
+			if (Open('Sinwave_StoryMenu', model)) mOpenedStory = model.mStorySerial;
+			return;
+		}
 
 		switch (model.mScreen)
 		{

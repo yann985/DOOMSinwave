@@ -17,6 +17,7 @@ class Sinwave_GameData : Sinwave_Service
 	Array<Sinwave_ShopItemDef> mShopItems;
 	Array<Sinwave_ArenaDef> mArenas;
 	Array<Sinwave_DifficultyDef> mDifficulties;
+	Array<Sinwave_StoryDef> mStories;
 	Sinwave_ProgressionDef mProgression;
 	Sinwave_SoulDef mSoul;
 	Sinwave_JudgementDef mJudgement;
@@ -87,11 +88,21 @@ class Sinwave_GameData : Sinwave_Service
 			mDifficulties.Push(Sinwave_DifficultyDef.FromBlock(blocks[i]));
 		}
 
+		ReadBlocks("data/story.txt", 'story', blocks);
+		for (int i = 0; i < blocks.Size(); i++)
+		{
+			if (FindStory(blocks[i].mId) != null) { blocks[i].Warn("identifiant déjà utilisé."); continue; }
+			let def = Sinwave_StoryDef.FromBlock(blocks[i]);
+			if (def != null) mStories.Push(def);
+		}
+
 		ReadBlocks("data/arenas.txt", 'arena', blocks);
 		for (int i = 0; i < blocks.Size(); i++)
 		{
 			let def = Sinwave_ArenaDef.FromBlock(blocks[i]);
 			if (def == null) continue;
+			if (def.mEndingId != 'None' && FindStory(def.mEndingId) == null) { blocks[i].Warn(String.Format("texte d'histoire inconnu : \"%s\".", def.mEndingId)); def.mEndingId = 'None'; }
+			if (def.mDeathId != 'None' && FindStory(def.mDeathId) == null) { blocks[i].Warn(String.Format("texte d'histoire inconnu : \"%s\".", def.mDeathId)); def.mDeathId = 'None'; }
 			// Noms des cercles de chaque arène, pour choisir le cercle de départ avant d'y aller.
 			Array<Sinwave_DataBlock> circleBlocks;
 			ReadBlocks(def.mWavesFile, 'circle', circleBlocks);
@@ -143,6 +154,15 @@ class Sinwave_GameData : Sinwave_Service
 		for (int i = 0; i < mDifficulties.Size(); i++)
 		{
 			if (mDifficulties[i].mId == id) return mDifficulties[i];
+		}
+		return null;
+	}
+
+	Sinwave_StoryDef FindStory(Name id)
+	{
+		for (int i = 0; i < mStories.Size(); i++)
+		{
+			if (mStories[i].mId == id) return mStories[i];
 		}
 		return null;
 	}
@@ -220,6 +240,11 @@ class Sinwave_GameData : Sinwave_Service
 		{
 			block.Warn(String.Format("malédiction inconnue : \"%s\".", circle.mCurseId));
 			circle.mCurseId = 'None';
+		}
+		if (circle.mStoryId != 'None' && FindStory(circle.mStoryId) == null)
+		{
+			block.Warn(String.Format("texte d'histoire inconnu : \"%s\".", circle.mStoryId));
+			circle.mStoryId = 'None';
 		}
 		if (circle.HasBoss() && FindEnemy(circle.mBossId) == null)
 		{

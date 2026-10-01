@@ -29,6 +29,8 @@ class Sinwave_WaveSystem : Sinwave_System
 	const RING_MAX_DISTANCE = 850.0;
 	const SPAWN_ATTEMPTS = 6;
 	const MAX_STEP = 24.0;					// marche la plus haute qu'un monstre sait monter
+	const MAX_SPOT_DISTANCE = 3500.0;		// points de la carte : seulement ceux de la zone du joueur
+	const LOST_DISTANCE = 4000.0;			// ennemi resté dans une autre zone de la carte
 	const RETARGET_TICS = TICRATE;			// fréquence du rappel de cible
 
 	private Sinwave_GameData mData;
@@ -282,7 +284,8 @@ class Sinwave_WaveSystem : Sinwave_System
 		if (mSpawnPoints.Size() > 0)
 		{
 			let spot = mSpawnPoints[Random[SinwaveWaves](0, mSpawnPoints.Size() - 1)];
-			if (spot != null && (pawn == null || (pawn.pos.xy - spot.pos.xy).Length() >= MIN_SPAWN_DISTANCE))
+			double away = (spot != null && pawn != null) ? (pawn.pos.xy - spot.pos.xy).Length() : MIN_SPAWN_DISTANCE;
+			if (spot != null && away >= MIN_SPAWN_DISTANCE && away <= MAX_SPOT_DISTANCE)
 			{
 				return true, spot.pos;
 			}
@@ -355,11 +358,21 @@ class Sinwave_WaveSystem : Sinwave_System
 	}
 
 	// Retire les ennemis supprimés par le moteur sans être morts.
+	// Oublie les ennemis disparus. Ceux restés dans la zone d'un cercle précédent
+	// (carte à plusieurs zones) ne peuvent plus atteindre le joueur : ils disparaissent
+	// sans mourir, pour laisser la place aux ennemis du nouveau cercle.
 	private void PruneAlive()
 	{
+		let pawn = Sinwave_World.Player();
 		for (int i = mAlive.Size() - 1; i >= 0; i--)
 		{
-			if (mAlive[i] == null)
+			let mo = mAlive[i];
+			if (mo != null && mo != mBoss && pawn != null && mo.health > 0 && (mo.pos.xy - pawn.pos.xy).Length() > LOST_DISTANCE)
+			{
+				mo.Destroy();
+				mo = null;
+			}
+			if (mo == null)
 			{
 				mAlive.Delete(i);
 				mAliveDefs.Delete(i);

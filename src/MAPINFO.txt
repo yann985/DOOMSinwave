@@ -8,6 +8,7 @@ GameInfo
 DoomEdNums
 {
 	30001 = Sinwave_SpawnPoint
+	30002 = Sinwave_CircleStart
 }
 
 // « Nouvelle partie » mène directement au Purgatoire ; les autres arènes se
@@ -38,6 +39,17 @@ map SW03 "Le Vestibule"
 	next = "SW03"
 	sky1 = "SKY1"
 	music = "D_COUNTD"
+	nointermission
+	noinfighting
+}
+
+// Le mode histoire : sept zones, une par péché (tools/generate-arena.ps1 -Shape Story).
+map SW04 "La Descente"
+{
+	levelnum = 4
+	next = "SW04"
+	sky1 = "SKY3"
+	music = "D_EVIL"
 	nointermission
 	noinfighting
 }

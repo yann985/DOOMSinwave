@@ -250,6 +250,7 @@ class Sinwave_CircleDef play
 	int mMaxAlive;			// ennemis vivants au maximum, à la première vague
 	Name mCurseId;
 	Name mBossId;
+	Name mStoryId;			// texte du mode histoire affiché au début du cercle (data/story.txt)
 	Array<Name> mEnemyIds;
 	Array<int> mWeights;
 	int mTotalWeight;
@@ -267,6 +268,7 @@ class Sinwave_CircleDef play
 		def.mBreakTics = max(0, block.GetTics("break", 3));
 		def.mCurseId = block.GetString("curse").MakeLower();
 		def.mBossId = block.GetString("boss").MakeLower();
+		def.mStoryId = block.GetString("story").MakeLower();
 
 		// « sloth:3, gluttony:2 » : identifiant d'ennemi et poids du tirage.
 		Array<String> entries;
@@ -591,6 +593,8 @@ class Sinwave_ArenaDef play
 	double mSpawnRate;
 	double mRewardFactor;
 	bool mSpawnAroundPlayer;	// vrai : autour du joueur ; faux : points d'apparition de la carte
+	Name mEndingId;				// mode histoire : texte de la victoire (data/story.txt)...
+	Name mDeathId;				// ... et de la mort
 	Array<String> mCircleNames;
 
 	// Arène neutre, utilisée si data/arenas.txt est vide ou absent.
@@ -621,6 +625,8 @@ class Sinwave_ArenaDef play
 		String spawn = block.GetString("spawn", "player").MakeLower();
 		if (spawn != "player" && spawn != "points") block.Warn("spawn doit valoir player ou points.");
 		def.mSpawnAroundPlayer = spawn != "points";
+		def.mEndingId = block.GetString("ending").MakeLower();
+		def.mDeathId = block.GetString("death").MakeLower();
 		if (def.mMap.Length() == 0 || def.mWavesFile.Length() == 0)
 		{
 			block.Warn("une arène doit indiquer « map » et « waves ».");

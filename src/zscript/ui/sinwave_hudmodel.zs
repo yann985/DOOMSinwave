@@ -144,6 +144,11 @@ class Sinwave_HudModel : Sinwave_Service
 	String mBannerDetail;
 	int mBannerTics;
 
+	// Mode histoire : le dernier texte à lire. Le numéro change à chaque texte.
+	int mStorySerial;
+	String mStoryTitle;
+	String mStoryText;
+
 	static Sinwave_HudModel From(Sinwave_Services services)
 	{
 		return Sinwave_HudModel(services.Get('HudModel'));

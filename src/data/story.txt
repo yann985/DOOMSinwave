@@ -1,0 +1,71 @@
+# Le récit du mode histoire. Un bloc par texte, appelé par un cercle (clé « story »
+# de data/waves/enfer.txt) ou par l'arène (clés « ending » et « death »).
+#
+#   title    : titre affiché en haut du texte
+#   text     : texte par défaut (obligatoire)
+#   virtue   : variante quand l'âme a atteint un palier de la vertu
+#   balance  : variante quand l'âme n'a atteint aucun palier
+#   sin      : variante quand l'âme a atteint un palier du péché
+#   sin_max  : variante quand la corruption est au maximum
+# Une variante absente se rabat sur « text ». « \n » commence un nouveau paragraphe.
+#
+# L'histoire : de ton vivant, tu as fait le mal, puis tu as voulu changer, et tu es
+# mort avant. Les anges ne savent pas quoi faire de toi : ils t'envoient en Enfer
+# pour voir si tu tiens face aux démons et aux tentations. Ce que tu deviens dépend
+# de ton âme, jusqu'à prendre la place de Lucifer si elle sombre tout entière.
+
+[story paresse]
+title = PROLOGUE
+text  = Tu n'étais pas quelqu'un de bien. Tu as menti, volé, blessé ceux qui t'aimaient. Puis un soir, tu t'es regardé en face et tu as eu honte. Tu voulais changer. Tu n'en as pas eu le temps.\nÀ ta mort, les anges se sont penchés sur ton âme sans savoir quoi en faire : trop sale pour le Ciel, trop sincère pour l'Enfer. Alors ils ont décidé de t'éprouver. Ils t'ont jeté en Enfer, cercle après cercle, pour voir si tu tiendrais face aux démons et aux tentations.\nTu ouvres les yeux dans un marais noir et tiède. Ici croupissent les paresseux, ceux qui n'ont jamais rien choisi. L'eau colle à tes jambes. Avance, ou coule avec eux.
+
+[story gourmandise]
+title   = LA GOURMANDISE
+text    = Tu as traversé le marais sans t'y noyer. Une pluie grasse et froide tombe sans fin sur le cercle suivant, et la boue empeste. Au centre, une gueule immense s'ouvre dans le sol : c'est là que les gloutons sont broyés, éternellement affamés.\nLa faim te tord le ventre. Les démons t'offrent tout ce que tu veux. Il suffirait de tendre la main.
+virtue  = Tu as refusé les premières tentations, et quelque chose en toi s'est apaisé. Là-haut, quelqu'un a dû le remarquer : la pluie grasse de la Gourmandise te semble moins froide.\nAu centre du cercle, la gueule de Cerbère broie les gloutons. Ils tendent vers toi leurs mains vides. Tu as faim, toi aussi, mais tu sais maintenant que tu peux dire non.
+sin     = Tu as goûté au péché, et tu as aimé ça. Ta peau brûle d'une chaleur nouvelle.\nSous la pluie grasse de la Gourmandise, les gloutons te regardent passer avec envie : toi, au moins, tu te sers. La gueule de Cerbère s'ouvre au centre du cercle comme une invitation. Tu as faim. Encore.
+
+[story luxure]
+title   = LA LUXURE
+text    = Un vent hurlant balaie le cercle de la Luxure. Il emporte les âmes de ceux qui ont tout donné au désir : elles tournoient autour de colonnes de marbre, se frôlent sans jamais se toucher.\nDes voix douces t'appellent par ton nom. Elles promettent que tu ne seras plus jamais seul.
+virtue  = Le vent de la Luxure hurle, mais il ne te prend pas : tu marches droit au milieu des âmes emportées.\nUne femme aux yeux d'or te tend la main en souriant. Tu reconnais son visage : c'est celui de quelqu'un que tu as trahi, de ton vivant. Cette fois, tu ne la trompes pas. Tu passes ton chemin, et le vent se tait un instant.
+sin     = Le vent de la Luxure ne te fait plus peur : il te porte. Les âmes emportées s'accrochent à toi, et tu les laisses faire.\nDes voix te supplient de rester. Tu pourrais. Tu en as envie. Les démons rient en te voyant hésiter : ils savent déjà que tu reviendras.
+
+[story envie]
+title   = L'ENVIE
+text    = Un cloître de pierre grise, silencieux. Les envieux y marchent en rang, les paupières cousues de fil de fer, appuyés les uns sur les autres.\nIls ne voient rien, mais ils te sentent passer. Ils murmurent ton nom. Ils voudraient être toi, et ils te haïssent de ne pas l'être.
+virtue  = Dans le cloître de l'Envie, les aveugles se pressent autour de toi : ils sentent la lumière qui te suit.\nL'un d'eux t'agrippe le bras et te supplie de lui donner un peu de ce que tu as. Tu ne peux pas lui rendre la vue. Tu restes un moment avec lui, puis tu continues. Les anges, quelque part, ont dû voir ça aussi.
+sin     = Dans le cloître de l'Envie, les aveugles s'écartent sur ton passage : ils sentent ce que tu es en train de devenir, et ils en ont peur.\nTu les regardes, paupières cousues, et tu te découvres jaloux d'eux : eux, au moins, ne voient pas ce que tu es en train de perdre.
+
+[story avarice]
+title   = L'AVARICE
+text    = Des fortunes entières roulent dans le cercle de l'Avarice. Les avares y poussent d'énormes poids d'or, s'y écrasent les uns contre les autres en hurlant, et recommencent. Pour toujours.\nAu milieu de la salle, des tas d'or brillent à la lueur des bougies. Personne ne les surveille.
+virtue  = Les tas d'or de l'Avarice brillent pour toi seul. Tu pourrais en prendre ; personne ne le saurait.\nTu te souviens de ce que tu as volé, de ton vivant, et de ceux à qui tu l'as volé. Tu laisses l'or où il est. Les poids continuent de rouler, et les avares de hurler. Toi, tu te sens plus léger.
+sin     = Tu as pris de l'or. Puis encore un peu. Tes poches sont lourdes, et tes pas aussi.\nLes avares s'arrêtent de pousser leurs poids pour te regarder faire. Ils te reconnaissent comme l'un des leurs. Les démons te saluent : tu commences à leur ressembler.
+
+[story colere]
+title   = LA COLÈRE
+text    = Le Styx bouillonne de sang. Dans la boue de ses rives, les coléreux se déchirent entre eux ; ceux qui ont gardé leur rage pour eux étouffent sous la surface, et leurs soupirs font des bulles.\nTa propre colère remonte : contre les anges, qui t'ont jeté ici ; contre toi-même, qui l'as mérité.
+virtue  = Le Styx bouillonne de sang, et la colère des damnés te frappe de plein fouet. Tu as toutes les raisons d'en vouloir aux anges qui t'ont jeté ici.\nMais tu as appris, cercle après cercle, que la rage ne t'a jamais rien rendu. Tu respires. Tu traverses. Une dernière épreuve t'attend.
+sin     = Le Styx bouillonne de sang, et pour la première fois, tu t'y sens chez toi. Ta colère n'a plus de limite : contre les anges, contre Dieu, contre tout ce qui t'a jugé.\nLes coléreux se taisent quand tu passes. Au loin, au fond de l'Enfer, quelqu'un a senti ta rage. Il t'attend.
+sin_max = Le Styx bouillonne, et ce n'est plus seulement de sang : c'est ta rage qui le fait bouillir. La paresse, la faim, le désir, l'envie, l'avidité et maintenant la colère : tous les péchés de l'Enfer se sont logés en toi.\nLes démons s'agenouillent sur ton passage. Au fond du dernier cercle, Lucifer a senti ta puissance. Pour la première fois depuis sa chute, il a peur.
+
+[story orgueil]
+title   = L'ORGUEIL
+text    = Le dernier cercle. Une salle de marbre si haute qu'on n'en voit pas le plafond, bâtie sur le lac gelé du Cocyte. Au centre, sur son trône, Lucifer, l'ange qui a voulu être Dieu.\nIl te regarde descendre avec un sourire las : « Encore une âme que le Ciel n'a pas su juger. Voyons ce que tu vaux. »
+virtue  = Le dernier cercle. Lucifer t'attend sur son trône, au-dessus du lac gelé du Cocyte.\nIl éclate de rire en voyant la lumière qui t'entoure : « Un saint ? Ici ? Ils t'ont envoyé pour me narguer. » Puis son rire s'éteint. Il se lève. Tu es la dernière tentation qu'il n'a pas réussi à corrompre.
+sin     = Le dernier cercle. Lucifer t'attend sur son trône de glace, et il te regarde comme on regarde un rival.\n« Tu as goûté à chacun de mes cercles. Tu aurais fait un beau démon. » Il descend de son trône. « Mais il n'y a qu'un seul roi en Enfer. »
+sin_max = Le dernier cercle. Lucifer s'est levé de son trône avant même que tu entres.\nLes sept péchés brûlent en toi, plus fort qu'en lui. Il le sait. « Tu n'es pas venu être jugé, murmure-t-il. Tu es venu prendre ma place. » Il recule d'un pas, puis il frappe. Le seul moyen de t'arrêter est de te tuer maintenant.
+
+[story fin]
+title   = ÉPILOGUE
+text    = Lucifer tombe. Le silence se fait sur l'Enfer.\nLes anges descendent jusqu'au fond du dernier cercle et regardent ton âme, longtemps, sans rien dire.
+virtue  = Lucifer tombe. Le silence se fait sur l'Enfer, et une lumière descend jusqu'au fond du dernier cercle : les anges sont venus te chercher.\nTu as traversé les sept péchés sans leur céder. Ce que tu as été de ton vivant ne compte plus ; ce que tu as fait ici, si. Ils te tendent la main, et tu montes.\nABSOLUTION.
+balance = Lucifer tombe. Les anges descendent jusqu'à toi, regardent ton âme, et hésitent encore. Tu n'as pas cédé à l'Enfer, mais tu ne l'as pas refusé non plus.\nAlors ils te montrent une montagne qui perce le ciel : le Purgatoire. Tu la graviras, marche après marche, jusqu'à ce que ton âme sache enfin de quel côté elle penche.\nPURGATOIRE.
+sin     = Lucifer tombe, mais c'est ta victoire, pas celle du Ciel. Les péchés que tu as goûtés t'ont marqué : les anges détournent le regard et refusent de te reprendre.\nTu restes en Enfer, seul debout au milieu de ses ruines. Les démons hésitent à t'obéir. Il te manque encore quelque chose pour régner.\nDAMNATION.
+sin_max = Tu plonges la main dans la poitrine de Lucifer et tu prends ce qui y brûle. Paresse, Gourmandise, Luxure, Envie, Avarice, Colère, Orgueil : aucun démon n'avait jamais porté les sept à la fois. Toi, si.\nL'Enfer tremble. Ses murs s'ouvrent, se referment autour de toi, prennent ton visage. Tu n'es plus une âme qu'on juge : tu es l'Icône du Péché, le cœur qui fait battre l'Enfer. Et cette fois, ce sont les anges qui ont peur.
+
+[story mort]
+title   = LA CHUTE
+text    = Ton âme se brise sur les pierres de l'Enfer. Les démons se la disputent déjà.\nLà-haut, les anges ferment le livre : l'épreuve est terminée, et tu n'as pas tenu.
+virtue  = Ton âme se brise sur les pierres de l'Enfer. Les démons s'avancent pour se la partager.\nMais un ange descend, ramasse les éclats de ton âme et les serre contre lui. « Pas encore, dit-il. Tu as résisté trop longtemps pour finir ici. » Une autre chance t'attend.
+sin     = Ton âme se brise sur les pierres de l'Enfer, et les démons se jettent dessus en riant.\nTu as goûté à leurs péchés : tu leur appartiens déjà. Là-haut, personne ne vient te chercher.
