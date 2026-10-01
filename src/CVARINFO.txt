@@ -17,3 +17,9 @@ user noarchive int sinwave_onarrival = 0;
 
 // 1 : affiche chaque événement du bus dans la console (Sinwave_EventLogger).
 user bool sinwave_debug = false;
+
+// Options du joueur (Options > Options de Sinwave, ou depuis la pause).
+// Flèches des attaques qui arrivent dans l'angle mort, autour du viseur.
+user bool sinwave_threat_markers = true;
+// Tir : false, il faut maintenir la touche ; true, un appui commence à tirer, le suivant arrête.
+user bool sinwave_fire_toggle = false;

@@ -55,6 +55,7 @@ version "4.14"
 #include "zscript/ui/sinwave_hud.zs"
 #include "zscript/ui/sinwave_menus.zs"
 #include "zscript/ui/sinwave_uicontroller.zs"
+#include "zscript/ui/sinwave_firetoggle.zs"
 
 // app : racine de composition, seul point d'entrée déclaré au moteur
 #include "zscript/app/sinwave_game.zs"

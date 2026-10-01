@@ -1,0 +1,30 @@
+// Options de Sinwave : ajoutées au menu Options du moteur, et ouvertes aussi depuis
+// la pause de la run (Sinwave_PauseMenu). Les réglages sont dans CVARINFO.txt.
+
+OptionValue "SinwaveShown"
+{
+	0, "Masquées"
+	1, "Affichées"
+}
+
+OptionValue "SinwaveFireMode"
+{
+	0, "Maintenir la touche"
+	1, "Appuyer pour basculer"
+}
+
+OptionMenu "SinwaveOptions"
+{
+	Title "OPTIONS DE SINWAVE"
+	Option "Flèches des menaces", "sinwave_threat_markers", "SinwaveShown"
+	StaticText "Autour du viseur : les attaques qui arrivent dans ton dos."
+	StaticText ""
+	Option "Tir", "sinwave_fire_toggle", "SinwaveFireMode"
+	StaticText "Basculer : un appui commence à tirer, un autre arrête."
+}
+
+AddOptionMenu "OptionsMenu"
+{
+	StaticText ""
+	Submenu "Options de Sinwave", "SinwaveOptions"
+}
