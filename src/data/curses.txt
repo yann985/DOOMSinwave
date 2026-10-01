@@ -5,6 +5,14 @@
 #   description : règle affichée au joueur
 #   class       : classe ZScript qui applique la règle (gameplay/curses/)
 #   les autres clés sont les réglages lus par cette classe
+#
+# Défi du péché, que le joueur peut cocher pour chaque cercle dans les règles de la
+# descente (il rapporte plus d'indulgences). Il s'ajoute à la malédiction :
+#   challenge              : contrainte affichée au joueur (sans elle, pas de défi)
+#   challenge_effects      : effets sur le joueur pendant le cercle (comme les vertus)
+#   challenge_enemy_health : vie des ennemis qui apparaissent (x1 par défaut)
+#   challenge_enemy_speed  : vitesse des ennemis qui apparaissent (x1 par défaut)
+#   challenge_loot         : chance de butin lâché par les ennemis (x1 par défaut)
 
 [curse sloth]
 name        = Paresse
@@ -12,6 +20,8 @@ description = Tu es ralenti, mais tu te soignes en restant immobile
 class       = Sinwave_SlothCurse
 speed       = -0.25
 heal        = 3
+challenge         = Torpeur : tu es encore plus lent (-15 % de vitesse)
+challenge_effects = speed:-0.15
 
 [curse gluttony]
 name        = Gourmandise
@@ -19,6 +29,8 @@ description = Les ennemis dévorent les orbes proches et grossissent
 class       = Sinwave_GluttonyCurse
 radius      = 96
 health      = 25
+challenge              = Festin : les ennemis arrivent repus, avec 30 % de vie en plus
+challenge_enemy_health = 1.3
 
 [curse lust]
 name        = Luxure
@@ -26,6 +38,8 @@ description = Charme trompeur : les ennemis éloignés sont presque invisibles
 class       = Sinwave_LustCurse
 distance    = 450
 alpha       = 0.12
+challenge             = Désir : les ennemis se jettent sur toi, 20 % plus rapides
+challenge_enemy_speed = 1.2
 
 [curse envy]
 name        = Envie
@@ -34,12 +48,16 @@ class       = Sinwave_EnvyCurse
 radius      = 256
 health      = 20
 speed       = 1.1
+challenge         = Amertume : l'envie te ronge, tu as 25 PV maximum en moins
+challenge_effects = maxhealth:-25
 
 [curse greed]
 name        = Avarice
 description = Les orbes d'expérience disparaissent au bout de 3 secondes
 class       = Sinwave_GreedCurse
 lifetime    = 3
+challenge      = Pingrerie : les ennemis lâchent deux fois moins de soins et de munitions
+challenge_loot = 0.5
 
 [curse wrath]
 name        = Colère
@@ -47,6 +65,8 @@ description = Un ennemi blessé entre en rage une fois : rouge et plus rapide pe
 class       = Sinwave_WrathCurse
 speed       = 1.5
 duration    = 3
+challenge         = Furie aveugle : tu oublies de te protéger, tu subis 25 % de dégâts en plus
+challenge_effects = vulnerability:0.25
 
 [curse pride]
 name        = Orgueil
@@ -54,3 +74,5 @@ description = Au-dessus de la moitié de tes PV, tu subis 50 % de dégâts en pl
 class       = Sinwave_PrideCurse
 threshold   = 0.5
 vulnerability = 0.5
+challenge         = Vanité : trop sûr de toi, tu infliges 20 % de dégâts en moins
+challenge_effects = damage:-0.2

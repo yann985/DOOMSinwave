@@ -194,6 +194,17 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mCurseDescription = "";
 			return;
 		}
+		let challenge = Sinwave_ChallengeStartedEvent(e);
+		if (challenge != null)
+		{
+			m.mChallengeDescription = challenge.mDef.mChallenge;
+			return;
+		}
+		if (e is 'Sinwave_ChallengeEndedEvent')
+		{
+			m.mChallengeDescription = "";
+			return;
+		}
 		let boss = Sinwave_BossSpawnedEvent(e);
 		if (boss != null)
 		{
@@ -338,12 +349,25 @@ class Sinwave_HudPresenter : Sinwave_System
 		m.mRulesArenaName = "";
 		m.mRulesCircleName = "";
 		m.mRulesCircleCount = 0;
+		m.mRulesChallengeCircles.Clear();
+		m.mRulesChallengeTexts.Clear();
+		m.mRulesChallengeOn.Clear();
+		m.mRulesChallengeCount = 0;
 		if (rules.mArenaIndex < mData.mArenas.Size())
 		{
 			let arena = mData.mArenas[rules.mArenaIndex];
 			m.mRulesArenaName = arena.mName;
 			m.mRulesCircleCount = arena.mCircleNames.Size();
 			if (rules.mStartCircle <= arena.mCircleNames.Size()) m.mRulesCircleName = arena.mCircleNames[rules.mStartCircle - 1];
+			for (int i = 0; i < arena.mCircleNames.Size(); i++)
+			{
+				let challenge = mData.ChallengeOf(rules.mArenaIndex, i);
+				bool on = challenge != null && rules.HasChallenge(i);
+				m.mRulesChallengeCircles.Push(arena.mCircleNames[i]);
+				m.mRulesChallengeTexts.Push(challenge != null ? challenge.mChallenge : "");
+				m.mRulesChallengeOn.Push(on);
+				if (on) m.mRulesChallengeCount++;
+			}
 		}
 		m.mRulesRevision++;
 	}

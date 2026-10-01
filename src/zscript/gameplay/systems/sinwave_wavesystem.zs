@@ -3,7 +3,7 @@
 // =============================================================================
 //
 //  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested,
-//           CorruptionChanged
+//           CorruptionChanged, ChallengeStarted, ChallengeEnded
 //  Publie : CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared,
 //           EnemyKilled, BossSpawned, BossDefeated
 //
@@ -48,6 +48,8 @@ class Sinwave_WaveSystem : Sinwave_System
 	private int mIntervalTics;
 	private int mMaxAlive;
 	private double mHealthFactor;
+	private double mChallengeHealth;	// défi du péché du cercle (ChallengeStarted)
+	private double mChallengeSpeed;
 	private int mSoul;				// balance de l'âme, pour le boss
 	private Actor mBoss;
 	private Array<Actor> mAlive;
@@ -65,7 +67,11 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_ActorDiedEvent');
 		mBus.Subscribe(self, 'Sinwave_SpawnRequestedEvent');
 		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeStartedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeEndedEvent');
 		mSoul = mData.mSoul.mBalance;
+		mChallengeHealth = 1;
+		mChallengeSpeed = 1;
 	}
 
 	override void OnEvent(Sinwave_Event e)
@@ -76,6 +82,17 @@ class Sinwave_WaveSystem : Sinwave_System
 		else if (e is 'Sinwave_RunEndedEvent') StopRun();
 		else if (e is 'Sinwave_ActorDiedEvent') OnActorDied(Sinwave_ActorDiedEvent(e).mThing);
 		else if (e is 'Sinwave_CorruptionChangedEvent') mSoul = Sinwave_CorruptionChangedEvent(e).mCorruption;
+		else if (e is 'Sinwave_ChallengeStartedEvent')
+		{
+			let challenge = Sinwave_ChallengeStartedEvent(e).mDef;
+			mChallengeHealth = challenge.mChallengeEnemyHealth;
+			mChallengeSpeed = challenge.mChallengeEnemySpeed;
+		}
+		else if (e is 'Sinwave_ChallengeEndedEvent')
+		{
+			mChallengeHealth = 1;
+			mChallengeSpeed = 1;
+		}
 		else if (e is 'Sinwave_SpawnRequestedEvent' && mRunning)
 		{
 			let request = Sinwave_SpawnRequestedEvent(e);
@@ -251,10 +268,11 @@ class Sinwave_WaveSystem : Sinwave_System
 
 		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur,
 		// x montée en difficulté de la vague ; un boss suit plutôt la balance de l'âme.
+		// Le défi du péché coché pour le cercle s'y ajoute.
 		let arena = mData.mArena;
 		double waveHealth = def.mIsBoss ? mData.mSoul.BossHealthFactor(mSoul) : mHealthFactor;
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth));
-		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth * mChallengeHealth));
+		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed * mChallengeSpeed;
 		if (def.mScale != 1.0)
 		{
 			mo.Scale *= def.mScale;

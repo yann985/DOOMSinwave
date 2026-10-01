@@ -37,12 +37,15 @@ class Sinwave_RunRules : Sinwave_Service
 	const SPEED_MIN = 0.5;		const SPEED_MAX = 2.0;		const SPEED_STEP = 0.1;
 	const SPAWN_MIN = 0.5;		const SPAWN_MAX = 3.0;		const SPAWN_STEP = 0.25;
 	const DAMAGE_MIN = 0.25;	const DAMAGE_MAX = 3.0;		const DAMAGE_STEP = 0.25;
+	const MAX_CHALLENGES = 30;		// cercles qui peuvent avoir un défi coché
+	const CHALLENGE_REWARD = 0.1;	// récompense : +10 % par défi joué
 
 	double mEnemyHealth;
 	double mEnemySpeed;
 	double mSpawnRate;
 	double mDamageTaken;
 	int mStartCircle;		// 1 = premier cercle
+	int mChallenges;		// défis des péchés cochés : un bit par cercle (bit 0 : premier)
 	Name mPreset;			// 'None' : défi personnalisé
 	int mArenaIndex;		// arène choisie (non sauvegardée)
 
@@ -78,19 +81,44 @@ class Sinwave_RunRules : Sinwave_Service
 			&& abs(mSpawnRate - preset.mSpawnRate) < 0.001 && abs(mDamageTaken - preset.mDamageTaken) < 0.001;
 	}
 
+	// Défi du péché coché pour le cercle `circle` (0 : premier cercle).
+	bool HasChallenge(int circle)
+	{
+		return circle >= 0 && circle < MAX_CHALLENGES && (mChallenges & (1 << circle)) != 0;
+	}
+
+	void SetChallenge(int circle, bool on)
+	{
+		if (circle < 0 || circle >= MAX_CHALLENGES) return;
+		if (on) mChallenges |= 1 << circle;
+		else mChallenges &= ~(1 << circle);
+	}
+
+	// Défis cochés sur les cercles joués (ceux d'avant le cercle de départ ne comptent pas).
+	int PlayedChallenges()
+	{
+		int count = 0;
+		for (int i = max(0, mStartCircle - 1); i < MAX_CHALLENGES; i++)
+		{
+			if (HasChallenge(i)) count++;
+		}
+		return count;
+	}
+
 	// Plus c'est dur, plus la run rapporte d'indulgences.
 	double RewardFactor()
 	{
-		// Pèlerin : environ x0,6 ; Damné : x1,6 ; Enfer : x2,5.
+		// Pèlerin : environ x0,6 ; Damné : x1,6 ; Enfer : x2,5. Chaque défi ajoute 10 %.
 		double reward = (mEnemyHealth ** 0.4) * (mEnemySpeed ** 0.5) * (mSpawnRate ** 0.3) * (mDamageTaken ** 0.4);
+		reward *= 1 + CHALLENGE_REWARD * PlayedChallenges();
 		return clamp(int(reward * 20 + 0.5) / 20.0, 0.25, 5.0);	// arrondi à 0,05
 	}
 
-	// Sauvegarde sous forme de texte : « health=1.25;speed=1;spawn=1;damage=1;circle=1;preset=penitent ».
+	// Sauvegarde sous forme de texte : « health=1.25;speed=1;spawn=1;damage=1;circle=1;challenges=0;preset=penitent ».
 	String Encode()
 	{
-		return String.Format("health=%.2f;speed=%.2f;spawn=%.2f;damage=%.2f;circle=%d;preset=%s",
-			mEnemyHealth, mEnemySpeed, mSpawnRate, mDamageTaken, mStartCircle, mPreset);
+		return String.Format("health=%.2f;speed=%.2f;spawn=%.2f;damage=%.2f;circle=%d;challenges=%d;preset=%s",
+			mEnemyHealth, mEnemySpeed, mSpawnRate, mDamageTaken, mStartCircle, mChallenges, mPreset);
 	}
 
 	void Decode(String text)
@@ -108,6 +136,7 @@ class Sinwave_RunRules : Sinwave_Service
 			else if (key == "spawn") mSpawnRate = clamp(parts[1].ToDouble(), SPAWN_MIN, SPAWN_MAX);
 			else if (key == "damage") mDamageTaken = clamp(parts[1].ToDouble(), DAMAGE_MIN, DAMAGE_MAX);
 			else if (key == "circle") mStartCircle = max(1, parts[1].ToInt(10));
+			else if (key == "challenges") mChallenges = parts[1].ToInt(10) & ((1 << MAX_CHALLENGES) - 1);
 			else if (key == "preset") mPreset = parts[1];
 		}
 	}

@@ -2,12 +2,14 @@
 //  Butin : soins et munitions lâchés par les ennemis tués.
 // =============================================================================
 //
-//  Écoute : RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned
+//  Écoute : RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned,
+//           ChallengeStarted, ChallengeEnded
 //  Publie : rien
 //
 //  Les chances dépendent de la balance de l'âme (data/soul.txt) : plus elle
 //  penche vers le péché, plus il tombe de munitions et moins de soins ; vers la
-//  vertu, l'inverse. La munition lâchée est celle de l'arme en main.
+//  vertu, l'inverse. La munition lâchée est celle de l'arme en main. Le défi du
+//  péché du cercle (celui de l'Avarice...) peut réduire ces chances.
 //  Les objets que les monstres de Doom lâchent d'eux-mêmes (chargeurs...) sont
 //  retirés selon monster_drops, pour que le butin ne dépende que de l'âme.
 
@@ -16,6 +18,7 @@ class Sinwave_LootSystem : Sinwave_System
 	private Sinwave_SoulDef mSoul;
 	private bool mRunning;
 	private int mCorruption;
+	private double mChallengeLoot;		// défi du péché du cercle : x1 sans défi
 	// Objets apparus ce tic : on ne sait qu'au tic suivant s'ils ont été lâchés
 	// par un monstre (le moteur les marque juste après les avoir créés).
 	private Array<Inventory> mSpawned;
@@ -28,6 +31,9 @@ class Sinwave_LootSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
 		mBus.Subscribe(self, 'Sinwave_EnemyKilledEvent');
 		mBus.Subscribe(self, 'Sinwave_ItemSpawnedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeStartedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeEndedEvent');
+		mChallengeLoot = 1;
 	}
 
 	override void Tick()
@@ -51,15 +57,17 @@ class Sinwave_LootSystem : Sinwave_System
 		else if (e is 'Sinwave_CorruptionChangedEvent') mCorruption = Sinwave_CorruptionChangedEvent(e).mCorruption;
 		else if (e is 'Sinwave_EnemyKilledEvent' && mRunning) DropLoot(Sinwave_EnemyKilledEvent(e).mPos);
 		else if (e is 'Sinwave_ItemSpawnedEvent' && mRunning) mSpawned.Push(Sinwave_ItemSpawnedEvent(e).mItem);
+		else if (e is 'Sinwave_ChallengeStartedEvent') mChallengeLoot = Sinwave_ChallengeStartedEvent(e).mDef.mChallengeLoot;
+		else if (e is 'Sinwave_ChallengeEndedEvent') mChallengeLoot = 1;
 	}
 
 	private void DropLoot(Vector3 pos)
 	{
-		if (mSoul.mHealthItem != null && FRandom[SinwaveLoot](0, 100) < mSoul.DropChance(mCorruption, true))
+		if (mSoul.mHealthItem != null && FRandom[SinwaveLoot](0, 100) < mSoul.DropChance(mCorruption, true) * mChallengeLoot)
 		{
 			Toss(mSoul.mHealthItem, pos);
 		}
-		if (FRandom[SinwaveLoot](0, 100) < mSoul.DropChance(mCorruption, false))
+		if (FRandom[SinwaveLoot](0, 100) < mSoul.DropChance(mCorruption, false) * mChallengeLoot)
 		{
 			Toss(AmmoForWeaponInHand(), pos);
 		}

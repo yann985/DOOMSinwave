@@ -103,10 +103,15 @@ class Sinwave_GameData : Sinwave_Service
 			if (def == null) continue;
 			if (def.mEndingId != 'None' && FindStory(def.mEndingId) == null) { blocks[i].Warn(String.Format("texte d'histoire inconnu : \"%s\".", def.mEndingId)); def.mEndingId = 'None'; }
 			if (def.mDeathId != 'None' && FindStory(def.mDeathId) == null) { blocks[i].Warn(String.Format("texte d'histoire inconnu : \"%s\".", def.mDeathId)); def.mDeathId = 'None'; }
-			// Noms des cercles de chaque arène, pour choisir le cercle de départ avant d'y aller.
+			// Noms et malédictions des cercles de chaque arène, pour choisir le cercle de
+			// départ et les défis avant d'y aller.
 			Array<Sinwave_DataBlock> circleBlocks;
 			ReadBlocks(def.mWavesFile, 'circle', circleBlocks);
-			for (int k = 0; k < circleBlocks.Size(); k++) def.mCircleNames.Push(circleBlocks[k].GetString("name", circleBlocks[k].mId));
+			for (int k = 0; k < circleBlocks.Size(); k++)
+			{
+				def.mCircleNames.Push(circleBlocks[k].GetString("name", circleBlocks[k].mId));
+				def.mCircleCurses.Push(circleBlocks[k].GetString("curse").MakeLower());
+			}
 			mArenas.Push(def);
 		}
 
@@ -147,6 +152,17 @@ class Sinwave_GameData : Sinwave_Service
 			if (mCurses[i].mId == id) return mCurses[i];
 		}
 		return null;
+	}
+
+	// Défi du cercle `circle` (0 : premier) de l'arène `arenaIndex` : la malédiction
+	// du cercle, si elle propose un défi ; sinon null.
+	Sinwave_CurseDef ChallengeOf(int arenaIndex, int circle)
+	{
+		if (arenaIndex < 0 || arenaIndex >= mArenas.Size()) return null;
+		let arena = mArenas[arenaIndex];
+		if (circle < 0 || circle >= arena.mCircleCurses.Size()) return null;
+		let curse = FindCurse(arena.mCircleCurses[circle]);
+		return curse != null && curse.HasChallenge() ? curse : null;
 	}
 
 	Sinwave_DifficultyDef FindDifficulty(Name id)
