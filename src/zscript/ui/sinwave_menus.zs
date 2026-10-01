@@ -754,22 +754,36 @@ class Sinwave_ShopMenu : Sinwave_ChoiceMenu
 	}
 }
 
-// Règles de la descente : difficulté prédéfinie, défi personnalisé, cercle de départ.
+// Règles de la descente : difficulté prédéfinie, défi personnalisé, cercle de départ,
+// et, dans le second onglet, le défi du péché de chaque cercle (coché ou non).
 // Chaque réglage envoie une commande ; Sinwave_RulesSystem l'applique côté jeu et
 // le modèle revient avec les nouvelles valeurs.
 class Sinwave_RulesMenu : Sinwave_ChoiceMenu
 {
-	const OPTION_DESCEND = 6;
+	enum ETab
+	{
+		TAB_SETTINGS,
+		TAB_CHALLENGES
+	}
+	// Onglet des réglages : les réglages 0 à 5 suivent Sinwave_RuleAdjustedEvent.FIELD_...
+	const OPTION_CHALLENGES = 6;
+	const OPTION_DESCEND = 7;
 
 	private int mRevision;
+	private int mTab;
 
 	override void Build()
 	{
 		mRevision = mModel.mRulesRevision;
 		mTitle = "RÈGLES DE LA DESCENTE";
 		mSubtitle = String.Format("%s   —   récompense x%.2f", mModel.mRulesArenaName, mModel.mRulesReward);
-		mHint = "Gauche / Droite ou clic sur < > : régler     Échap, B ou clic droit : retour";
+		if (mTab == TAB_CHALLENGES) BuildChallenges();
+		else BuildSettings();
+	}
 
+	private void BuildSettings()
+	{
+		mHint = "Gauche / Droite ou clic sur < > : régler     Échap, B ou clic droit : retour";
 		String difficulty = mModel.mRulesPresetName.Length() > 0 ? mModel.mRulesPresetName : "Défi personnalisé";
 		AddOption("Difficulté", mModel.mRulesPresetDescription, Font.CR_GRAY, "< " .. difficulty .. " >");
 		AddOption("Vie des ennemis", "Points de vie des ennemis et du boss", Font.CR_GRAY, Percent(mModel.mRulesEnemyHealth));
@@ -778,13 +792,46 @@ class Sinwave_RulesMenu : Sinwave_ChoiceMenu
 		AddOption("Dégâts subis", "Dégâts que tu reçois", Font.CR_GRAY, Percent(mModel.mRulesDamageTaken));
 		AddOption("Cercle de départ", "Les cercles passés ne rapportent pas d'indulgences", Font.CR_GRAY,
 			String.Format("< %d/%d : %s >", mModel.mRulesStartCircle, mModel.mRulesCircleCount, mModel.mRulesCircleName));
+		AddOption("Défis des péchés", "Une contrainte en plus par cercle, au choix : +10 % de récompense chacune",
+			mModel.mRulesChallengeCount > 0 ? Font.CR_PURPLE : Font.CR_GRAY,
+			String.Format("%d coché%s  >", mModel.mRulesChallengeCount, mModel.mRulesChallengeCount > 1 ? "s" : ""));
+		AddOption("DESCENDRE", "Lancer la run avec ces règles", Font.CR_GOLD);
+	}
+
+	// Une ligne par cercle, puis DESCENDRE.
+	private void BuildChallenges()
+	{
+		mHint = "Gauche / Droite, Entrée ou clic : cocher     Échap, B ou clic droit : réglages";
+		for (int i = 0; i < mModel.mRulesChallengeCircles.Size(); i++)
+		{
+			String label = String.Format("Cercle %d : %s", i + 1, mModel.mRulesChallengeCircles[i]);
+			String text = mModel.mRulesChallengeTexts[i];
+			if (text.Length() == 0)
+			{
+				AddOption(label, "Pas de défi pour ce cercle", Font.CR_DARKGRAY, "—");
+				continue;
+			}
+			bool on = mModel.mRulesChallengeOn[i];
+			AddOption(label, text, on ? Font.CR_PURPLE : Font.CR_GRAY, on ? "< Défi : oui >" : "< Défi : non >");
+		}
 		AddOption("DESCENDRE", "Lancer la run avec ces règles", Font.CR_GOLD);
 	}
 
 	override bool StaysOpen() { return true; }
 	override bool ShowDetailsInline() { return false; }
 	override bool HasBackButton() { return true; }
-	override bool IsAdjustable(int index) { return index < OPTION_DESCEND; }
+
+	override int TabCount() { return 2; }
+	override String TabLabel(int index) { return index == TAB_CHALLENGES ? "Défis des péchés" : "Réglages"; }
+	override int TabColor(int index) { return index == TAB_CHALLENGES && mModel.mRulesChallengeCount > 0 ? Font.CR_PURPLE : Font.CR_GRAY; }
+	override int CurrentTab() { return mTab; }
+	override void SelectTab(int index) { mTab = index; }
+
+	override bool IsAdjustable(int index)
+	{
+		if (mTab == TAB_SETTINGS) return index < OPTION_DESCEND;
+		return index < mModel.mRulesChallengeTexts.Size() && mModel.mRulesChallengeTexts[index].Length() > 0;
+	}
 
 	override bool NeedsRebuild()
 	{
@@ -794,6 +841,16 @@ class Sinwave_RulesMenu : Sinwave_ChoiceMenu
 	override bool Adjust(int index, int delta)
 	{
 		if (!IsAdjustable(index)) return false;
+		if (mTab == TAB_CHALLENGES)
+		{
+			EventHandler.SendNetworkEvent("sinwave_rule", Sinwave_RuleAdjustedEvent.FIELD_CHALLENGE + index, delta);
+			return true;
+		}
+		if (index == OPTION_CHALLENGES)
+		{
+			ChangeTab(TAB_CHALLENGES);
+			return false;	// ChangeTab a déjà joué son son
+		}
 		EventHandler.SendNetworkEvent("sinwave_rule", index, delta);
 		return true;
 	}
@@ -802,7 +859,7 @@ class Sinwave_RulesMenu : Sinwave_ChoiceMenu
 	// le menu tout de suite (la run peut commencer sur une autre carte).
 	override void Choose(int index)
 	{
-		if (index == OPTION_DESCEND)
+		if (index == mLabels.Size() - 1)
 		{
 			EventHandler.SendNetworkEvent("sinwave_descend");
 			mCloseRequested = true;
@@ -813,8 +870,15 @@ class Sinwave_RulesMenu : Sinwave_ChoiceMenu
 		}
 	}
 
+	// Retour : de l'onglet des défis aux réglages, puis des réglages au choix de l'arène.
 	override bool OnBack()
 	{
+		if (mTab == TAB_CHALLENGES)
+		{
+			ChangeTab(TAB_SETTINGS);
+			mSelected = OPTION_CHALLENGES;
+			return false;
+		}
 		EventHandler.SendNetworkEvent("sinwave_back");
 		return true;
 	}

@@ -24,6 +24,10 @@ enabled = true
 class   = Sinwave_CurseSystem
 enabled = true
 
+[system challenges]
+class   = Sinwave_ChallengeSystem
+enabled = true
+
 [system boss]
 class   = Sinwave_BossSystem
 enabled = true

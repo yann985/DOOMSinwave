@@ -13,6 +13,9 @@ class   = Sinwave_WaveSystem
 [system curses]
 class   = Sinwave_CurseSystem
 
+[system challenges]
+class   = Sinwave_ChallengeSystem
+
 [system boss]
 class   = Sinwave_BossSystem
 

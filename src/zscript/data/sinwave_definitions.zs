@@ -209,6 +209,7 @@ class Sinwave_EnemyDef play
 
 // Une malédiction de cercle (data/curses.txt). Son comportement est une classe
 // ZScript (pattern Stratégie) ; ses réglages restent dans le bloc de données.
+// Elle porte aussi le défi du péché, que le joueur peut cocher pour le cercle.
 class Sinwave_CurseDef play
 {
 	Name mId;
@@ -216,6 +217,13 @@ class Sinwave_CurseDef play
 	String mDescription;
 	Name mClassName;
 	Sinwave_DataBlock mParams;
+
+	// Défi du péché (vide : pas de défi pour ce péché).
+	String mChallenge;
+	Array<Sinwave_Effect> mChallengeEffects;	// sur le joueur, pendant le cercle
+	double mChallengeEnemyHealth;
+	double mChallengeEnemySpeed;
+	double mChallengeLoot;
 
 	static Sinwave_CurseDef FromBlock(Sinwave_DataBlock block)
 	{
@@ -225,12 +233,22 @@ class Sinwave_CurseDef play
 		def.mDescription = block.GetString("description");
 		def.mClassName = block.GetString("class");
 		def.mParams = block;
+		def.mChallenge = block.GetString("challenge");
+		Sinwave_Effect.ParseList(block, "challenge_effects", def.mChallengeEffects);
+		def.mChallengeEnemyHealth = max(0.1, block.GetDouble("challenge_enemy_health", 1.0));
+		def.mChallengeEnemySpeed = max(0.1, block.GetDouble("challenge_enemy_speed", 1.0));
+		def.mChallengeLoot = max(0.0, block.GetDouble("challenge_loot", 1.0));
 		if ((class<Object>)(def.mClassName) == null)
 		{
 			block.Warn(String.Format("classe de malédiction inconnue : \"%s\"", def.mClassName));
 			return null;
 		}
 		return def;
+	}
+
+	bool HasChallenge()
+	{
+		return mChallenge.Length() > 0;
 	}
 }
 
@@ -596,6 +614,7 @@ class Sinwave_ArenaDef play
 	Name mEndingId;				// mode histoire : texte de la victoire (data/story.txt)...
 	Name mDeathId;				// ... et de la mort
 	Array<String> mCircleNames;
+	Array<Name> mCircleCurses;	// malédiction de chaque cercle, pour les défis des règles
 
 	// Arène neutre, utilisée si data/arenas.txt est vide ou absent.
 	static Sinwave_ArenaDef Neutral()
