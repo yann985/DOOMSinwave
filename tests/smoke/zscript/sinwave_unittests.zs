@@ -117,6 +117,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestShopPrices();
 		TestPurchasesEncoding();
 		TestRules();
+		TestChallenges();
 		TestStory();
 		TestThreats();
 
@@ -512,6 +513,32 @@ class Sinwave_UnitTests : StaticEventHandler
 
 		copy.Decode("health=99;circle=0");
 		Check(copy.mEnemyHealth == Sinwave_RunRules.HEALTH_MAX && copy.mStartCircle == 1, "règles : valeurs hors bornes corrigées");
+	}
+
+	private void TestChallenges()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[curse a]\nclass = Sinwave_SlothCurse\nchallenge = dur\nchallenge_effects = speed:-0.1\nchallenge_loot = 0.5\n[curse b]\nclass = Sinwave_SlothCurse\n",
+			blocks);
+		let hard = Sinwave_CurseDef.FromBlock(blocks[0]);
+		let plain = Sinwave_CurseDef.FromBlock(blocks[1]);
+		Check(hard.HasChallenge() && !plain.HasChallenge(), "défis : seule une malédiction avec « challenge » a un défi");
+		Check(hard.mChallengeEffects.Size() == 1 && hard.mChallengeLoot == 0.5 && hard.mChallengeEnemyHealth == 1.0, "défis : réglages lus, x1 par défaut");
+
+		let normal = Sinwave_RunRules.Create();
+		let challenges = Sinwave_RunRules.Create();
+		challenges.SetChallenge(0, true);
+		challenges.SetChallenge(4, true);
+		Check(challenges.HasChallenge(4) && !challenges.HasChallenge(1), "défis : un bit par cercle");
+		Check(challenges.RewardFactor() > normal.RewardFactor(), "défis : chaque défi rapporte plus");
+		challenges.mStartCircle = 2;
+		Check(challenges.PlayedChallenges() == 1, "défis : ceux des cercles passés ne comptent pas");
+		let reread = Sinwave_RunRules.Create();
+		reread.Decode(challenges.Encode());
+		Check(reread.HasChallenge(0) && reread.HasChallenge(4) && reread.mChallenges == challenges.mChallenges, "défis : relus à l'identique");
+		challenges.SetChallenge(4, false);
+		Check(!challenges.HasChallenge(4) && challenges.HasChallenge(0), "défis : décocher un cercle ne touche pas les autres");
 	}
 
 	private void TestStory()
