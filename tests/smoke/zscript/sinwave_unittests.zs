@@ -117,6 +117,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestShopPrices();
 		TestPurchasesEncoding();
 		TestRules();
+		TestStory();
 		TestThreats();
 
 		Console.Printf("[test] %d réussis, %d échoués", mPassed, mFailed);
@@ -511,5 +512,20 @@ class Sinwave_UnitTests : StaticEventHandler
 
 		copy.Decode("health=99;circle=0");
 		Check(copy.mEnemyHealth == Sinwave_RunRules.HEALTH_MAX && copy.mStartCircle == 1, "règles : valeurs hors bornes corrigées");
+	}
+
+	private void TestStory()
+	{
+		Array<Sinwave_DataBlock> blocks;
+		Sinwave_DataParser.ParseText("test",
+			"[story a]\ntitle = A\ntext = neutre\\nsuite\nvirtue = saint\nsin = damne\nsin_max = icone\n[story b]\ntext = seul\n",
+			blocks);
+		let full = Sinwave_StoryDef.FromBlock(blocks[0]);
+		let plain = Sinwave_StoryDef.FromBlock(blocks[1]);
+
+		Check(full.TextFor(0, false) == "neutre\nsuite", "histoire : « \\n » devient un saut de ligne");
+		Check(full.TextFor(-1, false) == "saint" && full.TextFor(1, false) == "damne", "histoire : variante selon le côté de l'âme");
+		Check(full.TextFor(1, true) == "icone", "histoire : variante de la corruption maximale");
+		Check(plain.TextFor(1, true) == "seul" && plain.TextFor(-1, false) == "seul", "histoire : une variante absente se rabat sur le texte");
 	}
 }
