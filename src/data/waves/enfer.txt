@@ -1,0 +1,94 @@
+# Le mode histoire : la descente aux Enfers, sept cercles de 5 minutes chacun, un
+# par péché, chacun dans sa propre zone de la carte (SW04, tools/generate-arena.ps1
+# -Shape Story). Au début de chaque cercle, un texte de data/story.txt raconte la
+# suite de l'histoire ; il change selon l'âme du joueur. Lucifer attend au bout du
+# dernier cercle. Environ 37 minutes de vagues.
+#
+# Chaque cercle : 5 vagues de 57 s et 4 répits de 3 s, soit 4 min 57.
+#   story : texte affiché au début du cercle (data/story.txt)
+#   les autres clés : voir data/waves/purgatoire.txt
+
+[circle 1]
+name     = Paresse
+story    = paresse
+curse    = sloth
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 1.2
+max      = 10
+enemies  = sloth:4, gluttony:1
+
+[circle 2]
+name     = Gourmandise
+story    = gourmandise
+curse    = gluttony
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 1.1
+max      = 12
+enemies  = gluttony:3, sloth:2
+
+[circle 3]
+name     = Luxure
+story    = luxure
+curse    = lust
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 1.0
+max      = 12
+enemies  = lust:3, sloth:1
+
+[circle 4]
+name     = Envie
+story    = envie
+curse    = envy
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 1.0
+max      = 13
+enemies  = envy:3, lust:1, sloth:1
+
+[circle 5]
+name     = Avarice
+story    = avarice
+curse    = greed
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 0.9
+max      = 13
+enemies  = greed:3, envy:1
+
+[circle 6]
+name     = Colère
+story    = colere
+curse    = wrath
+waves    = 5
+duration = 57
+pause    = 3
+break    = 5
+interval = 0.9
+max      = 15
+enemies  = wrath:3, gluttony:2
+
+[circle 7]
+name     = Orgueil
+story    = orgueil
+curse    = pride
+waves    = 6
+duration = 57
+pause    = 3
+break    = 0
+interval = 1.4
+max      = 9
+boss     = lucifer
+enemies  = lust:2, greed:1, pride:1

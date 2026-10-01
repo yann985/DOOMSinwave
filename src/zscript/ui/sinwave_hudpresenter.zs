@@ -238,6 +238,14 @@ class Sinwave_HudPresenter : Sinwave_System
 			m.mVerdict = corruption.Verdict();
 			return;
 		}
+		let story = Sinwave_StoryShownEvent(e);
+		if (story != null)
+		{
+			m.mStoryTitle = story.mTitle;
+			m.mStoryText = story.mText;
+			m.mStorySerial++;
+			return;
+		}
 		let trial = Sinwave_SoulTrialEvent(e);
 		if (trial != null)
 		{

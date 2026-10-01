@@ -863,3 +863,49 @@ class Sinwave_ArenaMenu : Sinwave_ChoiceMenu
 		return mModel.mScreen == Sinwave_HudModel.SCREEN_ARENA_SELECT;
 	}
 }
+
+// Mode histoire : le texte entre deux cercles (ou à la fin de la run), puis
+// « Continuer ». Le jeu reste en pause tant qu'il est ouvert, comme pour tout menu.
+class Sinwave_StoryMenu : Sinwave_ChoiceMenu
+{
+	const TEXT_SIZE = 1.1;
+	const LINE_HEIGHT = 13.0;
+	const TEXT_WIDTH = 480.0;	// largeur du texte, en unités de l'écran virtuel
+
+	private BrokenLines mLines;
+	private String mWrapped;	// texte déjà découpé en lignes
+
+	override void Build()
+	{
+		mTitle = mModel.mStoryTitle.Length() > 0 ? mModel.mStoryTitle : "...";
+		mHint = "Entrée, A, clic ou Échap : continuer";
+		AddOption("Continuer", "", Font.CR_GOLD);
+	}
+
+	private BrokenLines Lines()
+	{
+		if (mLines == null || mWrapped != mModel.mStoryText)
+		{
+			mWrapped = mModel.mStoryText;
+			mLines = NewSmallFont.BreakLines(mWrapped, int(TEXT_WIDTH / TEXT_SIZE));
+		}
+		return mLines;
+	}
+
+	override double HeaderExtraHeight()
+	{
+		return Lines().Count() * LINE_HEIGHT + 10;
+	}
+
+	override void DrawHeaderExtra(Sinwave_Canvas c, double left, double top, double width)
+	{
+		let lines = Lines();
+		double x = left + (width - TEXT_WIDTH) / 2;
+		for (int i = 0; i < lines.Count(); i++)
+		{
+			c.Text(NewSmallFont, Font.CR_WHITE, x, top + 6 + i * LINE_HEIGHT, lines.StringAt(i), TEXT_SIZE);
+		}
+	}
+
+	override bool OnBack() { return true; }
+}

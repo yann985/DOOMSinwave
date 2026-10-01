@@ -410,6 +410,30 @@ class Sinwave_CurseStartedEvent : Sinwave_Event
 
 class Sinwave_CurseEndedEvent : Sinwave_Event {}
 
+// --- Mode histoire (Sinwave_StorySystem) ---------------------------------------
+
+// Un texte de l'histoire, déjà choisi selon l'âme du joueur, est à afficher.
+class Sinwave_StoryShownEvent : Sinwave_Event
+{
+	Name mId;
+	String mTitle;
+	String mText;
+
+	static Sinwave_StoryShownEvent Create(Name id, String title, String text)
+	{
+		let e = new('Sinwave_StoryShownEvent');
+		e.mId = id;
+		e.mTitle = title;
+		e.mText = text;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s", mId);
+	}
+}
+
 // --- Expérience (Sinwave_XpOrb, Sinwave_XpSystem) ----------------------------
 
 class Sinwave_XpOrbDroppedEvent : Sinwave_Event

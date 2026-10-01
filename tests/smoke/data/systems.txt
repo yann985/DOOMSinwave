@@ -44,6 +44,12 @@ class   = Sinwave_LootSystem
 [system trials]
 class   = Sinwave_SoulTrialSystem
 
+[system zones]
+class   = Sinwave_ZoneSystem
+
+[system story]
+class   = Sinwave_StorySystem
+
 [system hud]
 class   = Sinwave_HudPresenter
 enabled = false
