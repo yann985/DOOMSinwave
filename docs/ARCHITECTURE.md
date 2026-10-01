@@ -132,6 +132,41 @@ Hors du code : `src/data/` (contenu), `src/maps/` (cartes), `tests/` (tests auto
 | Modèle-Présentateur-Vue | `ui/` | L'interface lit un modèle et n'agit que par des commandes. |
 | Conception orientée données | `src/data/` | Tout le contenu est décrit hors du code. |
 
+### Diagrammes de classes
+
+Les vraies classes du code (`src/zscript/`), avec leurs principaux membres. Ils sont aussi dans le document d'architecture en PDF ([Sinwave-Architecture.pdf](Sinwave-Architecture.pdf)).
+
+| Dans les schémas | Sens |
+|---|---|
+| Cadre blanc | La classe, et sous son nom la classe dont elle hérite |
+| Cadre vert | Ses membres : champs (`mNom`) puis méthodes |
+| Trait plein, triangle vide | « hérite de » |
+| Pointillés, flèche | « utilise » ou « crée » |
+
+**Le noyau :** `Sinwave_Game` crée tout ; le bus, la machine à états et les systèmes reçoivent les événements par la même méthode, `OnEvent()`.
+
+![Diagramme de classes du noyau : Sinwave_Game, Services, EventBus, StateMachine, Event, Listener, State, System](diagrammes/classes-noyau.png)
+
+**Les systèmes de jeu :** quinze systèmes, une seule classe de base, aucun ne connaît les autres. Une flèche « → » indique les événements publiés.
+
+![Diagramme de classes des 15 systèmes qui héritent de Sinwave_System](diagrammes/classes-systemes.png)
+
+**Les états :** le début et la fin de run sont écrits une fois dans `Sinwave_GameState`, la suspension une fois dans `Sinwave_SuspendedState`.
+
+![Diagramme de classes des états globaux](diagrammes/classes-etats.png)
+
+**Les malédictions (pattern Stratégie) :** `Sinwave_CurseSystem` crée la classe nommée dans `data/curses.txt` sans savoir ce qu'elle fait.
+
+![Diagramme de classes des 7 malédictions](diagrammes/classes-maledictions.png)
+
+**Données et sauvegarde :** les systèmes ne lisent jamais de fichier ; la méta-progression ne connaît que le contrat abstrait `Sinwave_SaveService`.
+
+![Diagramme de classes des données et de la sauvegarde](diagrammes/classes-donnees.png)
+
+**L'interface (modèle-présentateur-vue) :** le présentateur écrit le modèle, le HUD et les menus le lisent, et les menus n'agissent que par des commandes.
+
+![Diagramme de classes de l'interface](diagrammes/classes-interface.png)
+
 ---
 
 ## 5. Déroulement du jeu
