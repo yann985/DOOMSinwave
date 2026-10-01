@@ -1,11 +1,12 @@
 name: Build
 
-# À chaque push / pull request : construit sinwave.pk3 (téléchargeable dans l'onglet Actions).
+# À chaque push sur main ou dev, et à chaque pull request : construit sinwave.pk3
+# (téléchargeable dans l'onglet Actions).
 # À chaque tag v* (ex : v0.1.0) : prépare aussi le build Windows et le publie en Release.
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
