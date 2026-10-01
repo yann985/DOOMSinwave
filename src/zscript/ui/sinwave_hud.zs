@@ -20,6 +20,7 @@ class Sinwave_Hud ui
 	// Une forme par marque : le moteur ne dessine qu'en fin d'image, une forme
 	// réutilisée dans la même image mélangerait les marques.
 	private Array<Shape2D> mShapes;
+	private CVar mThreatMarkers;	// option : flèches des menaces affichées ou non
 
 	// viewPos, viewAngle : la caméra à cette image (interpolée, fluide même entre deux tics).
 	void Draw(Sinwave_HudModel m, Vector3 viewPos, double viewAngle)
@@ -34,7 +35,7 @@ class Sinwave_Hud ui
 			break;
 		case Sinwave_HudModel.SCREEN_RUN:
 			DrawRun(m);
-			DrawThreats(m, viewPos, viewAngle);
+			if (ShowsThreats()) DrawThreats(m, viewPos, viewAngle);
 			DrawBanner(m);
 			break;
 		case Sinwave_HudModel.SCREEN_PAUSE:
@@ -45,6 +46,13 @@ class Sinwave_Hud ui
 			DrawResult(m);
 			break;
 		}
+	}
+
+	// Option « Flèches des menaces » (sinwave_threat_markers), activée par défaut.
+	private bool ShowsThreats()
+	{
+		if (mThreatMarkers == null) mThreatMarkers = CVar.FindCVar('sinwave_threat_markers');
+		return mThreatMarkers == null || mThreatMarkers.GetBool();
 	}
 
 	private void DrawTitleScreen(Sinwave_HudModel m)

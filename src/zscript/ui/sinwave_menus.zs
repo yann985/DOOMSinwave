@@ -500,13 +500,20 @@ class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 
 class Sinwave_PauseMenu : Sinwave_ChoiceMenu
 {
+	const OPTION_RESUME = 0;
+	const OPTION_SETTINGS = 1;
+
 	override void Build()
 	{
 		mTitle = "PAUSE";
 		mHint = "Échap, P, B ou Start : reprendre";
 		AddOption("Reprendre la run", "", Font.CR_GRAY);
+		AddOption("Options", "Flèches des menaces, mode de tir", Font.CR_GRAY);
 		AddOption("Abandonner la run", "Les indulgences déjà méritées sont conservées", Font.CR_GRAY);
 	}
+
+	// Reste ouvert sous le menu des options, pour y revenir.
+	override bool StaysOpen() { return true; }
 
 	// La touche qui a mis en pause la retire aussi : P au clavier, Start à la manette.
 	override bool OnUIEvent(UIEvent ev)
@@ -533,7 +540,13 @@ class Sinwave_PauseMenu : Sinwave_ChoiceMenu
 
 	override void Choose(int index)
 	{
-		EventHandler.SendNetworkEvent(index == 0 ? "sinwave_resume" : "sinwave_abandon");
+		if (index == OPTION_SETTINGS)
+		{
+			Menu.SetMenu('SinwaveOptions');	// MENUDEF.txt ; Retour ramène ici
+			return;
+		}
+		EventHandler.SendNetworkEvent(index == OPTION_RESUME ? "sinwave_resume" : "sinwave_abandon");
+		mCloseRequested = true;
 	}
 
 	override bool OnBack()
