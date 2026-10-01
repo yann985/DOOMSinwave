@@ -1,6 +1,6 @@
 # Sinwave : architecture du prototype
 
-Sinwave est le prototype du **projet Aegis** : un survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom 4.14.2**. Le choix du moteur est justifié dans un document séparé ; celui-ci explique **comment le code est organisé et pourquoi**.
+Sinwave est le prototype du **projet Aegis** : un survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom 4.14.2**. Ce document justifie le choix du moteur (partie 2), puis explique **comment le code est organisé et pourquoi**, avec ses limites (partie 12) et ce qui viendrait avec plus de temps (partie 13).
 
 GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équivalent des ScriptableObject : **toute l'architecture décrite ici est écrite dans le projet**, dans `src/zscript/`.
 
@@ -31,7 +31,40 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 
 ---
 
-## 2. Par où commencer la lecture
+## 2. Choix du moteur : pourquoi GZDoom
+
+Le sujet note surtout l'**architecture** (états, bus, services, données, méta-progression) et demande une run jouable de 2 à 3 minutes. Il fallait donc un moteur qui fournisse vite un jeu de tir complet, sans faire l'architecture à notre place.
+
+| | **GZDoom 4.14 (ZScript)** | Unity (C#) | Godot 4 (GDScript, C#) | Unreal 5 (C++, Blueprints) |
+|---|---|---|---|---|
+| Jeu de tir de base : déplacement, armes, monstres et leur IA, collisions, sons, menus, manette | **fourni** | à écrire, ou paquets de l'Asset Store | à écrire | modèle FPS fourni ; ennemis et vagues à écrire |
+| Graphismes et sons | **Freedoom**, libre et redistribuable | à trouver ou à produire | à trouver ou à produire | à trouver ou à produire |
+| Langage | ZScript : classes, héritage, méthodes virtuelles et abstraites, typage statique | C# | GDScript (typage facultatif), C# | C++, Blueprints |
+| Architecture fournie par le moteur | presque rien : **tout est écrit dans le projet** | ScriptableObject, UnityEvent | signaux, autoloads | sous-systèmes, délégués |
+| Poids | mod de 110 Ko, build Windows complet de 31 Mo | éditeur et build bien plus lourds | léger | très lourd |
+| Itération | tout le ZScript compile en quelques secondes | recompilation et rechargement à chaque modification | rapide | compilation C++ longue |
+
+**Pourquoi GZDoom :**
+- **Le temps va à ce qui est noté.** Le jeu de tir existe déjà : pas de contrôleur de personnage, d'armes ni d'IA de monstres à écrire avant de pouvoir travailler l'architecture.
+- **L'architecture ne peut pas être empruntée au moteur.** GZDoom n'a ni bus d'événements, ni machine à états de jeu, ni équivalent des ScriptableObject : tout ce que le sujet demande est écrit et visible dans `src/zscript/`.
+- **ZScript est un vrai langage objet**, vérifié à la compilation et proche du C# : Observer, State, Stratégie et Service Locator s'y écrivent comme en Unity.
+- **La séparation entre logique et affichage est garantie par le compilateur** : le code `ui` peut lire le jeu mais pas le modifier (partie 9).
+- **Le genre s'y prête** : des vagues de monstres, des armes, de l'expérience. Deux mods survivors-like existent déjà sur GZDoom ; Sinwave s'en distingue par sa structure (partie 1).
+- **Un build léger et libre** : GZDoom (GPL) et Freedoom (BSD) se redistribuent ; le build Windows tient dans un zip et se lance par un `.bat`.
+
+**Pourquoi pas les autres :** Unity et Godot auraient donné plus de liberté (vraie 3D, éditeur, débogueur), mais il aurait fallu construire tout le jeu de tir avant d'arriver à ce qui est évalué. Unreal est surdimensionné pour un prototype court, et le C++ ralentit chaque essai.
+
+**Ce que ce choix coûte (limites assumées) :**
+- **ZScript n'a ni génériques, ni délégués, ni lambdas, ni constructeurs avec paramètres** : les abonnés du bus héritent d'une classe (`Sinwave_Listener`), et un Service Locator transmis remplace un conteneur d'injection (partie 6).
+- **Ni débogueur, ni framework de test** : les tests unitaires et les scénarios de bout en bout sont écrits dans le projet. Ils ouvrent une fenêtre GZDoom, donc ne tournent pas sur le serveur d'intégration continue (partie 11).
+- **Un moteur de 1993, en 2,5D** : cartes faites de secteurs, monstres en sprites, IA sans recherche de chemin. Les arènes doivent rester ouvertes (« Les cartes », partie 7).
+- **ZScript ne peut pas écrire de fichier** : la méta-progression est sauvegardée dans des CVars, dans le `.ini` du moteur (partie 8).
+- **Il faut un IWAD** (les données de base du jeu) : Freedoom est livré ; le vrai Doom II marche aussi, s'il est installé.
+- **Pas d'inspecteur pour les données** : des fichiers texte remplacent les ScriptableObject, vérifiés seulement au chargement.
+
+---
+
+## 3. Par où commencer la lecture
 
 | Ordre | Fichier | Ce qu'on y voit |
 |---|---|---|
@@ -46,7 +79,7 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 
 ---
 
-## 3. Vue d'ensemble : les couches
+## 4. Vue d'ensemble : les couches
 
 ```mermaid
 flowchart TB
@@ -101,7 +134,7 @@ Hors du code : `src/data/` (contenu), `src/maps/` (cartes), `tests/` (tests auto
 
 ---
 
-## 4. Déroulement du jeu
+## 5. Déroulement du jeu
 
 ### Machine à états globale
 
@@ -224,7 +257,7 @@ Aucun de ces systèmes ne connaît les autres : ils ne connaissent que le bus et
 
 ---
 
-## 5. Le noyau (`core/`)
+## 6. Le noyau (`core/`)
 
 ### Bus d'événements (Observer)
 
@@ -273,7 +306,7 @@ Fichier : `core/sinwave_services.zs`. Services enregistrés par `Sinwave_Game` :
 
 ---
 
-## 6. Conception orientée données
+## 7. Conception orientée données
 
 Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun** ennemi, cercle, vertu, péché, article ou arène en dur.
 
@@ -361,7 +394,7 @@ Les trois cartes sont des créations originales, calculées par `tools/generate-
 
 ---
 
-## 7. Méta-progression et boutique
+## 8. Méta-progression et boutique
 
 - **Données :** `Sinwave_MetaData` : indulgences, meilleur score, nombre de runs, Jugement, et niveau de chaque article acheté.
 - **Stockage :** `Sinwave_CVarSaveService`.
@@ -431,7 +464,7 @@ Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'aut
 
 ---
 
-## 8. Présentation séparée de la logique
+## 9. Présentation séparée de la logique
 
 ZScript sépare le code en deux **portées**, vérifiées par le compilateur :
 - **play** : la simulation, déterministe ;
@@ -465,7 +498,7 @@ flowchart LR
 
 ---
 
-## 9. Découplage : qui dépend de quoi
+## 10. Découplage : qui dépend de quoi
 
 Aucun système ne référence un autre système. Chacun ne connaît que des services et des événements :
 
@@ -509,7 +542,7 @@ Ce que la désactivation change pour chaque système :
 
 ---
 
-## 10. Outils et tests
+## 11. Outils et tests
 
 | Commande (dossier `tools/`) | Rôle |
 |---|---|
@@ -563,7 +596,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 
 ---
 
-## 11. Limites connues
+## 12. Limites connues
 
 - **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée. Même piège avec `CorruptionChanged`, publié pendant `RunStarted` : le présentateur remettait la corruption à 0 en recevant `RunStarted`, après elle, et la run s'affichait à « 0/30 : équilibre ». Un test unitaire rejoue cet ordre.
 - **Événements alloués à chaque publication :** simple et lisible, mais cela crée des objets à collecter. C'est sans effet mesurable à cette échelle.
@@ -577,7 +610,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 - **Apparition derrière un mur :** autour du joueur, un ennemi peut apparaître de l'autre côté d'une cloison. Il le poursuit quand même, mais l'IA de Doom ne cherche pas de chemin : dans une carte très cloisonnée, `spawn = points` est préférable.
 - **Tests d'intégration sur un vrai moteur :** `test.ps1` ouvre une fenêtre GZDoom ; il ne tourne donc pas sur le serveur d'intégration continue de GitHub, qui ne fait que construire le `.pk3` et le build.
 
-## 12. Avec plus de temps
+## 13. Avec plus de temps
 
 - Abonnements avec priorité explicite, pour ne plus dépendre de l'ordre de `systems.txt`.
 - Cumul des arènes entre archives, pour que les mods ajoutent des arènes sans rien remplacer.
