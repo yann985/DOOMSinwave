@@ -3,7 +3,7 @@
 Survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom**.
 Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture (machine à états, bus d'événements, services, données externes, méta-progression).
 
-- **Architecture expliquée : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+- **Architecture expliquée, avec les diagrammes de classes : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 - **Document d'architecture, avec les diagrammes de classes (PDF) : [docs/Sinwave-Architecture.pdf](docs/Sinwave-Architecture.pdf)**
 - **Créer une arène : [docs/CREER-UNE-ARENE.md](docs/CREER-UNE-ARENE.md)**
 
