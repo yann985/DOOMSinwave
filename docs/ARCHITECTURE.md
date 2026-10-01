@@ -1,6 +1,6 @@
 # Sinwave : architecture du prototype
 
-Sinwave est le prototype du **projet Aegis** : un survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom 4.14.2**. Le choix du moteur est justifié dans un document séparé ; celui-ci explique **comment le code est organisé et pourquoi**.
+Sinwave est le prototype du **projet Aegis** : un survivors-like sur le thème des sept péchés capitaux, écrit en **ZScript** pour le moteur **GZDoom 4.14.2**. Ce document justifie le choix du moteur (partie 2), puis explique **comment le code est organisé et pourquoi**, avec ses limites (partie 12) et ce qui viendrait avec plus de temps (partie 13).
 
 GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équivalent des ScriptableObject : **toute l'architecture décrite ici est écrite dans le projet**, dans `src/zscript/`.
 
@@ -9,11 +9,11 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
 ## 1. Le jeu en bref
 
 - **Hors run :**
-  - le joueur choisit une **arène** : Le Purgatoire, Les Limbes, ou une arène personnalisée ;
+  - le joueur choisit une **arène** : Le Vestibule (la run minimale, 2 à 3 minutes), Le Purgatoire, Les Limbes, ou une arène personnalisée ;
   - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes. Ses rayons s'ouvrent selon le **Jugement** de son âme, gardé d'une run à l'autre.
-- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle du Purgatoire se termine par le boss **Lucifer**.
-- **À chaque niveau :** choix entre deux **vertus** (modestes) et un **péché** (puissant, avec un défaut). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
+- **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle se termine par un boss : **Charon** au Vestibule, **Lucifer** au Purgatoire.
+- **À chaque niveau :** trois choix parmi des **vertus** (modestes, qui purifient), des **neutres** (meilleurs, sans toucher à l'âme, de plus en plus rares quand elle penche) et des **péchés** (puissants, avec un défaut, qui corrompent). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté, et plus les choix suivants penchent du même côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
 - **À la fin :** les indulgences gagnées sont sauvegardées pour les runs suivantes, et le Jugement bouge selon l'âme.
 
 ### Ce qui distingue Sinwave des mods existants
@@ -24,14 +24,47 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 |---|---|---|
 | Structure | Vagues sans fin | Descente finie : des cercles de quelques vagues chacun, un boss, une fin |
 | Vagues | Plus d'ennemis à chaque vague | Les vagues se resserrent aussi, mais chaque cercle **change une règle** (malédiction) |
-| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu ou péché**, qui fait pencher l'âme : la partie change à chaque palier, et le verdict en dépend |
+| Montée de niveau | Améliorations au hasard (Doom2Survive), armes qui montent en niveau (DoomSurvivor) | Choix moral **vertu, neutre ou péché**, qui fait pencher l'âme (ou non) : la partie change à chaque palier, et le verdict en dépend |
 | Monnaie | Âmes, boutique en cours de partie | Indulgences, boutique **entre les runs** (méta-progression) |
 | Contenu | Dans le code | Dans des **fichiers de données** ; arènes personnalisées sans code |
 | Architecture | DoomSurvivor : un gestionnaire d'événements central qui gère vagues, difficulté et réinitialisations | Systèmes indépendants reliés par un bus d'événements, activables un par un |
 
 ---
 
-## 2. Par où commencer la lecture
+## 2. Choix du moteur : pourquoi GZDoom
+
+Le sujet note surtout l'**architecture** (états, bus, services, données, méta-progression) et demande une run jouable de 2 à 3 minutes. Il fallait donc un moteur qui fournisse vite un jeu de tir complet, sans faire l'architecture à notre place.
+
+| | **GZDoom 4.14 (ZScript)** | Unity (C#) | Godot 4 (GDScript, C#) | Unreal 5 (C++, Blueprints) |
+|---|---|---|---|---|
+| Jeu de tir de base : déplacement, armes, monstres et leur IA, collisions, sons, menus, manette | **fourni** | à écrire, ou paquets de l'Asset Store | à écrire | modèle FPS fourni ; ennemis et vagues à écrire |
+| Graphismes et sons | **Freedoom**, libre et redistribuable | à trouver ou à produire | à trouver ou à produire | à trouver ou à produire |
+| Langage | ZScript : classes, héritage, méthodes virtuelles et abstraites, typage statique | C# | GDScript (typage facultatif), C# | C++, Blueprints |
+| Architecture fournie par le moteur | presque rien : **tout est écrit dans le projet** | ScriptableObject, UnityEvent | signaux, autoloads | sous-systèmes, délégués |
+| Poids | mod de 110 Ko, build Windows complet de 31 Mo | éditeur et build bien plus lourds | léger | très lourd |
+| Itération | tout le ZScript compile en quelques secondes | recompilation et rechargement à chaque modification | rapide | compilation C++ longue |
+
+**Pourquoi GZDoom :**
+- **Le temps va à ce qui est noté.** Le jeu de tir existe déjà : pas de contrôleur de personnage, d'armes ni d'IA de monstres à écrire avant de pouvoir travailler l'architecture.
+- **L'architecture ne peut pas être empruntée au moteur.** GZDoom n'a ni bus d'événements, ni machine à états de jeu, ni équivalent des ScriptableObject : tout ce que le sujet demande est écrit et visible dans `src/zscript/`.
+- **ZScript est un vrai langage objet**, vérifié à la compilation et proche du C# : Observer, State, Stratégie et Service Locator s'y écrivent comme en Unity.
+- **La séparation entre logique et affichage est garantie par le compilateur** : le code `ui` peut lire le jeu mais pas le modifier (partie 9).
+- **Le genre s'y prête** : des vagues de monstres, des armes, de l'expérience. Deux mods survivors-like existent déjà sur GZDoom ; Sinwave s'en distingue par sa structure (partie 1).
+- **Un build léger et libre** : GZDoom (GPL) et Freedoom (BSD) se redistribuent ; le build Windows tient dans un zip et se lance par un `.bat`.
+
+**Pourquoi pas les autres :** Unity et Godot auraient donné plus de liberté (vraie 3D, éditeur, débogueur), mais il aurait fallu construire tout le jeu de tir avant d'arriver à ce qui est évalué. Unreal est surdimensionné pour un prototype court, et le C++ ralentit chaque essai.
+
+**Ce que ce choix coûte (limites assumées) :**
+- **ZScript n'a ni génériques, ni délégués, ni lambdas, ni constructeurs avec paramètres** : les abonnés du bus héritent d'une classe (`Sinwave_Listener`), et un Service Locator transmis remplace un conteneur d'injection (partie 6).
+- **Ni débogueur, ni framework de test** : les tests unitaires et les scénarios de bout en bout sont écrits dans le projet. Ils ouvrent une fenêtre GZDoom, donc ne tournent pas sur le serveur d'intégration continue (partie 11).
+- **Un moteur de 1993, en 2,5D** : cartes faites de secteurs, monstres en sprites, IA sans recherche de chemin. Les arènes doivent rester ouvertes (« Les cartes », partie 7).
+- **ZScript ne peut pas écrire de fichier** : la méta-progression est sauvegardée dans des CVars, dans le `.ini` du moteur (partie 8).
+- **Il faut un IWAD** (les données de base du jeu) : Freedoom est livré ; le vrai Doom II marche aussi, s'il est installé.
+- **Pas d'inspecteur pour les données** : des fichiers texte remplacent les ScriptableObject, vérifiés seulement au chargement.
+
+---
+
+## 3. Par où commencer la lecture
 
 | Ordre | Fichier | Ce qu'on y voit |
 |---|---|---|
@@ -46,7 +79,7 @@ Deux mods du même genre existent sur GZDoom : **DoomSurvivor** et **Doom2Surviv
 
 ---
 
-## 3. Vue d'ensemble : les couches
+## 4. Vue d'ensemble : les couches
 
 ```mermaid
 flowchart TB
@@ -101,7 +134,7 @@ Hors du code : `src/data/` (contenu), `src/maps/` (cartes), `tests/` (tests auto
 
 ---
 
-## 4. Déroulement du jeu
+## 5. Déroulement du jeu
 
 ### Machine à états globale
 
@@ -161,6 +194,17 @@ flowchart LR
 - **Difficulté croissante :** les réglages d'un cercle (`interval`, `max`) sont ceux de sa première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage (`Sinwave_CircleDef.IntervalTicsForWave`, `MaxAliveForWave`). La vie des ennemis grandit avec le rang de la vague dans l'arène (`Sinwave_GameData.WaveRank`), donc aussi d'un cercle à l'autre, quel que soit le cercle de départ. Les trois taux sont dans `data/progression.txt` ; le boss, réglé à part, n'est pas concerné.
 - **Boss :** avec `boss = ...`, la dernière vague du cercle est celle du boss et dure jusqu'à sa mort.
 
+### La run minimale : le Vestibule
+
+Le sujet demande une run jouable de 2 à 3 minutes. C'est l'arène **Le Vestibule** (carte SW03, `data/waves/vestibule.txt`), la première du choix d'arène : un seul cercle (Paresse), deux vagues d'une minute, puis le boss **Charon**. Les vagues finissent à 2 min 07, et le combat contre Charon porte la run à 2 à 3 minutes. Elle traverse tout ce que le sujet demande :
+- des vagues d'ennemis de plus en plus serrées ;
+- le ramassage d'XP, les montées de niveau et le choix d'une amélioration (vertu, neutre ou péché) ;
+- la balance de l'âme, la malédiction du cercle, le boss et sa rage ;
+- le score final et le verdict ;
+- la sauvegarde de la méta-progression : indulgences et Jugement, relus à la run suivante.
+
+C'est la seule arène sous les 5 minutes de vagues : le Purgatoire et les Limbes durent 6 à 8 minutes. Rien dans le code ne la distingue des autres : elle n'existe que par ses données (`arenas.txt`, `waves/vestibule.txt`, le boss `charon` dans `enemies.txt`) et sa carte.
+
 ### Alerte d'attaque dans l'angle mort
 
 Comme dans *Doom: The Dark Ages*, une marque rouge autour du viseur signale une attaque qui vient d'où le joueur ne regarde pas, **avant** l'impact. Deux côtés, qui ne se connaissent pas :
@@ -213,7 +257,7 @@ Aucun de ces systèmes ne connaît les autres : ils ne connaissent que le bus et
 
 ---
 
-## 5. Le noyau (`core/`)
+## 6. Le noyau (`core/`)
 
 ### Bus d'événements (Observer)
 
@@ -262,7 +306,7 @@ Fichier : `core/sinwave_services.zs`. Services enregistrés par `Sinwave_Game` :
 
 ---
 
-## 6. Conception orientée données
+## 7. Conception orientée données
 
 Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun** ennemi, cercle, vertu, péché, article ou arène en dur.
 
@@ -273,7 +317,7 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
 | `enemies.txt` | Les 7 péchés, le boss et le reflet damné : classe du moteur, vie, vitesse, taille, couleur, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
 | `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
-| `upgrades.txt` | 8 vertus et 7 péchés : effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
+| `upgrades.txt` | 8 vertus, 7 neutres et 7 péchés : famille, effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets, pente des choix, force du boss, épreuves | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem`, `Sinwave_UpgradeSystem`, `Sinwave_WaveSystem`, `Sinwave_SoulTrialSystem` |
 | `shop.txt` | Armes et améliorations permanentes : rayon, palier du Jugement demandé, prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
 | `judgement.txt` | Jugement de l'âme : bornes, neutralité, seuils des rayons de la boutique, déplacement en fin de run | `Sinwave_MetaSystem`, boutique |
@@ -322,9 +366,35 @@ Une malédiction qui touche le joueur publie un `EffectGrantedEvent` temporaire,
 
 Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle les a trouvés. Exemple : la Colère retient la couleur et la vitesse d'origine de chaque ennemi enragé et les lui rend au bout de 3 s, ou à la fin du cercle. Chaque ennemi n'enrage qu'**une fois** : sous un tir continu, une rage relancée à chaque coup le laisserait rouge jusqu'à sa mort.
 
+### Les cartes : générées, d'après Dante et les modes de survie
+
+Les trois cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
+
+**Principes de level design**, repris des modes de survie existants (zombies de Call of Duty, mode Horde de Doom Eternal, Serious Sam, Vampire Survivors) :
+- des **boucles** pour faire tourner la horde en rond, sans cul-de-sac où se faire coincer (d'où des anneaux et des octogones, pas de coins) ;
+- des **obstacles qui coupent les tirs** des zombies et des mitrailleurs, sans fermer l'espace ;
+- des **passages étroits** (portes, abords des tombeaux) où la horde se tasse : le fusil à pompe y est roi ;
+- des **zones reconnaissables** au sol, à la lumière et à sa couleur, et un repère au centre.
+
+**Les trois plans**, d'après la géographie de Dante :
+
+| Carte | Plan | Ce qui sert au jeu |
+|---|---|---|
+| SW02, le Purgatoire (`Funnel`) | L'entonnoir de l'Enfer : un bord hérissé de 8 aiguilles de roche, les 6 tombeaux ardents, le fleuve de sang (Phlégéthon), et au centre le lac gelé du Cocyte avec 4 piliers de feu bleu | Chaque terrasse est une boucle ; on descend vers le boss d'une marche à la fois ; les piliers du lac cachent du boss, les tombeaux coupent les tirs |
+| SW01, les Limbes (`Castle`) | Le noble château : un champ obscur, le fossé, un rempart percé de 7 portes (pas au sud), et au centre la prairie avec un temple de 4 colonnes et 7 arbres | Trois boucles (champ, chemin de ronde, prairie) ; les portes font se tasser la horde ; le mur sans porte au sud force à tourner |
+| SW03, le Vestibule (`Vestibule`) | L'antichambre de l'Enfer : on entre par la porte, au nord ; une plaine de cendre où courent les tièdes ; l'Achéron, le fleuve de Charon, qui barre le sud ; et l'autre rive | Une seule grande plaine pour une run courte : on voit venir la horde de loin ; cinq rochers à contourner coupent les tirs ; coins coupés, sans cul-de-sac |
+
+**Contraintes du moteur :**
+- marches de 24 unités au plus : les monstres ne montent ni ne descendent plus haut ;
+- obstacles pleins : des trous dans la carte ; blocs bas (tombeaux, rempart) : des secteurs plus hauts ;
+- ciel à la même hauteur partout : deux ciels à des hauteurs différentes laissent des bandes au raccord ;
+- textures et sols présents à la fois dans Doom II et dans Freedoom.
+
+**Apparition des ennemis :** `Sinwave_WaveSystem` refuse une position sur un plateau plus haut d'une marche que tout ce qui l'entoure (`CanWalkOff`) : un monstre posé sur un tombeau ou sur le rempart ne saurait pas en descendre.
+
 ---
 
-## 7. Méta-progression et boutique
+## 8. Méta-progression et boutique
 
 - **Données :** `Sinwave_MetaData` : indulgences, meilleur score, nombre de runs, Jugement, et niveau de chaque article acheté.
 - **Stockage :** `Sinwave_CVarSaveService`.
@@ -355,7 +425,9 @@ Les effets s'additionnent : au bout de la balance, le damné a +25 % de dégâts
 - **Petits changements, à chaque point :** `Sinwave_LootSystem` fait lâcher aux ennemis tués un soin ou des munitions (celles de l'arme en main). Les chances partent de 8 % chacune à l'équilibre : vers le péché, plus de munitions et un peu moins de soins ; vers la vertu, l'inverse. Les chargeurs que les monstres de Doom lâchent d'eux-mêmes sont retirés (`monster_drops`), pour que le butin ne dépende que de l'âme ; leurs armes restent.
 - **Grands changements, à chaque palier :** les paliers d'un même côté s'additionnent. `Sinwave_CorruptionSystem` publie les effets d'un palier atteint et, s'il est perdu, leur inverse ; un bandeau l'annonce (`SoulTierChangedEvent`). Au début d'une run, les paliers ne sont appliqués qu'au tic suivant, après la remise à zéro du joueur : l'ordre de diffusion de `RunStarted` n'est pas garanti.
 - **Nouveaux effets :** `aura` (dégâts par seconde aux ennemis à moins de 200 unités, avec une onde de lumière dorée) et `infiniteammo` (un bonus `PowerInfiniteAmmo` du moteur, sans fin utile, retiré avec le palier).
-- **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie de Lucifer et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
+- **Trois familles de choix :** chaque montée de niveau propose une vertu, un péché et un choix libre (`data/progression.txt`). Les **neutres** se placent entre les deux : un bonus meilleur que celui d'une vertu, moins fort que celui d'un péché, sans défaut, et l'âme ne bouge pas (ce sont les vertus des païens des Limbes : Force, Justice, Prudence...). Le choix libre est neutre avec une chance de 80 % à l'équilibre (`offer_neutral_chance`), qui baisse à mesure que l'âme penche jusqu'à 0 au bout de la balance (`Sinwave_SoulDef.Lean`).
+- **Pente glissante, dans les deux sens :** s'il n'est pas neutre, la clé `temptation` d'un palier atteint tire le choix libre vers le camp de l'âme : deux péchés pour une âme corrompue, deux vertus pour une âme pure, au hasard à l'équilibre. Un neutre tiré compte comme ce choix : la vertu et le péché restent toujours proposés (`Sinwave_UpgradeSystem.OfferSplit`). Le menu les range dans l'ordre de la balance : vertu, neutre, péché.
+- **Le boss suit l'âme, à l'inverse :** `boss_health` et `boss_escort` des paliers atteints règlent la vie du boss (Charon ou Lucifer) et le nombre d'ennemis autour de lui (sa vague et ses renforts de rage). Âme pure : boss jusqu'à +50 % de vie, mais moitié moins d'ennemis. Âme damnée : boss à -30 % de vie, mais +70 % d'ennemis. `Sinwave_WaveSystem` retient la dernière corruption annoncée ; une demande de renforts porte le drapeau `escort`.
 - **Épreuves, au bout de la balance :** `Sinwave_SoulTrialSystem` compte le temps passé à 0 ou à 30 (hors pause et menus). Au bout de `trial_seconds` (20 s), une fois par séjour :
   - côté péché, il demande l'apparition du **reflet damné** (`SpawnRequested`), un mini-boss rouge qui rapporte 80 XP ;
   - côté vertu, un **ange** soigne le joueur (`EffectGranted` heal), dans une gerbe de lumière dorée.
@@ -392,7 +464,7 @@ Le Jugement (`data/judgement.txt`) est la balance de l'âme **d'une run à l'aut
 
 ---
 
-## 8. Présentation séparée de la logique
+## 9. Présentation séparée de la logique
 
 ZScript sépare le code en deux **portées**, vérifiées par le compilateur :
 - **play** : la simulation, déterministe ;
@@ -420,13 +492,13 @@ flowchart LR
   - la touche liée dans *Options → Commandes → Sinwave* marche toujours ;
   - B et P marchent aussi tant qu'elles ne sont liées à rien d'autre. GZDoom n'applique les `defaultbind` de `KEYCONF` que s'il ne connaît pas encore la section Sinwave de sa configuration : une liaison perdue ne se répare pas seule, et les touches ne doivent pas en dépendre ;
   - manette : B ouvre la boutique ; Start met en pause pendant la run, et garde ailleurs son rôle d'ouverture du menu de GZDoom (options, quitter). Dans le menu pause, P et Start reprennent la run.
-- La manette est désactivée par défaut dans GZDoom (`use_joystick`). Plutôt que de modifier ce réglage global depuis le code du mod, ce sont les lanceurs (`tools/run.ps1`, et `Jouer Sinwave.bat` du build) qui l'activent.
+- La manette est désactivée par défaut dans GZDoom (`use_joystick`). Plutôt que de modifier ce réglage global depuis le code du mod, ce sont les lanceurs (`tools/run.ps1`, et les `.bat` du build) qui l'activent.
 - Les menus du moteur survivent aux changements de carte, mais pas le modèle qu'ils affichent. `Sinwave_UiController` ferme donc tout menu resté lié au modèle d'une carte précédente : sinon, il bloquerait le jeu en pause.
 - Un menu ouvert **met le moteur en pause** : pendant les états Pause et Upgrade, monstres et joueur sont figés.
 
 ---
 
-## 9. Découplage : qui dépend de quoi
+## 10. Découplage : qui dépend de quoi
 
 Aucun système ne référence un autre système. Chacun ne connaît que des services et des événements :
 
@@ -458,7 +530,7 @@ Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface
 
 Ce que la désactivation change pour chaque système :
 - **curses** : les cercles n'ont plus de règle spéciale ;
-- **boss** : Lucifer n'entre plus en rage ;
+- **boss** : les boss n'entrent plus en rage ;
 - **corruption** : l'âme reste à l'équilibre, sans palier ; le verdict est toujours Purgatoire ;
 - **loot** : les ennemis ne lâchent plus que ce que Doom leur fait lâcher ;
 - **score** : les indulgences ne viennent plus que des cercles ;
@@ -470,17 +542,27 @@ Ce que la désactivation change pour chaque système :
 
 ---
 
-## 10. Outils et tests
+## 11. Outils et tests
 
 | Commande (dossier `tools/`) | Rôle |
 |---|---|
 | `check.ps1` (Ctrl+Maj+B dans VS Code) | Construit le `.pk3` et vérifie que le ZScript compile. Les erreurs vont dans l'onglet *Problèmes* de VS Code. |
-| `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). |
-| `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. |
+| `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). `-Iwad doom2` : les mêmes, sur le vrai Doom II. |
+| `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. `-Iwad doom2` : avec le vrai Doom II. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
-| `generate-arena.ps1` | Génère une carte en cercles concentriques ou en salle carrée. |
-| `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`. |
+| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`), le château des Limbes (`Castle`) ou le vestibule de l'Enfer (`Vestibule`). |
+| `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`, avec un lanceur Freedoom et un lanceur Doom II. |
+| `create-shortcuts.ps1` | Raccourcis du bureau : « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) », « Sinwave - Jouer (Doom II) ». |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |
+
+### Freedoom et le vrai Doom II
+
+Le mod n'utilise que ce que Doom II et Freedoom Phase 2 ont en commun : les classes des monstres et des armes, les noms des textures, des sols, des ciels et des musiques. Le même `sinwave.pk3` tourne donc sur les deux, et les tests passent sur les deux (`test.ps1`, puis `test.ps1 -Iwad doom2`).
+
+- **Livré :** Freedoom seulement, seul IWAD redistribuable. Doom II est un jeu commercial : il n'est jamais copié dans le build.
+- **Trouvé :** `Find-Doom2Iwad` (`tools/config.ps1`) cherche `SINWAVE_DOOM2`, puis `DoomTools/iwads/doom2.wad`, puis les installations GOG et Steam, par le registre de Windows : un jeu déplacé sur un autre disque est retrouvé. La version DOS d'origine passe avant les rééditions (Unity, KEX), que GZDoom sait aussi lire. Dans le build rendu, c'est GZDoom qui cherche lui-même `doom2.wad` (GOG, Steam, dossier du jeu) ; s'il ne le trouve pas, il propose les jeux qu'il a trouvés.
+- **Progression commune :** GZDoom range les réglages et les CVars de la méta-progression par famille de jeu (section `Doom` de son `.ini`), la même pour Freedoom et Doom II.
+- **Doom 1 ne suffit pas :** le chevalier de l'Enfer (Orgueil), le soldat à la mitrailleuse (Avarice), le super fusil de la boutique, les sols `RROCK` des cartes et les musiques n'existent que dans Doom II.
 
 **`test.ps1`** lance GZDoom avec l'archive `tests/smoke` par-dessus le jeu : deux arènes de test, avec des cercles courts. Il joue quatre scénarios par la console du moteur :
 1. **victoire** :
@@ -496,13 +578,14 @@ Ce que la désactivation change pour chaque système :
    - les achats s'appliquent au début de la run ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **58 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **77 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids du tirage des ennemis et les effets ;
 - les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
 - les menaces : ennemi qui prend son élan, projectile qui arrive, qui s'éloigne ou qui est encore loin ;
-- vertus et péchés, prix de la boutique, enregistrement des achats ;
-- la balance de l'âme : paliers des deux côtés, butin, verdict, et le système qui applique puis retire les effets d'un palier ;
+- vertus, neutres et péchés, prix de la boutique, enregistrement des achats ;
+- le tirage des choix de niveau : un neutre à l'équilibre, jamais au bout de la balance, où la pente glissante prend sa place ;
+- la balance de l'âme : paliers des deux côtés, butin, verdict, pente des choix, combien elle penche, force du boss, et le système qui applique puis retire les effets d'un palier ;
 - le Jugement : paliers, rayons ouverts ou verrouillés, zone qui ouvre un article et points qui manquent, article acheté qui reste débloqué, déplacement en fin de run ;
 - l'interface : l'âme affichée au début d'une run, quel que soit l'ordre de diffusion ;
 - règles de la descente : récompense, sauvegarde, valeurs hors bornes.
@@ -513,20 +596,21 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 
 ---
 
-## 11. Limites connues
+## 12. Limites connues
 
 - **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée. Même piège avec `CorruptionChanged`, publié pendant `RunStarted` : le présentateur remettait la corruption à 0 en recevant `RunStarted`, après elle, et la run s'affichait à « 0/30 : équilibre ». Un test unitaire rejoue cet ordre.
 - **Événements alloués à chaque publication :** simple et lisible, mais cela crée des objets à collecter. C'est sans effet mesurable à cette échelle.
 - **Malédictions et monstres :** certaines malédictions parcourent tous les monstres de la carte toutes les 4 à 5 tics. C'est sans problème pour quelques dizaines d'ennemis, mais à surveiller pour de très grosses vagues.
 - **Pause en double :** GZDoom a sa propre pause (touche Pause, menu principal). L'état Pause du projet utilise un menu dédié ; les deux coexistent sans se connaître.
 - **Données vérifiées au lancement seulement :** une faute de frappe dans `data/` n'est signalée qu'au chargement de la carte, dans la console. Il n'y a pas d'éditeur ni de schéma comme avec les ScriptableObject.
+- **Une carte par arène :** l'arène se retrouve d'après la carte chargée (la première dont la carte correspond). Deux arènes ne peuvent donc pas partager une carte : chacune a la sienne.
 - **Ajout d'arènes par un mod :** un mod qui veut ajouter une arène doit fournir son propre `data/arenas.txt` complet, qui remplace celui du jeu. Les listes ne se cumulent pas encore entre archives.
 - **Sauvegarde modifiable :** les CVars sont dans un fichier `.ini` lisible ; un joueur peut changer ses indulgences. C'est acceptable pour un prototype solo.
 - **Jeu solo :** le code suppose un seul joueur (`Sinwave_World.Player()`).
 - **Apparition derrière un mur :** autour du joueur, un ennemi peut apparaître de l'autre côté d'une cloison. Il le poursuit quand même, mais l'IA de Doom ne cherche pas de chemin : dans une carte très cloisonnée, `spawn = points` est préférable.
 - **Tests d'intégration sur un vrai moteur :** `test.ps1` ouvre une fenêtre GZDoom ; il ne tourne donc pas sur le serveur d'intégration continue de GitHub, qui ne fait que construire le `.pk3` et le build.
 
-## 12. Avec plus de temps
+## 13. Avec plus de temps
 
 - Abonnements avec priorité explicite, pour ne plus dépendre de l'ordre de `systems.txt`.
 - Cumul des arènes entre archives, pour que les mods ajoutent des arènes sans rien remplacer.

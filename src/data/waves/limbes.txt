@@ -1,15 +1,16 @@
-# Les Limbes : trois cercles courts et furieux dans une salle close, de trois
-# vagues chacun. Les règles de l'arène (data/arenas.txt) rendent les ennemis plus
-# résistants et plus nombreux ; la récompense est plus élevée.
+# Les Limbes : trois cercles furieux autour du château à sept portes, de trois
+# longues vagues chacun : 5 min 15 de vagues, environ 6 minutes avec les répits. Les
+# règles de l'arène (data/arenas.txt) rendent les ennemis plus résistants et plus
+# nombreux ; la récompense est plus élevée.
 # Clés : voir data/waves/purgatoire.txt.
 
 [circle 1]
 name     = Colère
 curse    = wrath
 waves    = 3
-duration = 9
-pause    = 2
-break    = 4
+duration = 35
+pause    = 3
+break    = 5
 interval = 0.9
 max      = 16
 enemies  = wrath:3, gluttony:2, sloth:2
@@ -18,9 +19,9 @@ enemies  = wrath:3, gluttony:2, sloth:2
 name     = Avarice
 curse    = greed
 waves    = 3
-duration = 9
-pause    = 2
-break    = 4
+duration = 35
+pause    = 3
+break    = 5
 interval = 1.0
 max      = 16
 enemies  = greed:2, envy:2, lust:2
@@ -29,8 +30,8 @@ enemies  = greed:2, envy:2, lust:2
 name     = Orgueil
 curse    = pride
 waves    = 3
-duration = 10
-pause    = 2
+duration = 35
+pause    = 3
 break    = 0
 interval = 1.2
 max      = 12

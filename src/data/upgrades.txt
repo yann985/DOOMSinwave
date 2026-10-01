@@ -1,12 +1,15 @@
-# Choix proposés à chaque montée de niveau : des vertus (modestes, qui purifient
-# l'âme) et des péchés (puissants, avec un défaut, qui la corrompent).
+# Choix proposés à chaque montée de niveau, en trois familles :
+#   - les vertus : un petit bonus, et l'âme se purifie ;
+#   - les neutres : un bonus moyen, sans défaut, et l'âme ne bouge pas ;
+#   - les péchés : un gros bonus avec un défaut, et l'âme se corrompt.
 # La corruption fait pencher la balance de l'âme (data/soul.txt) : à chaque palier
-# franchi, d'un côté ou de l'autre, la partie change.
+# franchi, d'un côté ou de l'autre, la partie change. Plus l'âme penche, plus les
+# neutres sont rares (offer_neutral_chance, data/progression.txt).
 #
 #   name        : nom affiché
 #   description : texte affiché sous le nom
-#   kind        : virtue ou sin
-#   corruption  : corruption ajoutée (négative : la vertu purifie)
+#   kind        : virtue, neutral ou sin
+#   corruption  : corruption ajoutée (négative : la vertu purifie ; un neutre n'en a pas)
 #   effects     : liste d'effets « type:valeur », séparés par des virgules
 #                 types : maxhealth, heal, armor, damage, vulnerability, speed,
 #                         regen, magnet, xpgain, aura, infiniteammo,
@@ -77,6 +80,58 @@ description = Soigne 20 points de vie et purifie profondément ton âme
 kind        = virtue
 corruption  = -5
 effects     = heal:20
+max         = 3
+
+# --- Les neutres : les vertus des païens des Limbes, ni saintes ni damnées -----
+# Meilleurs qu'une vertu, moins forts qu'un péché, sans défaut : l'âme ne bouge pas.
+
+[upgrade force]
+name        = Force
+description = +25 points de vie maximum
+kind        = neutral
+effects     = maxhealth:25
+max         = 3
+
+[upgrade justice]
+name        = Justice
+description = +15 % de dégâts infligés
+kind        = neutral
+effects     = damage:0.15
+max         = 3
+
+[upgrade prudence]
+name        = Prudence
+description = -10 % de dégâts subis
+kind        = neutral
+effects     = vulnerability:-0.1
+max         = 3
+
+[upgrade audacity]
+name        = Audace
+description = +12 % de vitesse de déplacement
+kind        = neutral
+effects     = speed:0.12
+max         = 2
+
+[upgrade constancy]
+name        = Constance
+description = Régénère 1 point de vie par seconde
+kind        = neutral
+effects     = regen:1
+max         = 2
+
+[upgrade wisdom]
+name        = Sagesse
+description = +25 % d'expérience gagnée
+kind        = neutral
+effects     = xpgain:0.25
+max         = 2
+
+[upgrade stoicism]
+name        = Stoïcisme
+description = +50 points d'armure
+kind        = neutral
+effects     = armor:50
 max         = 3
 
 # --- Les sept péchés : puissants, avec un défaut, et l'âme se corrompt ---------

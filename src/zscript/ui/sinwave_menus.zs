@@ -331,6 +331,18 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 		if (!StaysOpen() || mCloseRequested) Close();
 	}
 
+	// Taille du texte, réduite s'il le faut pour tenir dans `width` : les descriptions
+	// viennent des données (une arène créée par un joueur peut en avoir une longue).
+	private static double FitSize(String text, double size, double width)
+	{
+		Array<String> lines;
+		text.Split(lines, "\n");
+		int widest = 0;
+		for (int i = 0; i < lines.Size(); i++) widest = max(widest, NewSmallFont.StringWidth(lines[i]));
+		double natural = widest * size;
+		return natural > width ? size * width / natural : size;
+	}
+
 	// Lignes de la plus longue description : le cadre garde la même taille d'une option à l'autre.
 	private int DetailLines()
 	{
@@ -418,11 +430,15 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 			mValueWidth[i] = NewSmallFont.StringWidth(mValues[i]) * labelSize;
 			mValueLeft[i] = left + panelWidth - 20 - mValueWidth[i];
 			if (mValues[i].Length() > 0) c.Text(NewSmallFont, labelColor, left + panelWidth - 20, y, mValues[i], labelSize, Sinwave_Canvas.ALIGN_RIGHT);
-			if (detailsInline && mDetails[i].Length() > 0) c.Text(NewSmallFont, Font.CR_GOLD, left + 44, y + labelSize * 11, mDetails[i], detailSize);
+			if (detailsInline && mDetails[i].Length() > 0)
+			{
+				c.Text(NewSmallFont, Font.CR_GOLD, left + 44, y + labelSize * 11, mDetails[i], FitSize(mDetails[i], detailSize, panelWidth - 60));
+			}
 		}
 		if (!detailsInline && mSelected < count && mDetails[mSelected].Length() > 0)
 		{
-			c.Text(NewSmallFont, Font.CR_GOLD, center, top + header + count * rowHeight + 10, mDetails[mSelected], detailSize, Sinwave_Canvas.ALIGN_CENTER);
+			String detail = mDetails[mSelected];
+			c.Text(NewSmallFont, Font.CR_GOLD, center, top + header + count * rowHeight + 8, detail, FitSize(detail, detailSize, panelWidth - 24), Sinwave_Canvas.ALIGN_CENTER);
 		}
 
 		if (HasBackButton())
@@ -443,7 +459,7 @@ class Sinwave_ChoiceMenu : GenericMenu abstract
 	}
 }
 
-// Montée de niveau : deux vertus et un péché.
+// Montée de niveau : des vertus, des neutres et des péchés, dans l'ordre de la balance.
 class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 {
 	override void Build()
@@ -453,15 +469,20 @@ class Sinwave_UpgradeMenu : Sinwave_ChoiceMenu
 		mHint = "Clic, Entrée, A ou touches 1, 2, 3 : choisir";
 		for (int i = 0; i < mModel.mOfferNames.Size(); i++)
 		{
-			if (mModel.mOfferIsSin[i])
+			String title = mModel.mOfferNames[i];
+			String description = mModel.mOfferDescriptions[i];
+			int corruption = mModel.mOfferCorruption[i];
+			switch (mModel.mOfferKinds[i])
 			{
-				AddOption("Péché : " .. mModel.mOfferNames[i], mModel.mOfferDescriptions[i], Font.CR_RED,
-					String.Format("+%d corruption", mModel.mOfferCorruption[i]));
-			}
-			else
-			{
-				String value = mModel.mOfferCorruption[i] < 0 ? String.Format("%d corruption", mModel.mOfferCorruption[i]) : "";
-				AddOption(mModel.mOfferNames[i], mModel.mOfferDescriptions[i], Font.CR_GRAY, value);
+			case Sinwave_UpgradeDef.KIND_SIN:
+				AddOption("Péché : " .. title, description, Font.CR_RED, String.Format("+%d corruption", corruption));
+				break;
+			case Sinwave_UpgradeDef.KIND_NEUTRAL:
+				AddOption("Neutre : " .. title, description, Font.CR_GRAY, "âme intacte");
+				break;
+			default:
+				AddOption("Vertu : " .. title, description, Font.CR_GOLD, corruption < 0 ? String.Format("%d corruption", corruption) : "");
+				break;
 			}
 		}
 	}

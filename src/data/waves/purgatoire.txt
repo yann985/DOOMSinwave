@@ -1,6 +1,7 @@
 # Le Purgatoire : sept cercles, un par péché. Chaque cercle enchaîne plusieurs
 # vagues, de plus en plus serrées (réglages dans data/progression.txt), et
-# Lucifer attend à la dernière vague du dernier cercle. Environ 3 minutes.
+# Lucifer attend à la dernière vague du dernier cercle. 6 minutes de vagues,
+# environ 8 minutes avec les répits et le boss.
 #
 #   name     : nom affiché
 #   curse    : malédiction active pendant tout le cercle (data/curses.txt)
@@ -17,9 +18,9 @@
 name     = Paresse
 curse    = sloth
 waves    = 2
-duration = 7
-pause    = 2
-break    = 3
+duration = 20
+pause    = 3
+break    = 5
 interval = 1.1
 max      = 10
 enemies  = sloth:4, gluttony:1
@@ -28,9 +29,9 @@ enemies  = sloth:4, gluttony:1
 name     = Gourmandise
 curse    = gluttony
 waves    = 2
-duration = 7
-pause    = 2
-break    = 3
+duration = 20
+pause    = 3
+break    = 5
 interval = 1.0
 max      = 12
 enemies  = gluttony:3, sloth:2
@@ -39,9 +40,9 @@ enemies  = gluttony:3, sloth:2
 name     = Luxure
 curse    = lust
 waves    = 3
-duration = 6
-pause    = 1.5
-break    = 3
+duration = 20
+pause    = 3
+break    = 5
 interval = 1.0
 max      = 12
 enemies  = lust:3, sloth:1
@@ -50,9 +51,9 @@ enemies  = lust:3, sloth:1
 name     = Envie
 curse    = envy
 waves    = 3
-duration = 6
-pause    = 1.5
-break    = 3
+duration = 20
+pause    = 3
+break    = 5
 interval = 0.9
 max      = 14
 enemies  = envy:3, lust:1, sloth:1
@@ -61,9 +62,9 @@ enemies  = envy:3, lust:1, sloth:1
 name     = Avarice
 curse    = greed
 waves    = 3
-duration = 6
-pause    = 1.5
-break    = 3
+duration = 20
+pause    = 3
+break    = 5
 interval = 0.9
 max      = 13
 enemies  = greed:3, envy:1
@@ -72,9 +73,9 @@ enemies  = greed:3, envy:1
 name     = Colère
 curse    = wrath
 waves    = 3
-duration = 6
-pause    = 1.5
-break    = 4
+duration = 20
+pause    = 3
+break    = 5
 interval = 0.8
 max      = 15
 enemies  = wrath:3, gluttony:2
@@ -83,8 +84,8 @@ enemies  = wrath:3, gluttony:2
 name     = Orgueil
 curse    = pride
 waves    = 3
-duration = 6
-pause    = 1.5
+duration = 20
+pause    = 3
 break    = 0
 interval = 1.6
 max      = 7

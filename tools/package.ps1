@@ -1,6 +1,7 @@
 ﻿# Prépare le build Windows à rendre : dist\Sinwave-win64.zip
 # Contenu : le moteur GZDoom (licence GPL, redistribuable), sinwave.pk3,
-# freedoom2.wad (licence BSD, redistribuable) et un lanceur « Jouer Sinwave.bat ».
+# freedoom2.wad (licence BSD, redistribuable) et deux lanceurs : « Jouer Sinwave.bat »
+# (Freedoom) et « Jouer Sinwave (Doom II).bat » pour qui possède le vrai Doom II.
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "config.ps1")
@@ -29,16 +30,26 @@ Copy-Item $IwadPath $outDir
 New-Item -ItemType File -Force (Join-Path $outDir "gzdoom_portable.ini") | Out-Null
 
 # use_joystick : la manette est désactivée par défaut dans GZDoom ; Sinwave se joue aussi avec.
-$launcher = @"
+# Le vrai Doom II n'est jamais livré (il n'est pas libre) : GZDoom le trouve lui-même dans une
+# installation GOG ou Steam, ou à côté de gzdoom.exe. Sinon, il propose les jeux qu'il a trouvés.
+function New-Launcher([string]$Name, [string]$Iwad)
+{
+	$launcher = @"
 @echo off
 cd /d "%~dp0"
-start "" "gzdoom.exe" -iwad freedoom2.wad -file $PackageName.pk3 +use_joystick 1
+start "" "gzdoom.exe" -iwad $Iwad -file $PackageName.pk3 +use_joystick 1
 "@
-Set-Content -Path (Join-Path $outDir "Jouer $GameName.bat") -Value $launcher -Encoding ASCII
+	Set-Content -Path (Join-Path $outDir "$Name.bat") -Value $launcher -Encoding ASCII
+}
+New-Launcher "Jouer $GameName" "freedoom2.wad"
+New-Launcher "Jouer $GameName (Doom II)" "doom2.wad"
 
 $readme = @"
 $GameName - build Windows
-Lancer : double-clic sur « Jouer $GameName.bat ».
+Lancer : double-clic sur « Jouer $GameName.bat » (avec Freedoom, fourni).
+Avec le vrai Doom II : « Jouer $GameName (Doom II).bat ». GZDoom le trouve dans une
+installation GOG ou Steam de DOOM II, sinon copie ton doom2.wad à côté de gzdoom.exe.
+Les deux versions partagent la même progression.
 Se joue au clavier et à la souris, ou à la manette.
 
 Moteur : GZDoom $GZDoomVersion (GPL v3) - https://zdoom.org
@@ -46,5 +57,16 @@ Données de base : Freedoom $FreedoomVersion (BSD) - https://freedoom.github.io
 "@
 Set-Content -Path (Join-Path $outDir "LISEZMOI.txt") -Value $readme -Encoding UTF8
 
-Compress-Archive -Path (Join-Path $outDir "*") -DestinationPath $outZip -CompressionLevel Optimal
+# Un fichier tout juste écrit peut être verrouillé un instant (antivirus) : on réessaie.
+for ($try = 1; -not (Test-Path $outZip); $try++)
+{
+	if ($try -gt 3) { throw "Impossible de créer $outZip." }
+	try { Compress-Archive -Path (Join-Path $outDir "*") -DestinationPath $outZip -CompressionLevel Optimal -ErrorAction Stop }
+	catch
+	{
+		if (Test-Path $outZip) { Remove-Item $outZip -Force }
+		if ($try -ge 3) { throw }
+		Start-Sleep -Seconds 2
+	}
+}
 "{0} prêt ({1:N1} Mo)" -f $outZip, ((Get-Item $outZip).Length / 1MB)

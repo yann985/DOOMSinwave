@@ -20,7 +20,7 @@ episode SW02
 	noskillmenu
 }
 
-// Le Purgatoire : cercles concentriques qui descendent vers le centre.
+// Le Purgatoire : l'entonnoir de l'Enfer, qui descend vers le lac gelé de Lucifer.
 map SW02 "Le Purgatoire"
 {
 	levelnum = 2
@@ -31,7 +31,18 @@ map SW02 "Le Purgatoire"
 	noinfighting		// les ennemis visent le joueur au lieu de se battre entre eux
 }
 
-// Les Limbes : une salle carrée.
+// Le Vestibule : la run minimale, devant la porte de l'Enfer.
+map SW03 "Le Vestibule"
+{
+	levelnum = 3
+	next = "SW03"
+	sky1 = "SKY1"
+	music = "D_COUNTD"
+	nointermission
+	noinfighting
+}
+
+// Les Limbes : le château à sept portes.
 map SW01 "Les Limbes"
 {
 	levelnum = 1

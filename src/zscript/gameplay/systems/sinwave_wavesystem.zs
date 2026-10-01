@@ -28,6 +28,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	const RING_MIN_DISTANCE = 550.0;		// apparition autour du joueur : juste hors de portée
 	const RING_MAX_DISTANCE = 850.0;
 	const SPAWN_ATTEMPTS = 6;
+	const MAX_STEP = 24.0;					// marche la plus haute qu'un monstre sait monter
 	const RETARGET_TICS = TICRATE;			// fréquence du rappel de cible
 
 	private Sinwave_GameData mData;
@@ -272,8 +273,9 @@ class Sinwave_WaveSystem : Sinwave_System
 		{
 			double distance = FRandom[SinwaveWaves](RING_MIN_DISTANCE, RING_MAX_DISTANCE);
 			Vector2 xy = pawn.pos.xy + Actor.AngleToVector(FRandom[SinwaveWaves](0, 360), distance);
-			Vector3 pos = (xy, level.PointInSector(xy).floorplane.ZatPoint(xy));
-			if (level.IsPointInLevel(pos)) return true, pos;
+			let sec = level.PointInSector(xy);
+			Vector3 pos = (xy, sec.floorplane.ZatPoint(xy));
+			if (level.IsPointInLevel(pos) && CanWalkOff(sec)) return true, pos;
 			// Hors de la carte (joueur près d'un mur) : on se rabat sur un point de la carte.
 		}
 
@@ -286,6 +288,23 @@ class Sinwave_WaveSystem : Sinwave_System
 			}
 		}
 		return false, (0, 0, 0);
+	}
+
+	// Faux pour un plateau plus haut que tous ses voisins de plus d'une marche (un
+	// tombeau, un autel) : un monstre ne sait pas en descendre, il y resterait coincé.
+	private static bool CanWalkOff(Sector sec)
+	{
+		double floor = sec.CenterFloor();
+		bool hasNeighbour = false;
+		for (int i = 0; i < sec.lines.Size(); i++)
+		{
+			let line = sec.lines[i];
+			let other = line.frontsector == sec ? line.backsector : line.frontsector;
+			if (other == null || other == sec) continue;
+			hasNeighbour = true;
+			if (floor - other.CenterFloor() <= MAX_STEP) return true;
+		}
+		return !hasNeighbour;
 	}
 
 	private void CollectSpawnPoints()

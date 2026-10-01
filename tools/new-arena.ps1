@@ -4,7 +4,9 @@
 #   - son entrée dans data\arenas.txt (elle apparaît dans le choix d'arène)
 #   - sa déclaration dans MAPINFO
 #
-#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Circles
+#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Funnel
+#   -Shape Funnel : entonnoir de l'Enfer (terrasses) ; Castle : château à sept portes ;
+#   Vestibule : petite plaine devant la porte de l'Enfer (tools\generate-arena.ps1)
 #
 # Voir docs\CREER-UNE-ARENE.md pour la suite.
 
@@ -12,7 +14,7 @@ param(
 	[Parameter(Mandatory = $true)] [ValidatePattern('^[a-z][a-z0-9_]*$')] [string]$Id,
 	[string]$Name,
 	[string]$Map,
-	[ValidateSet("Circles", "Square")] [string]$Shape = "Square"
+	[ValidateSet("Funnel", "Castle", "Vestibule", "Circles", "Square")] [string]$Shape = "Castle"
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,7 +29,7 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 if (Select-String -Path $arenas -Pattern "^\[arena $Id\]" -Quiet) { throw "L'arène « $Id » existe déjà dans data\arenas.txt." }
 if (Test-Path $waves) { throw "Le fichier $waves existe déjà." }
 
-# Première carte libre : SW03, SW04...
+# Première carte libre : SW04, SW05...
 if (-not $Map)
 {
 	for ($n = 1; $n -lt 100; $n++)
@@ -46,15 +48,16 @@ $wavesTemplate = @"
 # (voir data/waves/purgatoire.txt pour toutes les clés).
 #   curse   : sloth, gluttony, lust, envy, greed, wrath, pride (data/curses.txt)
 #   enemies : sloth, gluttony, lust, envy, greed, wrath, pride (data/enemies.txt)
-#   boss    : lucifer (la dernière vague du cercle dure jusqu'à sa mort)
+#   boss    : lucifer, ou charon, plus léger (la dernière vague du cercle dure jusqu'à sa mort)
+# Au moins 5 minutes de vagues au total : ici 8 vagues minutées de 40 s, soit 5 min 20.
 
 [circle 1]
 name     = Premier cercle
 curse    = sloth
 waves    = 3
-duration = 8
-pause    = 2
-break    = 4
+duration = 40
+pause    = 3
+break    = 5
 interval = 1.1
 max      = 10
 enemies  = sloth:3, gluttony:1
@@ -63,9 +66,9 @@ enemies  = sloth:3, gluttony:1
 name     = Deuxième cercle
 curse    = wrath
 waves    = 3
-duration = 8
-pause    = 2
-break    = 4
+duration = 40
+pause    = 3
+break    = 5
 interval = 0.9
 max      = 14
 enemies  = wrath:2, lust:2
@@ -74,8 +77,8 @@ enemies  = wrath:2, lust:2
 name     = Dernier cercle
 curse    = pride
 waves    = 3
-duration = 8
-pause    = 2
+duration = 40
+pause    = 3
 break    = 0
 interval = 1.6
 max      = 7
