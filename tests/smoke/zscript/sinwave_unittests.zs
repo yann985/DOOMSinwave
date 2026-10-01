@@ -118,6 +118,7 @@ class Sinwave_UnitTests : StaticEventHandler
 		TestPurchasesEncoding();
 		TestRules();
 		TestChallenges();
+		TestFireToggle();
 		TestStory();
 		TestThreats();
 
@@ -539,6 +540,27 @@ class Sinwave_UnitTests : StaticEventHandler
 		Check(reread.HasChallenge(0) && reread.HasChallenge(4) && reread.mChallenges == challenges.mChallenges, "défis : relus à l'identique");
 		challenges.SetChallenge(4, false);
 		Check(!challenges.HasChallenge(4) && challenges.HasChallenge(0), "défis : décocher un cercle ne touche pas les autres");
+	}
+
+	private void TestFireToggle()
+	{
+		let fire = new('Sinwave_FireToggle');
+		Check(!fire.KeyDown(1, true, false) && !fire.IsFiring(), "tir : option désactivée, la touche passe");
+		fire.KeyUp(1);
+		Check(!fire.KeyDown(1, true, true) && fire.IsFiring(), "tir : le premier appui passe et allume le tir");
+		Check(fire.KeyUp(1), "tir : son relâchement est avalé, la touche reste tenue");
+		fire.Update(true);
+		Check(!fire.KeyDown(2, false, true) && fire.IsFiring(), "tir : une autre touche passe sans rien changer");
+		Check(fire.KeyDown(1, true, true) && !fire.IsFiring(), "tir : l'appui suivant est avalé et éteint le tir");
+		Check(!fire.KeyUp(1), "tir : son relâchement passe, le moteur arrête de tirer");
+
+		fire.KeyDown(1, true, true);
+		fire.KeyUp(1);
+		fire.Update(false);		// le moteur n'a pas encore vu le tir : on attend
+		Check(fire.IsFiring(), "tir : allumé tant que le moteur ne l'a pas encore pris en compte");
+		fire.Update(true);
+		fire.Update(false);		// puis le lâche (menu, console...)
+		Check(!fire.IsFiring() && !fire.KeyDown(1, true, true), "tir : lâché par le moteur, l'appui suivant le rallume");
 	}
 
 	private void TestStory()
