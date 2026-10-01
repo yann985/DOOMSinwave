@@ -9,8 +9,8 @@ GZDoom ne fournit ni machine à états de jeu, ni bus d'événements, ni équiva
 ## 1. Le jeu en bref
 
 - **Hors run :**
-  - le joueur choisit une **arène** : Le Vestibule (la run minimale, 2 à 3 minutes), Le Purgatoire, Les Limbes, ou une arène personnalisée ;
-  - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), et **cercle de départ**. La récompense suit la difficulté ;
+  - le joueur choisit une **arène** : Le Vestibule (la run minimale, 2 à 3 minutes), Le Purgatoire, Les Limbes, le **mode histoire** (la Descente : 7 cercles de 5 minutes, un décor par péché, un récit entre les cercles), ou une arène personnalisée ;
+  - il règle la **descente** : difficulté prédéfinie (Pèlerin, Pénitent, Damné, Enfer) ou **défi personnalisé** (vie, vitesse et rythme des ennemis, dégâts subis), **cercle de départ**, et **défis des péchés** (une contrainte en plus, cercle par cercle). La récompense suit la difficulté ;
   - il dépense ses **indulgences** à la **boutique** en armes et améliorations permanentes. Ses rayons s'ouvrent selon le **Jugement** de son âme, gardé d'une run à l'autre.
 - **Une run :** le joueur traverse des **cercles**, un par péché. Chaque cercle impose une **malédiction** qui change les règles et enchaîne plusieurs **vagues** de plus en plus dures ; le dernier cercle se termine par un boss : **Charon** au Vestibule, **Lucifer** au Purgatoire.
 - **À chaque niveau :** trois choix parmi des **vertus** (modestes, qui purifient), des **neutres** (meilleurs, sans toucher à l'âme, de plus en plus rares quand elle penche) et des **péchés** (puissants, avec un défaut, qui corrompent). Ils font pencher la **balance de l'âme** : la corruption part de 15, l'équilibre, et va de 0 (sainteté) à 30 (damnation). Plus elle s'en éloigne, plus la partie change, en trois paliers de chaque côté, et plus les choix suivants penchent du même côté. Le verdict final en découle : **Absolution**, **Purgatoire** ou **Damnation**.
@@ -114,9 +114,9 @@ Les flèches indiquent « dépend de ». Elles descendent toujours :
 |---|---|---|
 | `app/` | Racine de composition : crée et relie tout. Seule classe déclarée au moteur (`MAPINFO`). | `Sinwave_Game` |
 | `core/` | Briques réutilisables, sans règle de jeu. | `Sinwave_EventBus`, `Sinwave_Services`, `Sinwave_StateMachine`, `Sinwave_System`, `Sinwave_DataParser` |
-| `data/` | Définitions chargées depuis les fichiers texte, et sauvegarde de la méta-progression. | `Sinwave_GameData`, `Sinwave_ArenaDef`, `Sinwave_CircleDef`, `Sinwave_UpgradeDef`, `Sinwave_ShopItemDef`, `Sinwave_SaveService` |
-| `gameplay/` | Événements, états globaux, systèmes de jeu, malédictions, acteurs (orbe d'XP, point d'apparition). | `Sinwave_WaveSystem`, `Sinwave_CurseSystem`, `Sinwave_MetaSystem`, `Sinwave_InGameState`... |
-| `ui/` | Présentation : un modèle de données d'affichage, le présentateur qui le remplit, le HUD et les menus qui le lisent. | `Sinwave_HudModel`, `Sinwave_HudPresenter`, `Sinwave_Hud`, `Sinwave_ShopMenu` |
+| `data/` | Définitions chargées depuis les fichiers texte, et sauvegarde de la méta-progression. | `Sinwave_GameData`, `Sinwave_ArenaDef`, `Sinwave_CircleDef`, `Sinwave_UpgradeDef`, `Sinwave_ShopItemDef`, `Sinwave_StoryDef`, `Sinwave_SaveService` |
+| `gameplay/` | Événements, états globaux, systèmes de jeu, malédictions, acteurs (orbe d'XP, point d'apparition, départ d'un cercle). | `Sinwave_WaveSystem`, `Sinwave_CurseSystem`, `Sinwave_ChallengeSystem`, `Sinwave_StorySystem`, `Sinwave_MetaSystem`, `Sinwave_InGameState`... |
+| `ui/` | Présentation : un modèle de données d'affichage, le présentateur qui le remplit, le HUD et les menus qui le lisent ; l'option du tir. | `Sinwave_HudModel`, `Sinwave_HudPresenter`, `Sinwave_Hud`, `Sinwave_ShopMenu`, `Sinwave_StoryMenu`, `Sinwave_FireToggle` |
 
 Hors du code : `src/data/` (contenu), `src/maps/` (cartes), `tests/` (tests automatiques), `tools/` (build, lancement, tests, création d'arène, packaging).
 
@@ -147,9 +147,40 @@ Les vraies classes du code (`src/zscript/`), avec leurs principaux membres. Ils 
 
 ![Diagramme de classes du noyau : Sinwave_Game, Services, EventBus, StateMachine, Event, Listener, State, System](diagrammes/classes-noyau.png)
 
-**Les systèmes de jeu :** quinze systèmes, une seule classe de base, aucun ne connaît les autres. Une flèche « → » indique les événements publiés.
+**Les systèmes de jeu :** une seule classe de base, aucun ne connaît les autres. Une flèche « → » indique les événements publiés. Le schéma montre les quinze systèmes de la version 1.0 :
 
 ![Diagramme de classes des 15 systèmes qui héritent de Sinwave_System](diagrammes/classes-systemes.png)
+
+La version 1.1 en ajoute trois, sur le même modèle (détails dans la partie 10) :
+
+```mermaid
+classDiagram
+    class Sinwave_System {
+        <<abstract>>
+        #mServices
+        #mBus
+        +Setup()
+        +Start()
+        +Tick()
+        +OnEvent(e)
+    }
+    class Sinwave_ZoneSystem {
+        +OnEvent(CircleStarted)
+    }
+    class Sinwave_StorySystem {
+        -mCorruption
+        -mSide
+        -Show(id) → StoryShown
+    }
+    class Sinwave_ChallengeSystem {
+        -mActive : CurseDef
+        -Launch(def) → ChallengeStarted, EffectGranted
+        -Finish() → ChallengeEnded, EffectGranted
+    }
+    Sinwave_System <|-- Sinwave_ZoneSystem
+    Sinwave_System <|-- Sinwave_StorySystem
+    Sinwave_System <|-- Sinwave_ChallengeSystem
+```
 
 **Les états :** le début et la fin de run sont écrits une fois dans `Sinwave_GameState`, la suspension une fois dans `Sinwave_SuspendedState`.
 
@@ -198,10 +229,10 @@ stateDiagram-v2
 |---|---|---|
 | Menu | `Sinwave_MenuState` | Écran titre avec la méta-progression. Utiliser mène au choix d'arène, B à la boutique. |
 | ArenaSelect | `Sinwave_ArenaSelectState` | Choix de l'arène. |
-| Rules | `Sinwave_RulesState` | Règles de la descente (difficulté, défi personnalisé, cercle de départ), traitées par `Sinwave_RulesSystem`. Descendre lance la run ; une arène sur une autre carte : voyage, puis la run démarre à l'arrivée. |
+| Rules | `Sinwave_RulesState` | Règles de la descente (difficulté, défi personnalisé, cercle de départ, défis des péchés), traitées par `Sinwave_RulesSystem`. Descendre lance la run ; une arène sur une autre carte : voyage, puis la run démarre à l'arrivée. |
 | Shop | `Sinwave_ShopState` | Boutique ouverte. Les achats sont traités par `Sinwave_MetaSystem`. |
 | InGame | `Sinwave_InGameState` | Les cercles s'enchaînent. Surveille la mort, la victoire, la pause et les montées de niveau. |
-| Pause | `Sinwave_PauseState` | Run suspendue, menu Reprendre / Abandonner. |
+| Pause | `Sinwave_PauseState` | Run suspendue, menu Reprendre / Options / Abandonner. |
 | Upgrade | `Sinwave_UpgradeState` | Run suspendue, choix d'une vertu ou d'un péché. |
 | GameOver | `Sinwave_GameOverState` | Bilan et verdict. Utiliser recharge la carte ; B la recharge et ouvre la boutique. |
 
@@ -223,7 +254,10 @@ flowchart LR
     CS([CircleStarted]) --> WS1([WaveStarted 1]) --> WE1([WaveEnded 1]) --> P1[répit court] --> WS2([WaveStarted 2]) --> WE2([WaveEnded 2]) --> CE([CircleEnded]) --> P2[répit] --> CS2([cercle suivant...])
 ```
 
+- **Premier cercle :** il commence au tic qui suit `RunStarted`, pas pendant sa diffusion. Sinon, les systèmes abonnés après celui des vagues recevraient `CircleStarted` avant `RunStarted`, et effaceraient en démarrant la run ce que le cercle vient de mettre en place : le joueur perdait le ralentissement de la Paresse, puis devenait plus rapide que la normale à la fin du cercle.
 - **Malédiction :** `Sinwave_CurseSystem` l'active à `CircleStarted` et l'arrête à `CircleEnded` : elle dure tout le cercle, répits compris.
+- **Défi du péché :** s'il est coché pour ce cercle, `Sinwave_ChallengeSystem` l'active et l'arrête aux mêmes moments (partie 7).
+- **Récit et zone :** `Sinwave_StorySystem` publie le texte du cercle (s'il en a un), et `Sinwave_ZoneSystem` emmène le joueur dans la zone du cercle (si la carte en a une).
 - **Indulgences :** `Sinwave_MetaSystem` compte les `CircleEnded` (cercles franchis).
 - **Interface :** le haut de l'écran affiche « Cercle 3/7 : Luxure   vague 2/3   0:05 », et un bandeau annonce chaque cercle, puis chaque nouvelle vague.
 - **Difficulté croissante :** les réglages d'un cercle (`interval`, `max`) sont ceux de sa première vague. Chaque vague suivante du cercle fait apparaître les ennemis plus vite et en autorise davantage (`Sinwave_CircleDef.IntervalTicsForWave`, `MaxAliveForWave`). La vie des ennemis grandit avec le rang de la vague dans l'arène (`Sinwave_GameData.WaveRank`), donc aussi d'un cercle à l'autre, quel que soit le cercle de départ. Les trois taux sont dans `data/progression.txt` ; le boss, réglé à part, n'est pas concerné.
@@ -239,6 +273,30 @@ Le sujet demande une run jouable de 2 à 3 minutes. C'est l'arène **Le Vestibul
 - la sauvegarde de la méta-progression : indulgences et Jugement, relus à la run suivante.
 
 C'est la seule arène sous les 5 minutes de vagues : le Purgatoire et les Limbes durent 6 à 8 minutes. Rien dans le code ne la distingue des autres : elle n'existe que par ses données (`arenas.txt`, `waves/vestibule.txt`, le boss `charon` dans `enemies.txt`) et sa carte.
+
+### Le mode histoire : la Descente
+
+L'arène **Mode histoire : la Descente** (carte SW04, `data/waves/enfer.txt`) traverse les sept péchés, à raison de **5 minutes par cercle** (5 vagues de 57 s et 4 répits de 3 s), puis Lucifer : environ 37 minutes.
+
+**Le récit.** De son vivant, le personnage a fait le mal, puis il a voulu changer, mais il est mort avant. Les anges ne savent pas quoi faire de son âme : ils l'envoient en Enfer pour voir s'il tient face aux démons et aux tentations. Avant chaque cercle, un texte raconte la suite. Il change selon la balance de l'âme :
+
+| Âme | Variante (`data/story.txt`) | Fin de la Descente |
+|---|---|---|
+| Un palier de la vertu atteint | `virtue` | Absolution : les anges viennent le chercher |
+| Aucun palier | `balance` (sinon `text`) | Purgatoire : il devra gravir la montagne |
+| Un palier du péché atteint | `sin` | Damnation : il reste en Enfer, sans régner |
+| Corruption au maximum | `sin_max` | Il tue Lucifer et devient l'**Icône du Péché**, le seul à porter les sept péchés à la fois |
+
+Le choix de la variante suit la même règle que le verdict de fin de run (`Sinwave_CorruptionChangedEvent`) : le texte de fin et le verdict affiché ne se contredisent jamais.
+
+**Qui fait quoi.** Trois pièces, qui ne se connaissent pas :
+- **Données :** un cercle cite son texte (`story = gourmandise`), l'arène cite ceux de la victoire et de la mort (`ending = fin`, `death = mort`). `Sinwave_GameData` vérifie au chargement que chaque texte cité existe.
+- **Jeu :** `Sinwave_StorySystem` écoute `CircleStarted`, `CorruptionChanged` et `RunEnded`, choisit la variante (`Sinwave_StoryDef.TextFor`) et publie `StoryShown`, avec le titre et le texte.
+- **Interface :** le présentateur range le texte dans le modèle avec un numéro ; `Sinwave_UiController` ouvre `Sinwave_StoryMenu` à chaque nouveau numéro, avant tout autre menu. Comme tout menu, il met le jeu en pause pendant la lecture. Le texte est découpé en lignes par le moteur (`Font.BreakLines`).
+
+**Un décor par péché.** La carte SW04 a sept zones, loin les unes des autres (8 000 unités). Chacune porte un objet `Sinwave_CircleStart` (numéro de l'éditeur 30002), dont le premier argument est le numéro du cercle. À `CircleStarted`, `Sinwave_ZoneSystem` téléporte le joueur sur le départ du cercle. Une carte sans ces objets (toutes les autres arènes) n'est pas touchée. Pour que la horde suive le joueur d'une zone à l'autre, `Sinwave_WaveSystem` :
+- ne prend que les points d'apparition à moins de 3 500 unités du joueur ;
+- fait disparaître les ennemis restés dans une autre zone (à plus de 4 000 unités), sans XP ni score.
 
 ### Alerte d'attaque dans l'angle mort
 
@@ -348,10 +406,11 @@ Tout le contenu du jeu est décrit dans `src/data/`. Le code ne contient **aucun
 | Fichier | Contenu | Lu par |
 |---|---|---|
 | `systems.txt` | Systèmes à créer, dans quel ordre, activés ou non | `Sinwave_Game` |
-| `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense), mode d'apparition des ennemis | `Sinwave_GameData`, choix d'arène |
-| `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis | `Sinwave_WaveSystem`, `Sinwave_CurseSystem` |
+| `arenas.txt` | Arènes : carte, fichier de cercles, règles (vie, vitesse, rythme, récompense), mode d'apparition des ennemis, textes de victoire et de mort du mode histoire | `Sinwave_GameData`, choix d'arène, `Sinwave_StorySystem` |
+| `waves/*.txt` | Cercles d'une arène : nombre et durée des vagues, répits, rythme, malédiction, boss, tirage pondéré des ennemis, texte du récit | `Sinwave_WaveSystem`, `Sinwave_CurseSystem`, `Sinwave_StorySystem` |
 | `enemies.txt` | Les 7 péchés, le boss et le reflet damné : classe du moteur, vie, vitesse, taille, couleur, XP, score, rage | `Sinwave_WaveSystem`, `Sinwave_BossSystem` |
-| `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages | `Sinwave_CurseSystem` |
+| `curses.txt` | Les 7 malédictions : texte, classe de comportement, réglages ; le défi de chaque péché | `Sinwave_CurseSystem`, `Sinwave_ChallengeSystem`, `Sinwave_RulesSystem` |
+| `story.txt` | Le récit du mode histoire : un texte par cercle, la victoire et la mort, chacun avec ses variantes selon l'âme | `Sinwave_StorySystem` |
 | `upgrades.txt` | 8 vertus, 7 neutres et 7 péchés : famille, effets, corruption, maximum par run | `Sinwave_UpgradeSystem` |
 | `soul.txt` | Balance de l'âme : bornes, équilibre, butin des ennemis selon l'âme, paliers et leurs effets, pente des choix, force du boss, épreuves | `Sinwave_CorruptionSystem`, `Sinwave_LootSystem`, `Sinwave_UpgradeSystem`, `Sinwave_WaveSystem`, `Sinwave_SoulTrialSystem` |
 | `shop.txt` | Armes et améliorations permanentes : rayon, palier du Jugement demandé, prix, progression du prix, niveaux, effets | `Sinwave_MetaSystem` |
@@ -401,9 +460,38 @@ Une malédiction qui touche le joueur publie un `EffectGrantedEvent` temporaire,
 
 Une malédiction qui change les ennemis doit toujours les rendre tels qu'elle les a trouvés. Exemple : la Colère retient la couleur et la vitesse d'origine de chaque ennemi enragé et les lui rend au bout de 3 s, ou à la fin du cercle. Chaque ennemi n'enrage qu'**une fois** : sous un tir continu, une rage relancée à chaque coup le laisserait rouge jusqu'à sa mort.
 
+### Les défis des péchés
+
+Dans les règles de la descente, l'onglet **Défis des péchés** propose de cocher, pour chaque cercle, une contrainte en plus de sa malédiction, liée au même péché. Chaque défi coché sur un cercle joué rapporte 10 % de plus (`Sinwave_RunRules.RewardFactor`).
+
+| Péché | Défi |
+|---|---|
+| Paresse | Torpeur : −15 % de vitesse en plus |
+| Gourmandise | Festin : les ennemis ont 30 % de vie en plus |
+| Luxure | Désir : les ennemis sont 20 % plus rapides |
+| Envie | Amertume : 25 PV maximum en moins |
+| Avarice | Pingrerie : deux fois moins de soins et de munitions lâchés |
+| Colère | Furie aveugle : 25 % de dégâts subis en plus |
+| Orgueil | Vanité : 20 % de dégâts infligés en moins |
+
+Le défi est décrit **dans le bloc de la malédiction** (`data/curses.txt`), sans code :
+
+```ini
+[curse greed]
+...
+challenge      = Pingrerie : les ennemis lâchent deux fois moins de soins et de munitions
+challenge_loot = 0.5
+```
+
+Il réutilise ce qui existe déjà :
+- **sur le joueur** (`challenge_effects`) : le langage d'effets des vertus, appliqué puis retiré par `Sinwave_ChallengeSystem` avec `EffectGranted` ;
+- **sur les ennemis et le butin** (`challenge_enemy_health`, `challenge_enemy_speed`, `challenge_loot`) : `Sinwave_ChallengeSystem` publie `ChallengeStarted` avec le défi, et `Sinwave_WaveSystem` et `Sinwave_LootSystem` en lisent les réglages jusqu'à `ChallengeEnded`. Ils ne connaissent pas le système des défis, seulement ses événements.
+
+Les cases cochées sont un champ de bits dans `Sinwave_RunRules` (bit 0 : premier cercle), sauvegardé avec les autres règles (`challenges=N`). Un cercle dont la malédiction n'a pas de défi ne peut pas être coché, et changer d'arène décoche les cercles qui n'existent pas dans la nouvelle.
+
 ### Les cartes : générées, d'après Dante et les modes de survie
 
-Les trois cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
+Les quatre cartes sont des créations originales, calculées par `tools/generate-arena.ps1` (format UDMF) plutôt que dessinées à la main : on peut les régénérer, les régler par quelques nombres, et `new-arena.ps1` en part pour les arènes des joueurs.
 
 **Principes de level design**, repris des modes de survie existants (zombies de Call of Duty, mode Horde de Doom Eternal, Serious Sam, Vampire Survivors) :
 - des **boucles** pour faire tourner la horde en rond, sans cul-de-sac où se faire coincer (d'où des anneaux et des octogones, pas de coins) ;
@@ -411,13 +499,14 @@ Les trois cartes sont des créations originales, calculées par `tools/generate-
 - des **passages étroits** (portes, abords des tombeaux) où la horde se tasse : le fusil à pompe y est roi ;
 - des **zones reconnaissables** au sol, à la lumière et à sa couleur, et un repère au centre.
 
-**Les trois plans**, d'après la géographie de Dante :
+**Les quatre plans**, d'après la géographie de Dante :
 
 | Carte | Plan | Ce qui sert au jeu |
 |---|---|---|
 | SW02, le Purgatoire (`Funnel`) | L'entonnoir de l'Enfer : un bord hérissé de 8 aiguilles de roche, les 6 tombeaux ardents, le fleuve de sang (Phlégéthon), et au centre le lac gelé du Cocyte avec 4 piliers de feu bleu | Chaque terrasse est une boucle ; on descend vers le boss d'une marche à la fois ; les piliers du lac cachent du boss, les tombeaux coupent les tirs |
 | SW01, les Limbes (`Castle`) | Le noble château : un champ obscur, le fossé, un rempart percé de 7 portes (pas au sud), et au centre la prairie avec un temple de 4 colonnes et 7 arbres | Trois boucles (champ, chemin de ronde, prairie) ; les portes font se tasser la horde ; le mur sans porte au sud force à tourner |
 | SW03, le Vestibule (`Vestibule`) | L'antichambre de l'Enfer : on entre par la porte, au nord ; une plaine de cendre où courent les tièdes ; l'Achéron, le fleuve de Charon, qui barre le sud ; et l'autre rive | Une seule grande plaine pour une run courte : on voit venir la horde de loin ; cinq rochers à contourner coupent les tirs ; coins coupés, sans cul-de-sac |
+| SW04, la Descente (`Story`) | Sept zones, une par péché : le marais noir de la Paresse avec ses îlots, la boue et la gueule de la Gourmandise, les colonnes de marbre rose de la Luxure, le cloître octogonal de l'Envie et ses huit piliers, les rochers et les tas d'or de l'Avarice, le Styx de sang de la Colère et ses rives, la salle de marbre de l'Orgueil sur le lac gelé, avec le trône de Lucifer | Chaque zone est une arène fermée, reconnaissable à son sol et à sa lumière ; obstacles et marches propres à chaque péché ; le joueur y est téléporté au début du cercle |
 
 **Contraintes du moteur :**
 - marches de 24 unités au plus : les monstres ne montent ni ne descendent plus haut ;
@@ -519,7 +608,14 @@ flowchart LR
 
 - Le **présentateur** est un système comme les autres : il traduit les événements en données d'affichage.
 - Le **HUD** et les **menus** ne font que lire le modèle. Pour agir (choisir, acheter, reprendre), un menu envoie une **commande réseau**, que `Sinwave_Game` traduit en événement côté jeu. C'est le seul chemin de l'interface vers le jeu.
-- Les cinq menus (pause, vertu ou péché, boutique, arènes, règles) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, dessin et fermeture automatique sont écrits une fois. Chaque menu ne décrit que ses options ; il déclare s'il a un bouton *Retour* (`HasBackButton`) et quelles options se règlent (`IsAdjustable`).
+- Les six menus (pause, vertu ou péché, boutique, arènes, règles, récit) héritent de `Sinwave_ChoiceMenu` : navigation, réglage gauche/droite, onglets, dessin et fermeture automatique sont écrits une fois. Chaque menu ne décrit que ses options ; il déclare s'il a un bouton *Retour* (`HasBackButton`), quelles options se règlent (`IsAdjustable`), ses onglets (`TabCount`) et un bloc propre sous le titre (`DrawHeaderExtra` : la jauge du Jugement de la boutique, le texte du récit). Les règles ont deux onglets : les réglages, et les défis des péchés ; Retour, depuis les défis, ramène aux réglages.
+- Les **options** (flèches des menaces, mode de tir) sont des CVars du joueur (`CVARINFO.txt`), réglées dans un menu du moteur décrit dans `MENUDEF.txt` et ajouté au menu *Options*. La pause l'ouvre aussi, par-dessus elle (`Menu.SetMenu`) : Retour y ramène. Le HUD s'efface quand un menu du moteur est ouvert, pour qu'on le lise.
+- **Tir en mode basculer** (`Sinwave_FireToggle`). Le jeu ne peut pas tirer à la place du joueur : le moteur fait agir le joueur avant d'appeler le code du jeu à chaque tic, donc une commande de tir ajoutée par le jeu arrive trop tard. L'option agit donc sur les touches, avant le moteur (`InputProcess`) :
+  - le premier appui sur une touche de tir passe au moteur, qui commence à tirer, mais son relâchement est avalé : pour le moteur, la touche reste enfoncée ;
+  - l'appui suivant est avalé, et son relâchement passe : le tir s'arrête ;
+  - si le moteur lâche le tir de lui-même (menu, console, changement de carte), on le voit au bouton de tir de la commande du joueur, et l'option repart de zéro.
+
+  Cette logique ne dépend pas du moteur : `Sinwave_Game` lui passe les touches et l'état du tir, et les tests unitaires la pilotent directement.
 - **Clavier, souris et manette** passent par le même chemin. La manette et le clavier arrivent en actions de menu (`MenuEvent` : haut, bas, gauche, droite, Entrée, Retour), que le moteur produit lui-même pour la croix, le stick gauche, A et B. La souris est gérée par `Sinwave_ChoiceMenu` : au dessin, le menu retient la zone de chaque option, de chaque valeur et du bouton *Retour*. Survol, clic, molette et clic droit appellent ensuite les mêmes fonctions que les touches (`Move`, `AdjustSelected`, `Confirm`, `GoBack`). Un clic n'agit qu'au relâchement, sur la zone où il a commencé : un tir en cours à l'ouverture d'un menu ne choisit rien.
 - `Sinwave_Canvas` place textes et cadres sur un écran de 400 unités de haut, en pixels réels. L'écran virtuel de GZDoom (`DTA_VirtualWidth`) est évité : il suppose un format 4:3 et, sur un écran large, resserrait les textes vers le centre, hors de leurs cadres et des zones cliquables.
 - Quand une touche ouvre un menu (B, Utiliser), son relâchement arrive au menu tout juste ouvert, et le moteur peut le traduire en action (Entrée...). `Sinwave_ChoiceMenu` ignore donc l'action produite par une touche relâchée sans avoir été enfoncée dans le menu, **pendant ce tic seulement** : une vraie touche du joueur juste après (Échap pour ressortir de la boutique) n'est jamais avalée.
@@ -541,8 +637,9 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 |---|---|---|---|
 | `debug` : `Sinwave_EventLogger` | EventBus | tout | rien |
 | `rules` : `Sinwave_RulesSystem` | EventBus, GameData, Save, Rules | RuleAdjusted, ArenaChosen | RulesChanged |
-| `waves` : `Sinwave_WaveSystem` | EventBus, GameData, Rules | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested, CorruptionChanged | CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared, EnemyKilled, BossSpawned, BossDefeated |
+| `waves` : `Sinwave_WaveSystem` | EventBus, GameData, Rules | RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested, CorruptionChanged, ChallengeStarted, ChallengeEnded | CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared, EnemyKilled, BossSpawned, BossDefeated |
 | `curses` : `Sinwave_CurseSystem` | EventBus, GameData | tout (transmis à la malédiction active) | CurseStarted, CurseEnded, EffectGranted |
+| `challenges` : `Sinwave_ChallengeSystem` | EventBus, GameData, Rules | CircleStarted, CircleEnded, RunEnded | ChallengeStarted, ChallengeEnded, EffectGranted |
 | `boss` : `Sinwave_BossSystem` | EventBus | BossSpawned, BossDefeated, RunEnded | BossHealthChanged, BossEnraged, SpawnRequested |
 | `xp` : `Sinwave_XpSystem` | EventBus, GameData | RunStarted, RunEnded, EnemyKilled, XpCollected, EffectGranted | XpOrbDropped, XpChanged, LevelUp |
 | `upgrades` : `Sinwave_UpgradeSystem` | EventBus, GameData | RunStarted, RunEnded, LevelUp, UpgradePicked, CorruptionChanged | UpgradeOffered, UpgradeChosen, EffectGranted |
@@ -551,8 +648,10 @@ Aucun système ne référence un autre système. Chacun ne connaît que des serv
 | `player` : `Sinwave_PlayerSystem` | EventBus, GameData, Rules | RunStarted, RunEnded, RunSuspended, RunResumed, EffectGranted | rien |
 | `meta` : `Sinwave_MetaSystem` | EventBus, GameData, Save, Rules | RunStarted, RunEnded, ScoreChanged, CircleEnded, CorruptionChanged, ShopBuyRequested, GameLoaded | MetaLoaded, MetaSaved, Purchase, EffectGranted |
 | `threats` : `Sinwave_ThreatSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed | ThreatStarted, ThreatEnded |
-| `loot` : `Sinwave_LootSystem` | EventBus, GameData | RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned | rien |
+| `loot` : `Sinwave_LootSystem` | EventBus, GameData | RunStarted, RunEnded, CorruptionChanged, EnemyKilled, ItemSpawned, ChallengeStarted, ChallengeEnded | rien |
 | `trials` : `Sinwave_SoulTrialSystem` | EventBus, GameData | RunStarted, RunEnded, RunSuspended, RunResumed, CorruptionChanged | SoulTrial, SpawnRequested, EffectGranted |
+| `zones` : `Sinwave_ZoneSystem` | EventBus | CircleStarted | rien (téléporte le joueur) |
+| `story` : `Sinwave_StorySystem` | EventBus, GameData | CircleStarted, CorruptionChanged, RunEnded | StoryShown |
 | `hud` : `Sinwave_HudPresenter` | EventBus, GameData, HudModel | tout | rien |
 
 Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface :
@@ -565,6 +664,9 @@ Le pont `Sinwave_Game` publie les événements venus du moteur et de l'interface
 
 Ce que la désactivation change pour chaque système :
 - **curses** : les cercles n'ont plus de règle spéciale ;
+- **challenges** : les défis cochés n'ont plus d'effet (ils comptent toujours dans la récompense) ;
+- **story** : plus de récit entre les cercles ;
+- **zones** : le joueur reste dans la zone du premier cercle ;
 - **boss** : les boss n'entrent plus en rage ;
 - **corruption** : l'âme reste à l'équilibre, sans palier ; le verdict est toujours Purgatoire ;
 - **loot** : les ennemis ne lâchent plus que ce que Doom leur fait lâcher ;
@@ -585,7 +687,7 @@ Ce que la désactivation change pour chaque système :
 | `test.ps1` | Tests automatiques de bout en bout (voir ci-dessous). `-Iwad doom2` : les mêmes, sur le vrai Doom II. |
 | `run.ps1` / `play.ps1` | Construit puis lance le jeu, manette activée. `-Iwad doom2` : avec le vrai Doom II. |
 | `new-arena.ps1` | Crée une arène personnalisée (carte, cercles, réglages). |
-| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`), le château des Limbes (`Castle`) ou le vestibule de l'Enfer (`Vestibule`). |
+| `generate-arena.ps1` | Génère une carte : l'entonnoir de l'Enfer (`Funnel`), le château des Limbes (`Castle`), le vestibule de l'Enfer (`Vestibule`) ou les sept zones du mode histoire (`Story`). |
 | `package.ps1` | Build Windows à rendre : `dist/Sinwave-win64.zip`, avec un lanceur Freedoom et un lanceur Doom II. |
 | `create-shortcuts.ps1` | Raccourcis du bureau : « Sinwave - Travailler », « Sinwave - Jouer (Freedoom) », « Sinwave - Jouer (Doom II) ». |
 | `workspace.ps1` | Ouvre VS Code, Ultimate Doom Builder, SLADE et Claude (raccourci du bureau). |
@@ -608,12 +710,12 @@ Le mod n'utilise que ce que Doom II et Freedoom Phase 2 ont en commun : les clas
 2. **mort** : boutique refusée pendant la run, mort du joueur, sauvegarde, puis boutique ouverte depuis l'écran de fin ;
 3. **boutique** :
    - deux achats réussis (Armurerie, Équilibre), un achat refusé (déjà acquis) et un article verrouillé par le Jugement neutre (Grâce), retour au menu ;
-   - choix de l'autre arène, défi personnalisé (vie des ennemis +25 %) et départ au cercle 2 ;
+   - choix de l'autre arène, défi personnalisé (vie des ennemis +25 %), départ au cercle 2 et défi du péché de ce cercle coché ;
    - voyage vers l'autre carte, démarrage automatique au cercle 2 ;
-   - les achats s'appliquent au début de la run ;
+   - les achats s'appliquent au début de la run, puis le cercle 2 commence avec son défi ;
 4. **interface** : les trois premiers scénarios désactivent l'interface ; celui-ci la réactive (archive `tests/ui`). Il vérifie qu'aucun menu ne reste bloqué après un changement de carte et que B ouvre la boutique depuis l'écran de fin.
 
-Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **77 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
+Le script vérifie dans le journal que chaque événement attendu apparaît, dans l'ordre. Le jeu des tests ne se met pas en pause quand sa fenêtre passe à l'arrière-plan (`i_pauseinbackground`) : sans ça, cliquer ailleurs pendant les tests les bloquait jusqu'au délai maximal. Il exécute aussi **96 tests unitaires** (`tests/smoke/zscript/sinwave_unittests.zs`) sur :
 - le bus, les services et la machine à états ;
 - le lecteur de données, les poids du tirage des ennemis et les effets ;
 - les vagues d'un cercle : montée en difficulté, vague du boss, rang dans l'arène ;
@@ -623,7 +725,10 @@ Le script vérifie dans le journal que chaque événement attendu apparaît, dan
 - la balance de l'âme : paliers des deux côtés, butin, verdict, pente des choix, combien elle penche, force du boss, et le système qui applique puis retire les effets d'un palier ;
 - le Jugement : paliers, rayons ouverts ou verrouillés, zone qui ouvre un article et points qui manquent, article acheté qui reste débloqué, déplacement en fin de run ;
 - l'interface : l'âme affichée au début d'une run, quel que soit l'ordre de diffusion ;
-- règles de la descente : récompense, sauvegarde, valeurs hors bornes.
+- règles de la descente : récompense, sauvegarde, valeurs hors bornes ;
+- défis des péchés : lecture dans les données, un bit par cercle, récompense, cercles passés qui ne comptent pas ;
+- le tir en mode basculer : appui qui allume, appui qui éteint, tir lâché par le moteur ;
+- le récit : variante choisie selon l'âme, texte par défaut, paragraphes.
 
 Les tests et la vérification construisent leur propre archive (`build/sinwave-test.pk3`, `build/sinwave-check.pk3`) : ils fonctionnent même quand le jeu est ouvert.
 
@@ -633,7 +738,7 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 
 ## 12. Limites connues
 
-- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée. Même piège avec `CorruptionChanged`, publié pendant `RunStarted` : le présentateur remettait la corruption à 0 en recevant `RunStarted`, après elle, et la run s'affichait à « 0/30 : équilibre ». Un test unitaire rejoue cet ordre.
+- **Ordre de diffusion :** le bus est synchrone. L'ordre dans lequel les abonnés reçoivent un événement dépend de l'ordre de création des systèmes (`systems.txt`). Aucun système ne doit compter sur cet ordre. Pour le verdict, la méta-progression retient la dernière corruption annoncée au lieu de la demander au moment de la fin de run. Autre piège : un événement publié pendant la diffusion d'un autre arrive avant lui chez les abonnés suivants. `CurseStarted`, publié pendant `CircleStarted`, atteint le présentateur avant ce dernier. Le présentateur n'efface donc plus la malédiction à `CircleStarted` : il le faisait, et la malédiction n'était jamais affichée. Même piège avec `CorruptionChanged`, publié pendant `RunStarted` : le présentateur remettait la corruption à 0 en recevant `RunStarted`, après elle, et la run s'affichait à « 0/30 : équilibre ». Un test unitaire rejoue cet ordre. Le piège a aussi touché le premier cercle, publié pendant `RunStarted` : il commence maintenant au tic suivant (partie 5, « Cercles et vagues »).
 - **Événements alloués à chaque publication :** simple et lisible, mais cela crée des objets à collecter. C'est sans effet mesurable à cette échelle.
 - **Malédictions et monstres :** certaines malédictions parcourent tous les monstres de la carte toutes les 4 à 5 tics. C'est sans problème pour quelques dizaines d'ennemis, mais à surveiller pour de très grosses vagues.
 - **Pause en double :** GZDoom a sa propre pause (touche Pause, menu principal). L'état Pause du projet utilise un menu dédié ; les deux coexistent sans se connaître.
@@ -643,13 +748,16 @@ Les tests et la vérification construisent leur propre archive (`build/sinwave-t
 - **Sauvegarde modifiable :** les CVars sont dans un fichier `.ini` lisible ; un joueur peut changer ses indulgences. C'est acceptable pour un prototype solo.
 - **Jeu solo :** le code suppose un seul joueur (`Sinwave_World.Player()`).
 - **Apparition derrière un mur :** autour du joueur, un ennemi peut apparaître de l'autre côté d'une cloison. Il le poursuit quand même, mais l'IA de Doom ne cherche pas de chemin : dans une carte très cloisonnée, `spawn = points` est préférable.
+- **Tir en mode basculer avec deux touches :** si le tir est allumé avec une touche (clic gauche) et éteint avec une autre (Ctrl), le moteur garde la première enfoncée : il faut appuyer encore sur la première. Avec une seule touche de tir, le cas ne se présente pas.
+- **Récit en français dans les données :** les textes du mode histoire sont dans `data/story.txt`, sans traduction.
 - **Tests d'intégration sur un vrai moteur :** `test.ps1` ouvre une fenêtre GZDoom ; il ne tourne donc pas sur le serveur d'intégration continue de GitHub, qui ne fait que construire le `.pk3` et le build.
 
 ## 13. Avec plus de temps
 
 - Abonnements avec priorité explicite, pour ne plus dépendre de l'ordre de `systems.txt`.
 - Cumul des arènes entre archives, pour que les mods ajoutent des arènes sans rien remplacer.
-- Des défis à modificateurs spéciaux (pas de soin, ennemis explosifs...) en plus des réglages chiffrés.
+- Des défis à modificateurs spéciaux (pas de soin, ennemis explosifs...) qui demandent du code, en plus des défis des péchés, qui ne font que régler des valeurs.
+- Une scène de fin pour l'Icône du Péché (le joueur transformé, comme l'Icône du Péché de Doom II), au lieu d'un texte seul.
 - Un outil de validation des fichiers de données hors du jeu, lancé avant chaque commit.
 - Des sprites, des sons et des musiques propres à chaque péché ; d'autres boss.
 - Traduction des textes (fichier `LANGUAGE` du moteur) au lieu de chaînes en français dans le code.
