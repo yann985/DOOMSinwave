@@ -203,9 +203,9 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',
-	'Sinwave_CircleStartedEvent : 2/2',						# départ au cercle choisi
 	'Sinwave_EffectGrantedEvent : give Shotgun',
-	'Sinwave_EffectGrantedEvent : maxhealth'
+	'Sinwave_EffectGrantedEvent : maxhealth',
+	'Sinwave_CircleStartedEvent : 2/2'						# départ au cercle choisi, au tic qui suit RunStarted
 )
 
 # 4. Avec l'interface : un menu ne doit pas survivre au changement de carte (il
