@@ -74,6 +74,8 @@ class Sinwave_ArenaChosenEvent : Sinwave_IndexEvent
 }
 
 // Règles de la descente : un réglage change (mField) d'un cran (mDelta = -1 ou +1).
+// À partir de FIELD_CHALLENGE, un réglage par cercle : FIELD_CHALLENGE + n coche ou
+// décoche le défi du péché du cercle n (0 : premier cercle).
 class Sinwave_RuleAdjustedEvent : Sinwave_Event
 {
 	enum EField
@@ -83,7 +85,8 @@ class Sinwave_RuleAdjustedEvent : Sinwave_Event
 		FIELD_SPEED,
 		FIELD_SPAWN,
 		FIELD_DAMAGE,
-		FIELD_CIRCLE
+		FIELD_CIRCLE,
+		FIELD_CHALLENGE
 	}
 
 	int mField;
@@ -409,6 +412,52 @@ class Sinwave_CurseStartedEvent : Sinwave_Event
 }
 
 class Sinwave_CurseEndedEvent : Sinwave_Event {}
+
+// --- Défis des péchés (Sinwave_ChallengeSystem) --------------------------------
+
+// Le défi coché pour ce cercle commence : mDef est la malédiction qui le porte.
+class Sinwave_ChallengeStartedEvent : Sinwave_Event
+{
+	Sinwave_CurseDef mDef;
+
+	static Sinwave_ChallengeStartedEvent Create(Sinwave_CurseDef def)
+	{
+		let e = new('Sinwave_ChallengeStartedEvent');
+		e.mDef = def;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s", mDef.mId);
+	}
+}
+
+class Sinwave_ChallengeEndedEvent : Sinwave_Event {}
+
+// --- Mode histoire (Sinwave_StorySystem) ---------------------------------------
+
+// Un texte de l'histoire, déjà choisi selon l'âme du joueur, est à afficher.
+class Sinwave_StoryShownEvent : Sinwave_Event
+{
+	Name mId;
+	String mTitle;
+	String mText;
+
+	static Sinwave_StoryShownEvent Create(Name id, String title, String text)
+	{
+		let e = new('Sinwave_StoryShownEvent');
+		e.mId = id;
+		e.mTitle = title;
+		e.mText = text;
+		return e;
+	}
+
+	override String Describe()
+	{
+		return String.Format("%s", mId);
+	}
+}
 
 // --- Expérience (Sinwave_XpOrb, Sinwave_XpSystem) ----------------------------
 

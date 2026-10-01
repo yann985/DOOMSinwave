@@ -10,6 +10,7 @@
 #   spawn_rate   : multiplicateur du rythme d'apparition (2 = deux fois plus souvent)
 #   reward       : multiplicateur des indulgences gagnées
 #   spawn        : player (autour du joueur, par défaut) ou points (points d'apparition de la carte)
+#   ending, death : mode histoire, textes de la victoire et de la mort (data/story.txt)
 
 [arena vestibule]
 name         = Le Vestibule
@@ -21,6 +22,19 @@ enemy_speed  = 1.0
 spawn_rate   = 1.0
 reward       = 0.75
 spawn        = player
+
+[arena enfer]
+name         = Mode histoire : la Descente
+description  = 7 cercles de 5 minutes, chacun dans son décor, puis Lucifer. Le récit suit ton âme.
+map          = SW04
+waves        = data/waves/enfer.txt
+enemy_health = 1.0
+enemy_speed  = 1.0
+spawn_rate   = 1.0
+reward       = 2.0
+spawn        = player
+ending       = fin
+death        = mort
 
 [arena purgatoire]
 name         = Le Purgatoire

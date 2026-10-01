@@ -1,5 +1,6 @@
 // =============================================================================
-//  Règles de la descente : difficulté prédéfinie, défi personnalisé, cercle de départ.
+//  Règles de la descente : difficulté prédéfinie, défi personnalisé, cercle de départ,
+//  défis des péchés.
 // =============================================================================
 //
 //  Écoute : RuleAdjusted, ArenaChosen
@@ -22,7 +23,7 @@ class Sinwave_RulesSystem : Sinwave_System
 		mSave = Sinwave_SaveService.From(mServices);
 		mSave.LoadRules(mRules);
 		mRules.mArenaIndex = max(0, mData.mArenaIndex);
-		ClampCircle();
+		ClampToArena();
 		mBus.Subscribe(self, 'Sinwave_RuleAdjustedEvent');
 		mBus.Subscribe(self, 'Sinwave_ArenaChosenEvent');
 	}
@@ -39,7 +40,7 @@ class Sinwave_RulesSystem : Sinwave_System
 		{
 			if (chosen.mIndex < 0 || chosen.mIndex >= mData.mArenas.Size()) return;
 			mRules.mArenaIndex = chosen.mIndex;
-			ClampCircle();
+			ClampToArena();
 			mBus.Publish(Sinwave_RulesChangedEvent.Create(mRules));
 			return;
 		}
@@ -65,10 +66,18 @@ class Sinwave_RulesSystem : Sinwave_System
 			break;
 		case Sinwave_RuleAdjustedEvent.FIELD_CIRCLE:
 			mRules.mStartCircle += adjusted.mDelta;
-			ClampCircle();
+			ClampToArena();
+			break;
+		default:
+		{
+			// Défi du péché d'un cercle : coché ou décoché, s'il existe pour ce cercle.
+			int circle = adjusted.mField - Sinwave_RuleAdjustedEvent.FIELD_CHALLENGE;
+			if (circle < 0 || mData.ChallengeOf(mRules.mArenaIndex, circle) == null) return;
+			mRules.SetChallenge(circle, !mRules.HasChallenge(circle));
 			break;
 		}
-		if (adjusted.mField != Sinwave_RuleAdjustedEvent.FIELD_PRESET && adjusted.mField != Sinwave_RuleAdjustedEvent.FIELD_CIRCLE)
+		}
+		if (adjusted.mField >= Sinwave_RuleAdjustedEvent.FIELD_HEALTH && adjusted.mField <= Sinwave_RuleAdjustedEvent.FIELD_DAMAGE)
 		{
 			RecognizePreset();
 		}
@@ -101,11 +110,16 @@ class Sinwave_RulesSystem : Sinwave_System
 	}
 
 	// Le cercle de départ doit exister dans l'arène choisie.
-	private void ClampCircle()
+	// Cercle de départ et défis cochés limités aux cercles de l'arène choisie.
+	private void ClampToArena()
 	{
 		int circles = 1;
 		if (mRules.mArenaIndex < mData.mArenas.Size()) circles = max(1, mData.mArenas[mRules.mArenaIndex].mCircleNames.Size());
 		mRules.mStartCircle = clamp(mRules.mStartCircle, 1, circles);
+		for (int i = 0; i < Sinwave_RunRules.MAX_CHALLENGES; i++)
+		{
+			if (mRules.HasChallenge(i) && mData.ChallengeOf(mRules.mArenaIndex, i) == null) mRules.SetChallenge(i, false);
+		}
 	}
 
 	private static double Step(double value, int delta, double stepSize, double minimum, double maximum)

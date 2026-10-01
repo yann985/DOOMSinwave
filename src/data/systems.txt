@@ -24,6 +24,10 @@ enabled = true
 class   = Sinwave_CurseSystem
 enabled = true
 
+[system challenges]
+class   = Sinwave_ChallengeSystem
+enabled = true
+
 [system boss]
 class   = Sinwave_BossSystem
 enabled = true
@@ -62,6 +66,14 @@ enabled = true
 
 [system trials]
 class   = Sinwave_SoulTrialSystem
+enabled = true
+
+[system zones]
+class   = Sinwave_ZoneSystem
+enabled = true
+
+[system story]
+class   = Sinwave_StorySystem
 enabled = true
 
 [system hud]

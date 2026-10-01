@@ -3,7 +3,7 @@
 // =============================================================================
 //
 //  Écoute : RunStarted, RunSuspended, RunResumed, RunEnded, ActorDied, SpawnRequested,
-//           CorruptionChanged
+//           CorruptionChanged, ChallengeStarted, ChallengeEnded
 //  Publie : CircleStarted, CircleEnded, WaveStarted, WaveEnded, AllCirclesCleared,
 //           EnemyKilled, BossSpawned, BossDefeated
 //
@@ -29,12 +29,15 @@ class Sinwave_WaveSystem : Sinwave_System
 	const RING_MAX_DISTANCE = 850.0;
 	const SPAWN_ATTEMPTS = 6;
 	const MAX_STEP = 24.0;					// marche la plus haute qu'un monstre sait monter
+	const MAX_SPOT_DISTANCE = 3500.0;		// points de la carte : seulement ceux de la zone du joueur
+	const LOST_DISTANCE = 4000.0;			// ennemi resté dans une autre zone de la carte
 	const RETARGET_TICS = TICRATE;			// fréquence du rappel de cible
 
 	private Sinwave_GameData mData;
 	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
+	private bool mStartPending;		// premier cercle : au tic qui suit RunStarted
 	private int mCircle;
 	private int mWave;				// vague en cours dans le cercle
 	private int mWaveTics;
@@ -45,6 +48,8 @@ class Sinwave_WaveSystem : Sinwave_System
 	private int mIntervalTics;
 	private int mMaxAlive;
 	private double mHealthFactor;
+	private double mChallengeHealth;	// défi du péché du cercle (ChallengeStarted)
+	private double mChallengeSpeed;
 	private int mSoul;				// balance de l'âme, pour le boss
 	private Actor mBoss;
 	private Array<Actor> mAlive;
@@ -62,7 +67,11 @@ class Sinwave_WaveSystem : Sinwave_System
 		mBus.Subscribe(self, 'Sinwave_ActorDiedEvent');
 		mBus.Subscribe(self, 'Sinwave_SpawnRequestedEvent');
 		mBus.Subscribe(self, 'Sinwave_CorruptionChangedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeStartedEvent');
+		mBus.Subscribe(self, 'Sinwave_ChallengeEndedEvent');
 		mSoul = mData.mSoul.mBalance;
+		mChallengeHealth = 1;
+		mChallengeSpeed = 1;
 	}
 
 	override void OnEvent(Sinwave_Event e)
@@ -73,6 +82,17 @@ class Sinwave_WaveSystem : Sinwave_System
 		else if (e is 'Sinwave_RunEndedEvent') StopRun();
 		else if (e is 'Sinwave_ActorDiedEvent') OnActorDied(Sinwave_ActorDiedEvent(e).mThing);
 		else if (e is 'Sinwave_CorruptionChangedEvent') mSoul = Sinwave_CorruptionChangedEvent(e).mCorruption;
+		else if (e is 'Sinwave_ChallengeStartedEvent')
+		{
+			let challenge = Sinwave_ChallengeStartedEvent(e).mDef;
+			mChallengeHealth = challenge.mChallengeEnemyHealth;
+			mChallengeSpeed = challenge.mChallengeEnemySpeed;
+		}
+		else if (e is 'Sinwave_ChallengeEndedEvent')
+		{
+			mChallengeHealth = 1;
+			mChallengeSpeed = 1;
+		}
 		else if (e is 'Sinwave_SpawnRequestedEvent' && mRunning)
 		{
 			let request = Sinwave_SpawnRequestedEvent(e);
@@ -86,6 +106,14 @@ class Sinwave_WaveSystem : Sinwave_System
 	override void Tick()
 	{
 		if (!mRunning || mSuspended) return;
+
+		if (mStartPending)
+		{
+			mStartPending = false;
+			// Cercle de départ choisi dans les règles de la descente.
+			StartCircle(clamp(mRules.mStartCircle - 1, 0, mData.mCircles.Size() - 1));
+			return;
+		}
 
 		// Pendant un répit, les ennemis restants attaquent encore, mais aucun n'apparaît.
 		if (mBreakTics > 0)
@@ -138,13 +166,17 @@ class Sinwave_WaveSystem : Sinwave_System
 			mBus.Publish(new('Sinwave_AllCirclesClearedEvent'));
 			return;
 		}
-		// Cercle de départ choisi dans les règles de la descente.
-		StartCircle(clamp(mRules.mStartCircle - 1, 0, mData.mCircles.Size() - 1));
+		// Le premier cercle commence au tic suivant, une fois que tous les systèmes ont
+		// reçu RunStarted : publié pendant RunStarted, il arriverait avant lui chez
+		// les systèmes abonnés après celui-ci, qui effaceraient en démarrant la run ce
+		// que le cercle vient de mettre en place (le ralentissement de la Paresse...).
+		mStartPending = true;
 	}
 
 	private void StopRun()
 	{
 		mRunning = false;
+		mStartPending = false;
 		// Les ennemis restants disparaissent sans mourir : ni XP ni score après la fin.
 		for (int i = 0; i < mAlive.Size(); i++)
 		{
@@ -236,10 +268,11 @@ class Sinwave_WaveSystem : Sinwave_System
 
 		// Définition de l'ennemi x règles de l'arène x règles choisies par le joueur,
 		// x montée en difficulté de la vague ; un boss suit plutôt la balance de l'âme.
+		// Le défi du péché coché pour le cercle s'y ajoute.
 		let arena = mData.mArena;
 		double waveHealth = def.mIsBoss ? mData.mSoul.BossHealthFactor(mSoul) : mHealthFactor;
-		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth));
-		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed;
+		mo.health = max(1, int(mo.SpawnHealth() * def.mHealthFactor * arena.mEnemyHealth * mRules.mEnemyHealth * waveHealth * mChallengeHealth));
+		mo.Speed *= def.mSpeedFactor * arena.mEnemySpeed * mRules.mEnemySpeed * mChallengeSpeed;
 		if (def.mScale != 1.0)
 		{
 			mo.Scale *= def.mScale;
@@ -282,7 +315,8 @@ class Sinwave_WaveSystem : Sinwave_System
 		if (mSpawnPoints.Size() > 0)
 		{
 			let spot = mSpawnPoints[Random[SinwaveWaves](0, mSpawnPoints.Size() - 1)];
-			if (spot != null && (pawn == null || (pawn.pos.xy - spot.pos.xy).Length() >= MIN_SPAWN_DISTANCE))
+			double away = (spot != null && pawn != null) ? (pawn.pos.xy - spot.pos.xy).Length() : MIN_SPAWN_DISTANCE;
+			if (spot != null && away >= MIN_SPAWN_DISTANCE && away <= MAX_SPOT_DISTANCE)
 			{
 				return true, spot.pos;
 			}
@@ -355,11 +389,21 @@ class Sinwave_WaveSystem : Sinwave_System
 	}
 
 	// Retire les ennemis supprimés par le moteur sans être morts.
+	// Oublie les ennemis disparus. Ceux restés dans la zone d'un cercle précédent
+	// (carte à plusieurs zones) ne peuvent plus atteindre le joueur : ils disparaissent
+	// sans mourir, pour laisser la place aux ennemis du nouveau cercle.
 	private void PruneAlive()
 	{
+		let pawn = Sinwave_World.Player();
 		for (int i = mAlive.Size() - 1; i >= 0; i--)
 		{
-			if (mAlive[i] == null)
+			let mo = mAlive[i];
+			if (mo != null && mo != mBoss && pawn != null && mo.health > 0 && (mo.pos.xy - pawn.pos.xy).Length() > LOST_DISTANCE)
+			{
+				mo.Destroy();
+				mo = null;
+			}
+			if (mo == null)
 			{
 				mAlive.Delete(i);
 				mAliveDefs.Delete(i);

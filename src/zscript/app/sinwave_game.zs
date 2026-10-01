@@ -29,6 +29,7 @@ class Sinwave_Game : EventHandler
 	// Objets d'interface : recréés à la demande, jamais écrits dans les sauvegardes.
 	private transient ui Sinwave_UiController mUiController;
 	private transient ui Sinwave_Hud mHud;
+	private transient ui Sinwave_FireToggle mFireToggle;
 
 	// -------------------------------------------------------------------------
 	//  Composition
@@ -188,14 +189,27 @@ class Sinwave_Game : EventHandler
 	// Touches lues directement, avant les raccourcis du moteur : la boutique et la
 	// pause ne dépendent pas des liaisons du joueur, qui peuvent disparaître (GZDoom
 	// n'applique les « defaultbind » de KEYCONF que s'il ne connaît pas encore la
-	// section Sinwave de sa configuration).
+	// section Sinwave de sa configuration). La touche de tir passe d'abord par
+	// l'option « Tir : appuyer pour basculer » (Sinwave_FireToggle).
 	override bool InputProcess(InputEvent e)
 	{
-		if (!mReady || e.Type != InputEvent.Type_KeyDown || menuactive != Menu.Off) return false;
+		if (!mReady || menuactive != Menu.Off) return false;
+		if (SwallowFireKey(e)) return true;
+		if (e.Type != InputEvent.Type_KeyDown) return false;
 		String command = CommandForKey(e.KeyScan, mHudModel.mScreen);
 		if (command.Length() == 0) return false;
 		EventHandler.SendNetworkEvent(command);
 		return true;
+	}
+
+	private ui bool SwallowFireKey(InputEvent e)
+	{
+		if (mFireToggle == null) mFireToggle = new('Sinwave_FireToggle');
+		if (e.Type == InputEvent.Type_KeyUp) return mFireToggle.KeyUp(e.KeyScan);
+		if (e.Type != InputEvent.Type_KeyDown) return false;
+		let option = CVar.FindCVar('sinwave_fire_toggle');
+		bool enabled = option != null && option.GetBool() && mHudModel.mScreen == Sinwave_HudModel.SCREEN_RUN;
+		return mFireToggle.KeyDown(e.KeyScan, Bindings.GetBinding(e.KeyScan) ~== "+attack", enabled);
 	}
 
 	// Commande Sinwave d'une touche selon l'écran affiché (vide : touche laissée au
@@ -230,11 +244,15 @@ class Sinwave_Game : EventHandler
 		if (!mReady) return;
 		if (mUiController == null) mUiController = new('Sinwave_UiController');
 		mUiController.Update(mHudModel);
+		if (mFireToggle != null) mFireToggle.Update((players[consoleplayer].cmd.buttons & BT_ATTACK) != 0);
 	}
 
 	override void RenderOverlay(RenderEvent e)
 	{
 		if (!mReady) return;
+		// Menu du moteur ouvert (options...) : le HUD s'efface pour qu'on le lise. Les
+		// menus de Sinwave, eux, assombrissent déjà l'écran sous leur cadre.
+		if (menuactive != Menu.Off && !(Menu.GetCurrentMenu() is 'Sinwave_ChoiceMenu')) return;
 		if (mHud == null) mHud = new('Sinwave_Hud');
 		mHud.Draw(mHudModel, e.ViewPos, e.ViewAngle);
 	}

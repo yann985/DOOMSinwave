@@ -14,6 +14,9 @@ class   = Sinwave_WaveSystem
 [system curses]
 class   = Sinwave_CurseSystem
 
+[system challenges]
+class   = Sinwave_ChallengeSystem
+
 [system boss]
 class   = Sinwave_BossSystem
 
@@ -43,6 +46,12 @@ class   = Sinwave_LootSystem
 
 [system trials]
 class   = Sinwave_SoulTrialSystem
+
+[system zones]
+class   = Sinwave_ZoneSystem
+
+[system story]
+class   = Sinwave_StorySystem
 
 [system hud]
 class   = Sinwave_HudPresenter

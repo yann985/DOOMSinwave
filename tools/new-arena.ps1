@@ -4,7 +4,7 @@
 #   - son entrée dans data\arenas.txt (elle apparaît dans le choix d'arène)
 #   - sa déclaration dans MAPINFO
 #
-#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Funnel
+#   powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id abime -Name "L'Abîme" -Shape Funnel
 #   -Shape Funnel : entonnoir de l'Enfer (terrasses) ; Castle : château à sept portes ;
 #   Vestibule : petite plaine devant la porte de l'Enfer (tools\generate-arena.ps1)
 #
@@ -29,7 +29,7 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 if (Select-String -Path $arenas -Pattern "^\[arena $Id\]" -Quiet) { throw "L'arène « $Id » existe déjà dans data\arenas.txt." }
 if (Test-Path $waves) { throw "Le fichier $waves existe déjà." }
 
-# Première carte libre : SW04, SW05...
+# Première carte libre : SW05, SW06...
 if (-not $Map)
 {
 	for ($n = 1; $n -lt 100; $n++)

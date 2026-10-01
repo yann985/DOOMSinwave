@@ -46,6 +46,7 @@ class Sinwave_HudModel : Sinwave_Service
 	bool mBetweenCircles;	// répit avant le cercle suivant
 	String mCurseName;
 	String mCurseDescription;
+	String mChallengeDescription;	// défi du péché coché pour ce cercle (vide : aucun)
 	// Balance de l'âme (data/soul.txt)
 	int mCorruption;
 	int mSoulMin;
@@ -114,6 +115,11 @@ class Sinwave_HudModel : Sinwave_Service
 	int mRulesCircleCount;
 	String mRulesCircleName;
 	double mRulesReward;
+	// Défis des péchés : une ligne par cercle de l'arène choisie.
+	Array<String> mRulesChallengeCircles;	// nom du cercle
+	Array<String> mRulesChallengeTexts;		// vide : pas de défi pour ce cercle
+	Array<bool> mRulesChallengeOn;
+	int mRulesChallengeCount;				// défis cochés
 
 	// Boutique : une ligne par article. mShopRevision change à chaque achat.
 	int mShopSerial;
@@ -143,6 +149,11 @@ class Sinwave_HudModel : Sinwave_Service
 	String mBanner;
 	String mBannerDetail;
 	int mBannerTics;
+
+	// Mode histoire : le dernier texte à lire. Le numéro change à chaque texte.
+	int mStorySerial;
+	String mStoryTitle;
+	String mStoryText;
 
 	static Sinwave_HudModel From(Sinwave_Services services)
 	{

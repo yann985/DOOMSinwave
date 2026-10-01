@@ -5,7 +5,7 @@ Une arène est une carte avec ses cercles, de plusieurs vagues chacun, et ses r�
 ## 1. Créer les fichiers de départ
 
 ```bash
-powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'Enfer" -Shape Funnel
+powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id abime -Name "L'Abîme" -Shape Funnel
 ```
 
 - `-Id` : identifiant court, en minuscules, sans espace.
@@ -18,9 +18,9 @@ powershell -ExecutionPolicy Bypass -File tools\new-arena.ps1 -Id enfer -Name "L'
   Les anciens noms `Circles` et `Square` marchent encore.
 
 Le script crée :
-- la carte `src/maps/SW04.wad` (le numéro suit les cartes existantes) ;
-- le fichier de cercles `src/data/waves/enfer.txt` ;
-- l'entrée `[arena enfer]` dans `src/data/arenas.txt` ;
+- la carte `src/maps/SW05.wad` (le numéro suit les cartes existantes) ;
+- le fichier de cercles `src/data/waves/abime.txt` ;
+- l'entrée `[arena abime]` dans `src/data/arenas.txt` ;
 - la déclaration de la carte dans `src/MAPINFO.txt`.
 
 L'arène est jouable tout de suite : lance le jeu, appuie sur Utiliser au menu et choisis-la.
@@ -32,6 +32,7 @@ Ouvre la carte dans Ultimate Doom Builder (*File → Open Map*, configuration **
 - Garde un **départ du joueur** (Player 1 Start).
 - Par défaut, les ennemis apparaissent **autour du joueur**, juste hors de portée (clé `spawn = player`, voir plus bas).
 - Tu peux aussi placer des **points d'apparition** : catégorie *Sinwave*, « Point d'apparition des ennemis » (numéro 30001). Ils servent de secours quand la place manque autour du joueur, ou de seule source avec `spawn = points`. Mets-les loin du centre : ils ne servent jamais à moins de 384 unités du joueur.
+- Pour donner à chaque cercle son propre décor, comme dans le mode histoire, dessine une zone par cercle et place dans chacune un **départ d'un cercle** : catégorie *Sinwave*, « Départ d'un cercle » (numéro 30002), avec le numéro du cercle en premier argument. Au début du cercle, le joueur y est téléporté. Éloigne les zones (le mode histoire les met à 8 000 unités) : les ennemis à plus de 4 000 unités du joueur disparaissent, et seuls les points d'apparition à moins de 3 500 unités servent.
 - Les marches ne doivent pas dépasser 24 unités de haut, sinon le joueur ne peut pas les monter, et les monstres ne savent ni les monter ni les descendre.
 - Un obstacle plein (rocher, pilier) se dessine comme un trou dans la carte. Un bloc bas (tombeau, rempart) peut être un secteur plus haut : aucun ennemi n'apparaît sur un plateau plus haut d'une marche que tout ce qui l'entoure.
 - Pour que la horde soit agréable à combattre : des boucles autour des obstacles pour la faire tourner en rond, pas de cul-de-sac, des obstacles qui coupent les tirs, et des passages plus étroits où elle se tasse. Les arènes du jeu suivent ces règles (voir `tools/generate-arena.ps1`).
@@ -65,21 +66,27 @@ enemies  = sloth:3, gluttony:1   # ennemis et poids du tirage (data/enemies.txt)
 
 **Cercle de boss :** ajoute `boss = lucifer`. La dernière vague du cercle est celle du boss : elle dure jusqu'à sa mort. Avec `waves = 1`, le cercle n'a que la vague du boss.
 
+**Récit :** ajoute `story = <id>` pour afficher un texte de `src/data/story.txt` au début du cercle, comme dans le mode histoire. Un texte a un titre (`title`), un texte par défaut (`text`) et des variantes selon l'âme du joueur (`virtue`, `balance`, `sin`, `sin_max`) ; `\n` commence un nouveau paragraphe.
+
+**Défis :** chaque malédiction propose un défi (clé `challenge` dans `data/curses.txt`) : le joueur peut le cocher pour ce cercle dans les règles de la descente.
+
 ## 4. Régler l'arène
 
 Dans `src/data/arenas.txt` :
 
 ```ini
-[arena enfer]
-name         = L'Enfer
+[arena abime]
+name         = L'Abîme
 description  = Texte affiché dans le choix d'arène.
-map          = SW04
-waves        = data/waves/enfer.txt
+map          = SW05
+waves        = data/waves/abime.txt
 enemy_health = 1.2     # vie des ennemis ×1,2
 enemy_speed  = 1.1     # vitesse des ennemis ×1,1
 spawn_rate   = 1.5     # apparitions 1,5 fois plus fréquentes
 reward       = 1.5     # indulgences gagnées ×1,5
 spawn        = player  # player : autour du joueur ; points : sur les points d'apparition
+ending       = fin     # facultatif : texte de victoire (data/story.txt)
+death        = mort    # facultatif : texte de mort
 ```
 
 Choisis `spawn = points` pour une carte faite de couloirs ou de pièces : autour du joueur, un ennemi pourrait apparaître derrière un mur et rester coincé.
@@ -97,3 +104,4 @@ Une faute de frappe dans un fichier de données (ennemi inconnu, malédiction ma
 - **Nouvel ennemi :** un bloc dans `data/enemies.txt` (n'importe quel monstre de Doom II).
 - **Nouveau boss :** un ennemi avec `boss = true`, `rage_at`, `rage_speed`, `rage_summon`.
 - **Nouvelle malédiction :** une classe ZScript qui hérite de `Sinwave_Curse` (voir `src/zscript/gameplay/curses/`), puis un bloc dans `data/curses.txt`. C'est le seul cas qui demande du code.
+- **Nouveau défi :** dans le bloc d'une malédiction, `challenge` (le texte), puis `challenge_effects` (effets sur le joueur, comme les vertus), `challenge_enemy_health`, `challenge_enemy_speed` ou `challenge_loot`. Pas de code.

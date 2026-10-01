@@ -20,6 +20,7 @@ class Sinwave_Hud ui
 	// Une forme par marque : le moteur ne dessine qu'en fin d'image, une forme
 	// réutilisée dans la même image mélangerait les marques.
 	private Array<Shape2D> mShapes;
+	private CVar mThreatMarkers;	// option : flèches des menaces affichées ou non
 
 	// viewPos, viewAngle : la caméra à cette image (interpolée, fluide même entre deux tics).
 	void Draw(Sinwave_HudModel m, Vector3 viewPos, double viewAngle)
@@ -34,7 +35,7 @@ class Sinwave_Hud ui
 			break;
 		case Sinwave_HudModel.SCREEN_RUN:
 			DrawRun(m);
-			DrawThreats(m, viewPos, viewAngle);
+			if (ShowsThreats()) DrawThreats(m, viewPos, viewAngle);
 			DrawBanner(m);
 			break;
 		case Sinwave_HudModel.SCREEN_PAUSE:
@@ -45,6 +46,13 @@ class Sinwave_Hud ui
 			DrawResult(m);
 			break;
 		}
+	}
+
+	// Option « Flèches des menaces » (sinwave_threat_markers), activée par défaut.
+	private bool ShowsThreats()
+	{
+		if (mThreatMarkers == null) mThreatMarkers = CVar.FindCVar('sinwave_threat_markers');
+		return mThreatMarkers == null || mThreatMarkers.GetBool();
 	}
 
 	private void DrawTitleScreen(Sinwave_HudModel m)
@@ -106,14 +114,24 @@ class Sinwave_Hud ui
 			else if (m.mWaveTicsLeft > 0) waveLine = String.Format("%s   vague %d/%d   %s", circleLine, m.mWave + 1, m.mWaveCount, Sinwave_Canvas.FormatTime(m.mWaveTicsLeft));
 			else waveLine = String.Format("%s   vague %d/%d", circleLine, m.mWave + 1, m.mWaveCount);
 			c.Text(NewSmallFont, Font.CR_RED, center, 14, waveLine, 1.3, Sinwave_Canvas.ALIGN_CENTER);
-			if (!m.mBetweenCircles && m.mCurseDescription.Length() > 0)
+			if (!m.mBetweenCircles && (m.mCurseDescription.Length() > 0 || m.mChallengeDescription.Length() > 0))
 			{
-				// Sous la ligne du cercle si elle tient entre les colonnes de gauche et de
-				// droite (écran large), sinon sous ces colonnes (et sous la barre du boss).
-				String curseLine = "Malédiction : " .. m.mCurseDescription;
-				bool fits = NewSmallFont.StringWidth(curseLine) * 0.9 < c.mWidth - 2 * CORNER_WIDTH;
-				double y = fits ? 36 : (m.mBossActive ? 112 : 80);
-				c.Text(NewSmallFont, Font.CR_ORANGE, center, y, curseLine, 0.9, Sinwave_Canvas.ALIGN_CENTER);
+				// Malédiction : sous la ligne du cercle si elle tient entre les colonnes de
+				// gauche et de droite (écran large), sinon sous ces colonnes (et sous la
+				// barre du boss). Le défi coché vient sous les colonnes, après elle.
+				double low = m.mBossActive ? 112 : 80;
+				double next = low;
+				if (m.mCurseDescription.Length() > 0)
+				{
+					String curseLine = "Malédiction : " .. m.mCurseDescription;
+					bool fits = NewSmallFont.StringWidth(curseLine) * 0.9 < c.mWidth - 2 * CORNER_WIDTH;
+					c.Text(NewSmallFont, Font.CR_ORANGE, center, fits ? 36 : low, curseLine, 0.9, Sinwave_Canvas.ALIGN_CENTER);
+					if (!fits) next = low + 11;
+				}
+				if (m.mChallengeDescription.Length() > 0)
+				{
+					c.Text(NewSmallFont, Font.CR_PURPLE, center, next, "Défi : " .. m.mChallengeDescription, 0.9, Sinwave_Canvas.ALIGN_CENTER);
+				}
 			}
 		}
 

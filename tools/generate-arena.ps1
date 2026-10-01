@@ -7,6 +7,10 @@
 #   -Shape Vestibule : le vestibule de l'Enfer, petite arène de la run minimale : on
 #                   entre par la porte, une plaine de cendre semée de rochers descend
 #                   vers l'Achéron, le fleuve qui barre le sud.
+#   -Shape Story : le mode histoire, sept zones séparées, une par péché et par cercle :
+#                   le marais de la Paresse, la gueule de la Gourmandise, les colonnes
+#                   de la Luxure, le cloître de l'Envie, la salle d'or de l'Avarice, le
+#                   Styx de la Colère et la salle de marbre de l'Orgueil.
 # (Circles et Square, les anciens noms, donnent Funnel et Castle.)
 #
 # Principes de level design, repris des modes de survie existants (zombies de Call of
@@ -23,13 +27,14 @@
 #   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW02 -Shape Funnel
 #   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW01 -Shape Castle
 #   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW03 -Shape Vestibule
+#   powershell -ExecutionPolicy Bypass -File tools\generate-arena.ps1 -Map SW04 -Shape Story
 #
 # La carte peut ensuite être retouchée dans Ultimate Doom Builder (configuration
 # « GZDoom: Doom 2 (UDMF) »). Attention : relancer ce script écrase les retouches.
 
 param(
 	[string]$Map = "SW01",
-	[ValidateSet("Funnel", "Castle", "Vestibule", "Circles", "Square")] [string]$Shape = "Funnel",
+	[ValidateSet("Funnel", "Castle", "Vestibule", "Story", "Circles", "Square")] [string]$Shape = "Funnel",
 	[string]$Output		# fichier .wad à écrire (par défaut : src\maps\<Map>.wad)
 )
 
@@ -101,9 +106,10 @@ function Add-Pass([int]$V1, [int]$V2, [int]$Front, [int]$Back, [string]$Texture)
 	[void]$lineText.AppendLine("linedef { v1 = $V1; v2 = $V2; sidefront = $front; sideback = $back; twosided = true; }")
 }
 
-function Add-Thing([double]$X, [double]$Y, [int]$Type, [int]$Angle = 0)
+function Add-Thing([double]$X, [double]$Y, [int]$Type, [int]$Angle = 0, [int]$Arg0 = 0)
 {
-	[void]$thingText.AppendLine("thing { x = $(Num ([Math]::Round($X))); y = $(Num ([Math]::Round($Y))); angle = $Angle; type = $Type; skill1 = true; skill2 = true; skill3 = true; skill4 = true; skill5 = true; single = true; coop = true; dm = true; }")
+	$arg = if ($Arg0 -ne 0) { " arg0 = $Arg0;" } else { "" }
+	[void]$thingText.AppendLine("thing { x = $(Num ([Math]::Round($X))); y = $(Num ([Math]::Round($Y))); angle = $Angle; type = $Type;$arg skill1 = true; skill2 = true; skill3 = true; skill4 = true; skill5 = true; single = true; coop = true; dm = true; }")
 }
 
 # Point à `Radius` du centre, dans la direction `Degrees`.
@@ -200,7 +206,7 @@ function Get-Rock([double]$Cx, [double]$Cy, [double]$Radius, [int]$Sides = 7)
 	return , $points.ToArray()
 }
 
-# --- Les trois plans -------------------------------------------------------------
+# --- Les quatre plans ------------------------------------------------------------
 
 if ($Shape -eq "Funnel")
 {
@@ -341,6 +347,164 @@ elseif ($Shape -eq "Castle")
 	}
 }
 
+elseif ($Shape -eq "Story")
+{
+	# Le mode histoire : sept zones séparées, une par péché, dans l'ordre des cercles.
+	# Chaque zone a son plan, ses sols et sa lumière ; son départ de cercle (30002,
+	# arg0 = numéro du cercle) y transporte le joueur au début du cercle. 8000 unités
+	# entre deux zones : les ennemis restés derrière sont trop loin pour compter, et
+	# les points d'apparition d'une autre zone ne servent pas (Sinwave_WaveSystem).
+	# Toutes les zones sont des polygones sans coin, chaque secteur d'une zone a la
+	# même hauteur de ciel.
+
+	# Départ du cercle au sud, face au nord ; points d'apparition en cercle le long du mur.
+	function Add-ZoneStart([double]$Cx, [double]$Cy, [double]$Radius, [int]$Circle)
+	{
+		$y = $Cy - $Radius + 200
+		Add-Thing $Cx $y 30002 90 $Circle
+		if ($Circle -eq 1) { Add-Thing $Cx $y 1 90 }
+		for ($i = 0; $i -lt 8; $i++)
+		{
+			if ($i -eq 6) { continue }		# pas sur le départ
+			$p = Get-Polar ($Radius - 260) (45 * $i)
+			Add-Thing ($Cx + $p[0]) ($Cy + $p[1]) 30001
+		}
+	}
+	function Add-WallThings([double]$Cx, [double]$Cy, [double]$Radius, [int]$Type, [int]$Count, [double]$Start = 0)
+	{
+		for ($i = 0; $i -lt $Count; $i++)
+		{
+			$p = Get-Polar $Radius ($Start + 360.0 * $i / $Count)
+			Add-Thing ($Cx + $p[0]) ($Cy + $p[1]) $Type
+		}
+	}
+
+	# 1. Paresse : le marais du Styx, eau morte et îlots où dorment les paresseux.
+	$cx = 0; $cy = 0; $r = 1300
+	$swamp = New-Sector -8 "SLIME01" 120 0x88B088 320
+	Add-Enclosure (Get-RegularPolygon $r 16 11.25 $cx $cy) $swamp "ROCK4"
+	foreach ($i in @(@(-500, 350, 230), @(450, 450, 200), @(0, -150, 260), @(-550, -500, 190), @(550, -450, 210)))
+	{
+		$isle = New-Sector 8 "RROCK19" 136 0xA8C098 320
+		Add-Border (Get-Rock ($cx + $i[0]) ($cy + $i[1]) $i[2] 9) $isle $swamp "ROCK4"
+		Add-Thing ($cx + $i[0]) ($cy + $i[1]) 43
+	}
+	foreach ($p in @(@(-850, 0), @(850, 0), @(0, 700))) { Add-Hole (Get-Rock ($cx + $p[0]) ($cy + $p[1]) 90) $swamp "ROCK4" }
+	Add-WallThings $cx $cy ($r - 60) 45 8 22.5
+	Add-ZoneStart $cx $cy $r 1
+
+	# 2. Gourmandise : la boue sous une pluie sans fin, et au centre la gueule de
+	# Cerbère, en deux marches, avec ses trois têtes de chair.
+	$cx = 8000; $cy = 0; $r = 1300
+	$mud = New-Sector 0 "RROCK16" 136 0xC8A070 320
+	$slope = New-Sector -24 "RROCK18" 128 0xB89060 320
+	$maw = New-Sector -48 "NUKAGE1" 144 0xA0D070 320
+	Add-Enclosure (Get-RegularPolygon $r 16 11.25 $cx $cy) $mud "ROCK3"
+	Add-Border (Get-RegularPolygon 820 16 11.25 $cx $cy) $slope $mud "ROCK3"
+	Add-Border (Get-RegularPolygon 430 16 11.25 $cx $cy) $maw $slope "SKIN2"
+	foreach ($a in @(90, 210, 330))
+	{
+		$p = Get-Polar 625 $a
+		Add-Hole (Get-Rock ($cx + $p[0]) ($cy + $p[1]) 115 8) $slope "SKIN2"
+	}
+	Add-WallThings $cx $cy 470 37 3 30
+	Add-WallThings $cx $cy ($r - 60) 57 8 22.5
+	Add-ZoneStart $cx $cy $r 2
+
+	# 3. Luxure : le vent des amants, qui tournent sans fin autour de colonnes de marbre
+	# à visages ; au centre, une estrade éclairée.
+	$cx = 16000; $cy = 0; $r = 1300
+	$hall = New-Sector 0 "FLAT5_3" 168 0xFF98C8 384
+	$dais = New-Sector 16 "FLOOR4_8" 184 0xFFB0D8 384
+	Add-Enclosure (Get-RegularPolygon $r 16 11.25 $cx $cy) $hall "MARBLE2"
+	Add-Border (Get-RegularPolygon 260 8 22.5 $cx $cy) $dais $hall "MARBLE1"
+	for ($i = 0; $i -lt 8; $i++)
+	{
+		$p = Get-Polar 600 (22.5 + 45 * $i)
+		Add-Hole (Get-RegularPolygon 56 8 22.5 ($cx + $p[0]) ($cy + $p[1])) $hall "MARBFACE"
+	}
+	for ($i = 0; $i -lt 12; $i++)
+	{
+		$p = Get-Polar 880 (15 + 30 * $i)
+		Add-Hole (Get-RegularPolygon 40 8 22.5 ($cx + $p[0]) ($cy + $p[1])) $hall "MARBLE1"
+	}
+	Add-WallThings $cx $cy 150 35 4 45
+	Add-WallThings $cx $cy ($r - 60) 46 8 22.5
+	Add-ZoneStart $cx $cy $r 3
+
+	# 4. Envie : un cloître gris où les envieux marchent les yeux cousus, entre huit
+	# piliers de pierre verte ; au centre, un œil qui regarde tout.
+	$cx = 24000; $cy = 0; $r = 1300
+	$cloister = New-Sector 0 "FLAT1" 136 0x98E0A0 352
+	Add-Enclosure (Get-RegularPolygon $r 8 22.5 $cx $cy) $cloister "STONE3"
+	foreach ($gx in @(-520, 0, 520))
+	{
+		foreach ($gy in @(-520, 0, 520))
+		{
+			if ($gx -eq 0 -and $gy -eq 0) { continue }
+			Add-Hole (Get-Rectangle ($cx + $gx) ($cy + $gy) 120 120 0) $cloister "GSTONE1"
+		}
+	}
+	Add-Thing $cx $cy 41
+	foreach ($p in @(@(-260, -260), @(260, -260), @(-260, 260), @(260, 260))) { Add-Thing ($cx + $p[0]) ($cy + $p[1]) 56 }
+	Add-WallThings $cx $cy ($r - 140) 56 8 22.5
+	Add-ZoneStart $cx $cy $r 4
+
+	# 5. Avarice : une salle d'or où roulent six poids énormes, et des tas d'or éclairés
+	# de bougies.
+	$cx = 0; $cy = 8000; $r = 1300
+	$vault = New-Sector 0 "FLOOR0_1" 168 0xFFD870 352
+	Add-Enclosure (Get-RegularPolygon $r 16 11.25 $cx $cy) $vault "BROWN1"
+	for ($i = 0; $i -lt 6; $i++)
+	{
+		$p = Get-Polar 650 (60 * $i)
+		Add-Hole (Get-RegularPolygon 150 10 0 ($cx + $p[0]) ($cy + $p[1])) $vault "ROCK3"
+	}
+	foreach ($a in @(45, 135, 225, 315))
+	{
+		$p = Get-Polar 330 $a
+		$pile = New-Sector 16 "CEIL5_1" 192 0xFFE080 352
+		Add-Border (Get-Rock ($cx + $p[0]) ($cy + $p[1]) 120 8) $pile $vault "BROWN1"
+		Add-Thing ($cx + $p[0]) ($cy + $p[1]) 34
+	}
+	Add-WallThings $cx $cy ($r - 60) 35 8 22.5
+	Add-ZoneStart $cx $cy $r 5
+
+	# 6. Colère : le Styx de sang où les coléreux se déchirent, entre deux rives, autour
+	# d'une île de roche et de feu.
+	$cx = 8000; $cy = 8000; $r = 1300
+	$bank = New-Sector 0 "RROCK11" 152 0xFF8060 320
+	$blood = New-Sector -16 "BLOOD1" 176 0xFF4030 320
+	$island = New-Sector 0 "RROCK09" 160 0xFF9070 320
+	Add-Enclosure (Get-RegularPolygon $r 16 11.25 $cx $cy) $bank "FIRELAVA"
+	Add-Border (Get-RegularPolygon 900 16 11.25 $cx $cy) $blood $bank "ROCKRED2"
+	Add-Border (Get-RegularPolygon 600 16 11.25 $cx $cy) $island $blood "ROCKRED2"
+	foreach ($p in @(@(-260, 120), @(260, 120), @(0, -260))) { Add-Hole (Get-Rock ($cx + $p[0]) ($cy + $p[1]) 90) $island "ROCKRED1" }
+	foreach ($p in @(@(0, 200), @(-200, -120), @(200, -120))) { Add-Thing ($cx + $p[0]) ($cy + $p[1]) 70 }
+	Add-WallThings $cx $cy ($r - 60) 46 8 22.5
+	Add-ZoneStart $cx $cy $r 6
+
+	# 7. Orgueil : la salle de marbre de Lucifer, bâtie sur le lac gelé du Cocyte ; huit
+	# colonnes, quatre piliers à visages et, au centre, un trône trop haut pour être pris.
+	$cx = 16000; $cy = 8000; $r = 1500
+	$ice = New-Sector 0 "FLOOR7_2" 168 0xC8D8FF 512
+	$throne = New-Sector 48 "FLAT14" 192 0xFFE0C0 512
+	Add-Enclosure (Get-RegularPolygon $r 8 22.5 $cx $cy) $ice "MARBGRAY"
+	Add-Border (Get-RegularPolygon 220 8 22.5 $cx $cy) $throne $ice "MARBLE1"
+	for ($i = 0; $i -lt 8; $i++)
+	{
+		$p = Get-Polar 1050 (45 * $i)
+		Add-Hole (Get-RegularPolygon 70 8 22.5 ($cx + $p[0]) ($cy + $p[1])) $ice "MARBLE1"
+	}
+	for ($i = 0; $i -lt 4; $i++)
+	{
+		$p = Get-Polar 520 (45 + 90 * $i)
+		Add-Hole (Get-RegularPolygon 64 8 22.5 ($cx + $p[0]) ($cy + $p[1])) $ice "MARBFAC2"
+	}
+	Add-WallThings $cx $cy 140 35 4 0
+	Add-WallThings $cx $cy ($r - 180) 46 8 22.5
+	Add-ZoneStart $cx $cy $r 7
+}
 else
 {
 	# Le vestibule : trois bandes du nord au sud (la plaine, l'Achéron, l'autre rive),

@@ -183,6 +183,7 @@ $allFailures += Invoke-Scenario "boutique" @(
 	"wait 5", "netevent sinwave_arena 1",		# ...l'autre carte : écran des règles
 	"wait 5", "netevent sinwave_rule 1 1",		# vie des ennemis +25 %
 	"wait 5", "netevent sinwave_rule 5 1",		# départ au cercle 2
+	"wait 5", "netevent sinwave_rule 7 1",		# défi du péché du cercle 2 (Orgueil) coché
 	"wait 5", "netevent sinwave_descend",		# voyage puis démarrage automatique
 	"wait 105"
 ) @(
@@ -199,13 +200,16 @@ $allFailures += Invoke-Scenario "boutique" @(
 	'Sinwave_StateChangedEvent : ArenaSelect -> Rules',
 	'Sinwave_RulesChangedEvent : health=1\.25',
 	'Sinwave_RulesChangedEvent : .*circle=2',
+	'Sinwave_RulesChangedEvent : .*challenges=2',			# bit 1 : deuxième cercle
 	'Sinwave_MetaLoadedEvent : 460 indulgences',			# nouvelle carte : méta relue
 	'Sinwave_StateChangedEvent : None -> Menu',
 	'Sinwave_StateChangedEvent : Menu -> InGame',			# démarrage automatique après le voyage
 	'Sinwave_RunStartedEvent',
-	'Sinwave_CircleStartedEvent : 2/2',						# départ au cercle choisi
 	'Sinwave_EffectGrantedEvent : give Shotgun',
-	'Sinwave_EffectGrantedEvent : maxhealth'
+	'Sinwave_EffectGrantedEvent : maxhealth',
+	'Sinwave_CircleStartedEvent : 2/2',						# départ au cercle choisi, au tic qui suit RunStarted
+	'Sinwave_ChallengeStartedEvent : pride',
+	'Sinwave_EffectGrantedEvent : damage -0\.20'				# effet du défi de l'Orgueil
 )
 
 # 4. Avec l'interface : un menu ne doit pas survivre au changement de carte (il
