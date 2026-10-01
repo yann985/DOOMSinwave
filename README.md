@@ -127,7 +127,11 @@ Dans le jeu, `sinwave_debug 1` (console, touche `²`) affiche chaque événement
 ## Conventions
 
 - Classes ZScript préfixées par `Sinwave_` (ZScript n'a pas d'espaces de noms).
-- La branche `main` reste toujours jouable ; les nouveautés se font sur une branche (`feat/event-bus`, `fix/xp-orbes`…) puis sont fusionnées.
+- Branches :
+  - `main` ne reçoit que les versions publiées, chacune marquée d'un tag (`v0.1.0`…) : elle reste toujours jouable ;
+  - `dev` rassemble le travail en cours ;
+  - chaque nouveauté se fait sur sa propre branche, partie de `dev` (`feat/event-bus`, `fix/hud-ordre`…), puis y revient par une fusion `--no-ff` : l'historique garde la trace de chaque branche ;
+  - quand `dev` est stable (tests verts sur Freedoom et Doom II), elle est fusionnée dans `main` et taguée.
 - Messages de commit : `type(couche): description`, par exemple `feat(core): ajoute le bus d'événements`.
   Types : `feat`, `fix`, `refactor`, `data`, `ui`, `docs`, `build`, `chore`.
 - Une version se publie avec un tag : `git tag v0.1.0` puis `git push --tags`. GitHub construit alors le build Windows et le met dans *Releases*.
