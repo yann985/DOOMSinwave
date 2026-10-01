@@ -11,17 +11,23 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
 
 **La run minimale du sujet (2 à 3 minutes) :** lance le jeu, appuie sur Utiliser (E), choisis **Le Vestibule**, puis *Descendre*. Deux vagues, de l'XP, des choix d'amélioration, le boss Charon, le score final, puis la sauvegarde des indulgences et du Jugement.
 
-1. Choisis une arène : **Le Vestibule** (1 cercle, 2 vagues puis le boss Charon, 2 à 3 minutes), **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes) ou **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé). Leurs cartes suivent la géographie de Dante :
+1. Choisis une arène : **Le Vestibule** (1 cercle, 2 vagues puis le boss Charon, 2 à 3 minutes), **Le Purgatoire** (7 cercles puis le boss Lucifer, environ 8 minutes), **Les Limbes** (3 cercles, environ 6 minutes, plus dur et mieux payé) ou le **Mode histoire : la Descente** (7 cercles de 5 minutes puis Lucifer, environ 37 minutes). Leurs cartes suivent la géographie de Dante :
    - le Vestibule est l'antichambre de l'Enfer : on entre par sa porte, puis une plaine de cendre semée de rochers mène à l'Achéron, le fleuve de Charon ;
    - le Purgatoire est l'entonnoir de l'Enfer : des terrasses qui descendent, des aiguilles de roche, des tombeaux ardents, un fleuve de sang, et au centre le lac gelé où attend Lucifer ;
-   - les Limbes sont un noble château : un champ obscur, un fossé, un rempart percé de sept portes, et au centre une prairie lumineuse. Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
+   - les Limbes sont un noble château : un champ obscur, un fossé, un rempart percé de sept portes, et au centre une prairie lumineuse ;
+   - la Descente a un décor par péché, et tu passes de l'un à l'autre à chaque cercle : le marais de la Paresse, la gueule de la Gourmandise, les colonnes de la Luxure, le cloître de l'Envie, l'or de l'Avarice, le Styx de la Colère, puis le trône gelé de l'Orgueil.
+
+   Règle ensuite la descente : difficulté prédéfinie ou défi personnalisé (vie, vitesse et rythme des ennemis, dégâts subis), et cercle de départ. Plus c'est dur, plus ça rapporte.
 2. Chaque cercle est un péché et impose sa **malédiction**. Exemples : l'Avarice fait disparaître les orbes, la Colère fait enrager les ennemis blessés. Un cercle enchaîne plusieurs **vagues**, chacune plus dure que la précédente, avant de passer au cercle suivant.
-3. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche.
-4. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis parmi trois propositions :
+
+   Dans l'onglet **Défis des péchés** des règles, tu peux cocher, pour chaque cercle, une contrainte en plus liée à son péché (+10 % de récompense chacune). Par exemple, dans le cercle de l'Avarice, les ennemis lâchent deux fois moins de soins et de munitions ; dans celui de la Gourmandise, ils arrivent avec 30 % de vie en plus.
+3. **Mode histoire.** Avant chaque cercle de la Descente, un texte raconte la suite. De ton vivant, tu as fait le mal, puis tu as voulu changer, mais tu es mort avant. Les anges ne savent pas quoi faire de ton âme : ils t'envoient en Enfer pour voir si tu tiens face aux démons et aux tentations. Le récit change selon ta balance de l'âme (vertu, équilibre ou péché). Si ta corruption est au maximum, tu tues Lucifer et tu deviens l'**Icône du Péché**.
+4. Une marque rouge autour du viseur t'avertit quand un ennemi hors de ta vue prépare une attaque ou qu'un projectile arrive dans ton dos, avant qu'il ne te touche. Elle peut être masquée dans les options.
+5. Ramasse les orbes bleues d'expérience. À chaque niveau, choisis parmi trois propositions :
    - une **vertu** : un petit bonus, et ton âme se purifie ;
    - un **péché** : un gros bonus avec un défaut, et ton âme se corrompt ;
    - la troisième est souvent un **neutre** : un bonus moyen, sans défaut, et ton âme ne bouge pas. Plus ton âme penche, plus les neutres sont rares.
-5. Tes choix font pencher la **balance de l'âme** (corruption de 0 à 30, départ à 15, l'équilibre) : les péchés la font monter, les vertus descendre. Plus elle penche, plus la partie change :
+6. Tes choix font pencher la **balance de l'âme** (corruption de 0 à 30, départ à 15, l'équilibre) : les péchés la font monter, les vertus descendre. Plus elle penche, plus la partie change :
    - vers le péché : plus de munitions et moins de soins, jusqu'aux **munitions infinies** ;
    - vers la vertu : l'inverse, jusqu'à l'**aura sainte** ;
    - la pente est glissante : une âme qui penche se voit proposer plus de choix de son côté ;
@@ -29,7 +35,7 @@ Prototype du projet Aegis (B3 Workshop 1) : l'accent est mis sur l'architecture 
    - le boss suit ton âme : plus elle est pure, plus il est fort mais seul ; plus elle est corrompue, plus il est faible mais entouré.
 
    En fin de run : **Absolution**, **Purgatoire** ou **Damnation**.
-6. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique**. Elle a quatre rayons :
+7. Les **indulgences** gagnées s'achètent entre les runs, à la **boutique**. Elle a quatre rayons :
    - l'**Armurerie**, toujours ouverte ;
    - la **Grâce** (vie, défense, soins), l'**Équilibre** (objets compensés) et la **Corruption** (dégâts, vitesse), ouverts selon ton **Jugement**.
 
@@ -46,10 +52,16 @@ Le jeu se joue entièrement au clavier et à la souris, ou à la manette (activ�
 | Boutique des indulgences (écran titre ou écran de fin) | B | | B |
 | Pause de la run | P | | Start |
 | Choisir dans un menu | flèches + Entrée, ou 1 à 9 | survol + clic, molette | croix ou stick gauche + A |
-| Régler une valeur (règles de la descente), changer de rayon (boutique) | Gauche / Droite | clic sur `<` ou `>`, clic sur un rayon | croix gauche / droite |
+| Régler une valeur ou cocher un défi (règles de la descente), changer de rayon (boutique) | Gauche / Droite | clic sur `<` ou `>`, clic sur un onglet | croix gauche / droite |
+| Lire la suite du récit (mode histoire) | Entrée ou Échap | clic | A |
 | Revenir en arrière | Échap | clic droit ou bouton *Retour* | B |
 
 Les touches B et P se changent dans *Options → Commandes → Sinwave*. Tant qu'elles ne servent à rien d'autre, B et P marchent toujours, même si leur liaison a disparu de la configuration de GZDoom. Hors d'une run, Start ouvre le menu de GZDoom (options, quitter).
+
+*Options → Options de Sinwave* (aussi dans le menu de pause) :
+
+- **Flèches des menaces** : affichées ou masquées ;
+- **Tir** : *maintenir la touche* (comme dans Doom), ou *appuyer pour basculer* (un appui commence à tirer, un autre arrête).
 
 ### Freedoom ou le vrai Doom II
 
@@ -96,8 +108,9 @@ src/                     contenu du jeu -> build/sinwave.pk3
   zscript/data/          définitions chargées depuis data/, sauvegarde
   zscript/gameplay/      événements, états, systèmes, malédictions, acteurs
   zscript/ui/            modèle, présentateur, HUD, menus
-  data/                  contenu : arènes, cercles, ennemis, malédictions, vertus, neutres et péchés, âme, boutique, Jugement
-  maps/                  SW01 Les Limbes, SW02 Le Purgatoire, SW03 Le Vestibule (tools/generate-arena.ps1)
+  data/                  contenu : arènes, cercles, ennemis, malédictions et défis, vertus, neutres et péchés, âme, boutique, Jugement, récit
+  maps/                  SW01 Les Limbes, SW02 Le Purgatoire, SW03 Le Vestibule, SW04 La Descente (tools/generate-arena.ps1)
+  MENUDEF.txt            menu « Options de Sinwave »
 tests/smoke/             archive de test chargée par-dessus le jeu + tests unitaires
 tools/                   build, lancement, tests, packaging
 docs/                    documentation (architecture)
