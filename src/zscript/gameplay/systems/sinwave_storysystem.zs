@@ -11,8 +11,8 @@
 //  système choisit la bonne d'après le dernier palier annoncé. Il ne sait pas comment
 //  le texte est affiché : l'interface s'en charge.
 //
-//  La corruption n'est pas remise à zéro au début d'une run : CircleStarted, publié
-//  pendant RunStarted, peut arriver avant lui. Elle l'est à la fin de chaque run.
+//  La corruption n'est pas remise à zéro au début d'une run : CorruptionChanged,
+//  publié pendant RunStarted, peut arriver avant lui. Elle l'est à la fin de chaque run.
 
 class Sinwave_StorySystem : Sinwave_System
 {

@@ -37,6 +37,7 @@ class Sinwave_WaveSystem : Sinwave_System
 	private Sinwave_RunRules mRules;
 	private bool mRunning;
 	private bool mSuspended;
+	private bool mStartPending;		// premier cercle : au tic qui suit RunStarted
 	private int mCircle;
 	private int mWave;				// vague en cours dans le cercle
 	private int mWaveTics;
@@ -89,6 +90,14 @@ class Sinwave_WaveSystem : Sinwave_System
 	{
 		if (!mRunning || mSuspended) return;
 
+		if (mStartPending)
+		{
+			mStartPending = false;
+			// Cercle de départ choisi dans les règles de la descente.
+			StartCircle(clamp(mRules.mStartCircle - 1, 0, mData.mCircles.Size() - 1));
+			return;
+		}
+
 		// Pendant un répit, les ennemis restants attaquent encore, mais aucun n'apparaît.
 		if (mBreakTics > 0)
 		{
@@ -140,13 +149,17 @@ class Sinwave_WaveSystem : Sinwave_System
 			mBus.Publish(new('Sinwave_AllCirclesClearedEvent'));
 			return;
 		}
-		// Cercle de départ choisi dans les règles de la descente.
-		StartCircle(clamp(mRules.mStartCircle - 1, 0, mData.mCircles.Size() - 1));
+		// Le premier cercle commence au tic suivant, une fois que tous les systèmes ont
+		// reçu RunStarted : publié pendant RunStarted, il arriverait avant lui chez
+		// les systèmes abonnés après celui-ci, qui effaceraient en démarrant la run ce
+		// que le cercle vient de mettre en place (le ralentissement de la Paresse...).
+		mStartPending = true;
 	}
 
 	private void StopRun()
 	{
 		mRunning = false;
+		mStartPending = false;
 		// Les ennemis restants disparaissent sans mourir : ni XP ni score après la fin.
 		for (int i = 0; i < mAlive.Size(); i++)
 		{

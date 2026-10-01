@@ -95,7 +95,7 @@ class Sinwave_HudPresenter : Sinwave_System
 			// RunStarted, arrive avant lui et donne déjà l'équilibre de départ.
 			m.mBossActive = false;
 			m.mResultReady = false;
-			// Pas de bandeau ici : le premier cercle, annoncé pendant RunStarted, a le sien.
+			// Pas de bandeau ici : le premier cercle, annoncé au tic suivant, a le sien.
 			return;
 		}
 		if (e is 'Sinwave_ShopRequestedEvent' && m.mRunActive)
